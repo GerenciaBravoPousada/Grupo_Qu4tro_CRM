@@ -383,7 +383,7 @@ function pickSessionHouse(h){el('sessionHouseStart').value=h;document.querySelec
 function applySessionHouse(){const h=getSessionHouse();const top=el('sessionHouse');if(top&&h)top.value=h;const ci=el('ciHouse');if(ci&&h)ci.value=h;if(h){applyHouseBranding(h);updateCheckinBranding(h);setupReservationHouseFilter(true);if(el('view-reservations')?.classList.contains('active'))renderReservations()}}
 function changeSessionHouse(h){if(!h)return;sessionStorage.setItem('qu4tro_reception_house',h);applySessionHouse();toast('Recepção padrão alterada para '+houseLabel(h)+'.')}
 function startSession(){const h=el('sessionHouseStart').value;if(!h){toast('Selecione a recepção desta sessão.');return}sessionStorage.setItem('qu4tro_reception_house',h);el('sessionOverlay').classList.remove('show');applySessionHouse();toast('Sessão iniciada • '+houseLabel(h))}
-function ensureSession(){const h=getSessionHouse();if(!h){el('sessionOverlay')?.classList.add('show')}else applySessionHouse()}
+function ensureSession(){let h=getSessionHouse();if(!h){const u=(typeof getCurrentUser==='function')?getCurrentUser():null;if(u&&u.houses&&u.houses.length>0){h=u.houses[0]}else{h='Leña'}sessionStorage.setItem('qu4tro_reception_house',h)}applySessionHouse()}
 function currentClock(){const d=new Date();return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')}
 function duplicateCandidates(name,phone,selectedId){const nn=foldText(name), p=normalizePhone(phone);return state.clients.filter(c=>{
  const samePhone=p&&normalizePhone(c.phone)===p;
