@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GRUPO QU4TRO • Redirecionando</title>
+  <script>
+    (function(){
+      var p = (window.location.pathname || '').toLowerCase();
+      if (p.indexOf('iconi') !== -1) {
+        window.location.replace('/?public=iconiko');
+      } else if (p.indexOf('lena') !== -1 || p.indexOf('le%c3%b1a') !== -1 || p.indexOf('leña') !== -1) {
+        window.location.replace('/?public=lena');
+      } else if (p.indexOf('bravo') !== -1 || p.indexOf('cafe') !== -1 || p.indexOf('caf%c3%a9') !== -1) {
+        window.location.replace('/?public=cafe');
+      } else {
+        window.location.replace('/');
+      }
+    })();
+  </script>
+</head>
+<body style="background:#0f172a;color:#f8fafc;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0">
+  <div style="text-align:center">
+    <h2>GRUPO QU4TRO</h2>
+    <p>Redirecionando...</p>
+  </div>
+</body>
+</html>

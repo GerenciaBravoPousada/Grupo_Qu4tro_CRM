@@ -1328,14 +1328,33 @@ function segData(){const cc=state.clients.map(calcClient);return {'VIP ativo':cc
 function renderSegments(){const s=segData(),desc={'VIP ativo':'5+ visitas e retorno nos últimos 60 dias.','Recorrentes':'Clientes com duas ou mais visitas.','Novos':'Uma visita recente; janela ideal para estimular o segundo retorno.','Em risco':'Recorrentes afastados por mais de 90 dias.','Só Íconico':'Conhecem Íconico, mas ainda não registraram visita ao Leña.','Só Leña':'Conhecem Leña, mas ainda não registraram visita ao Íconico.'};el('segmentGrid').innerHTML=Object.entries(s).map(([k,a])=>`<button class="card seg-card" style="text-align:left;border:1px solid var(--line)" onclick="showSegment('${k}')"><h3>${k}</h3><div class="big">${a.length.toLocaleString('pt-BR')}</div><p>${desc[k]}</p></button>`).join('');if(selectedSegment)showSegment(selectedSegment)}
 function showSegment(k){selectedSegment=k;const a=segData()[k]||[];el('selectedSegmentLabel').textContent=`${k} • ${a.length} clientes`;el('segmentList').className='';el('segmentList').innerHTML=`<div class="table-wrap" style="max-height:420px"><table class="data-table"><thead><tr><th>Cliente</th><th>Telefone</th><th>Última visita</th><th>Visitas</th><th></th></tr></thead><tbody>${a.slice(0,100).map(c=>`<tr><td>${esc(c.name)}</td><td>${fmtPhone(c.phone)}</td><td>${fmtDate(c.lastVisit)}</td><td>${c.totalVisits}</td><td><button class="iconbtn" onclick="openProfile('${c.id}')">Ver</button></td></tr>`).join('')}</tbody></table></div>`}
 function renderIntelligence(){const cc=state.clients.map(calcClient),risk=cc.filter(c=>c.totalVisits>=2&&daysSince(c.lastVisit)>90),newRecent=cc.filter(c=>c.totalVisits<=1&&daysSince(c.lastVisit)<=30),vip=cc.filter(c=>c.totalVisits>=5&&daysSince(c.lastVisit)<=60);el('intelligenceList').innerHTML=`<div class="insight"><strong>Recuperação: ${risk.length} clientes</strong><p>Já voltaram pelo menos uma vez, mas estão há mais de 90 dias sem visita. É o público com sinal mais claro para campanha de retorno.</p></div><div class="insight"><strong>Segundo retorno: ${newRecent.length} clientes</strong><p>Clientes recentes com apenas uma visita. Janela útil para transformar aquisição em recorrência.</p></div><div class="insight"><strong>Relacionamento VIP: ${vip.length} clientes</strong><p>Clientes de alta frequência ainda ativos. Podem receber tratamento de fidelização e reconhecimento.</p></div>`;const onlyI=cc.filter(c=>c.iconico>0&&c.lena===0),onlyL=cc.filter(c=>c.lena>0&&c.iconico===0),both=cc.filter(c=>c.iconico>0&&c.lena>0),mx=Math.max(onlyI.length,onlyL.length,both.length,1);el('crossHouse').innerHTML=[['Só Íconico',onlyI.length],['Só Leña',onlyL.length],['Conhecem as duas',both.length]].map(([k,n])=>`<div class="barrow"><span>${k}</span><div class="bartrack"><div class="bar" style="width:${n/mx*100}%"></div></div><strong>${n}</strong></div>`).join('')}
-function getPublicBaseUrl(){const saved=localStorage.getItem('qu4tro_public_base_url');if(saved)return saved.replace(/[?#].*$/,'');return location.href.split('?')[0].split('#')[0]}
-function publicUrl(house){return getPublicBaseUrl()+'?public='+house}
+function getPublicBaseUrl(){
+  const saved=localStorage.getItem('qu4tro_public_base_url');
+  if(saved)return saved.replace(/[?#].*$/,'');
+  if(location.hostname.includes('crm-grupo-qu4tro.iconiko.com.br')){
+    return 'https://crm-grupo-qu4tro.iconiko.com.br';
+  }
+  return location.href.split('?')[0].split('#')[0];
+}
+function publicUrl(house){
+  const base=getPublicBaseUrl().replace(/\/+$/, '');
+  const h=String(house||'').toLowerCase();
+  const slug=(h.includes('lena')||h==='leña')?'lena':(h.includes('iconi')?'iconiko':'bravocafe');
+  if(base.includes('crm-grupo-qu4tro.iconiko.com.br')){
+    return base+'/'+slug;
+  }
+  return base+'/?public='+slug;
+}
 function drawQr(containerId,url){const box=el(containerId);if(!box)return;box.innerHTML='';try{if(window.QRCode){new QRCode(box,{text:url,width:220,height:220,colorDark:'#1a1a1a',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.M});return}}catch(err){console.warn('QRCode local error:',err)}const img=document.createElement('img');img.alt='QR Code';img.src='https://quickchart.io/qr?size=220&text='+encodeURIComponent(url);img.onerror=function(){img.onerror=null;img.src='https://api.qrserver.com/v1/create-qr-code/?size=220x220&data='+encodeURIComponent(url)};box.appendChild(img)}
 function renderQRCodes(){const base=getPublicBaseUrl();if(el('publicBaseUrl'))el('publicBaseUrl').value=base;const lena=publicUrl('lena'),ico=publicUrl('iconiko'),cafe=publicUrl('cafe');if(el('urlLena'))el('urlLena').textContent=lena;if(el('urlIconiko'))el('urlIconiko').textContent=ico;if(el('urlIconico'))el('urlIconico').textContent=ico;if(el('urlCafe'))el('urlCafe').textContent=cafe;drawQr('qrLena',lena);drawQr('qrIconiko',ico);drawQr('qrIconico',ico);drawQr('qrCafe',cafe)}
 function savePublicBaseUrl(){const v=el('publicBaseUrl').value.trim();if(!v){toast('Informe a URL pública.');return}localStorage.setItem('qu4tro_public_base_url',v.replace(/[?#].*$/,''));renderQRCodes();toast('URL pública atualizada.')}
 function testPublicRegistration(house){history.replaceState(null,'',location.pathname+'?public='+house);initPublicMode(house)}
 function copyPublicUrl(house){navigator.clipboard?.writeText(publicUrl(house)).then(()=>toast('Link copiado.')).catch(()=>toast(publicUrl(house)))}
-function initPublicMode(house){house=(house||'').toLowerCase();if(!['lena','iconiko','cafe'].includes(house))return;document.querySelector('.app').style.display='none';const pr=el('publicRegistration');pr.className='public-reg show house-'+house;const key=house==='lena'?'Leña':house==='iconiko'?'Íconico':'Bravo Café',b=HOUSE_BRANDING[key];el('publicHouseLogo').src=b.logo;el('publicHouseTop').textContent='Cadastro • '+b.label;el('publicHousePill').textContent=b.label.toUpperCase();el('publicForm').dataset.house=key;el('pubName').value='';el('pubPhone').value='';el('pubSource').value='';el('publicCard').querySelector('h1').textContent='Faça seu cadastro';el('publicForm').style.display='block'}
+function initPublicMode(house){
+  house=(house||'').toLowerCase();
+  if(house==='bravocafe'||house==='cafedabravopousada'||house==='bravo'||house.includes('cafe'))house='cafe';
+  if(house==='leña')house='lena';
+  if(!['lena','iconiko','cafe'].includes(house))return;document.querySelector('.app').style.display='none';const pr=el('publicRegistration');pr.className='public-reg show house-'+house;const key=house==='lena'?'Leña':house==='iconiko'?'Íconico':'Bravo Café',b=HOUSE_BRANDING[key];el('publicHouseLogo').src=b.logo;el('publicHouseTop').textContent='Cadastro • '+b.label;el('publicHousePill').textContent=b.label.toUpperCase();el('publicForm').dataset.house=key;el('pubName').value='';el('pubPhone').value='';el('pubSource').value='';el('publicCard').querySelector('h1').textContent='Faça seu cadastro';el('publicForm').style.display='block'}
 function leavePublicMode(){el('publicRegistration').classList.remove('show');document.querySelector('.app').style.display='grid';history.replaceState(null,'',location.pathname);go('qrcodes')}
 function markField(fieldId,errorId,msg){const f=el(fieldId),err=el(errorId);f.classList.toggle('invalid',!!msg);if(err)err.textContent=msg||''}
 function submitPublicRegistration(e){e.preventDefault();const house=el('publicForm').dataset.house,nv=validateClientName(el('pubName').value),pv=validatePhone(el('pubPhone').value);markField('pubNameField','pubNameError',nv.ok?'':nv.msg);markField('pubPhoneField','pubPhoneError',pv.ok?'':pv.msg);if(!nv.ok){el('pubName').focus();return}if(!pv.ok){el('pubPhone').focus();return}const existing=state.clients.find(c=>normalizePhone(c.phone)===pv.value);if(existing){el('publicCard').innerHTML=`<div class="success-box"><div style="font-size:34px">✓</div><h2 style="margin:8px 0">Cadastro localizado</h2><p>Seu telefone já consta em nossa base como <strong>${esc(existing.name)}</strong>.</p><p style="font-size:12px;color:var(--muted)">Pode avisar nossa equipe na recepção que o cadastro já foi localizado.</p><button class="btn" onclick="location.reload()" style="margin-top:8px">Concluir</button></div>`;return}const d=today(),source=el('pubSource').value||'QR Code';state.clients.unshift({id:'C-'+Date.now(),name:nv.value,phone:pv.value,firstVisit:'',lastVisit:'',iconico:0,lena:0,firstHouse:'',visitedIconico:'Não',visitedLena:'Não',source,totalVisits:0,registrationHouse:house,registrationChannel:'QR Code',registeredAt:new Date().toISOString()});save();el('publicCard').innerHTML=`<div class="success-box"><div style="font-size:34px">✓</div><h2 style="margin:8px 0">Cadastro concluído</h2><p>Obrigado, <strong>${esc(nv.value.split(' ')[0])}</strong>. Seu cadastro no ${esc(house)} foi registrado.</p><p style="font-size:12px;color:var(--muted)">Agora é só aguardar a orientação da nossa equipe.</p></div>`}
@@ -1347,8 +1366,22 @@ function resetData(){if(!confirm('Restaurar a base inicial deste protótipo? Alt
 function exportCSV(type){const rows=type==='clients'?getFilteredClients():state.visits;let headers,body;if(type==='clients'){headers=['Nome','Telefone','Primeira visita','Última visita','Visitas Iconico','Visitas Lena','Visitas Bravo Cafe','Total','Origem','Segmento'];body=rows.map(c=>[c.name,c.phone,c.firstVisit,c.lastVisit,c.iconico,c.lena,c.cafe||0,c.totalVisits,c.source,segmentOf(c)])}const csv=[headers,...body].map(r=>r.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(';')).join('\n');const blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='grupo_qu4tro_clientes.csv';a.click();URL.revokeObjectURL(a.href)}
 function refreshAll(){renderDashboard();renderClients();renderReservations();renderSegments();renderIntelligence();renderData();renderCheckinStats();renderQRCodes();renderSettings();renderUsers();renderUserSessionBadge()}
 refreshAll();
-const publicParam=new URLSearchParams(location.search).get('public');if(publicParam)initPublicMode(publicParam);
+let publicParam=new URLSearchParams(location.search).get('public');
+if(!publicParam){
+  const p=(location.pathname||'').toLowerCase();
+  if(p.includes('iconi'))publicParam='iconiko';
+  else if(p.includes('lena')||p.includes('leña')||p.includes('le%c3%b1a'))publicParam='lena';
+  else if(p.includes('bravo')||p.includes('cafe')||p.includes('caf%c3%a9'))publicParam='cafe';
+}
+if(publicParam)initPublicMode(publicParam);
 
-setTimeout(()=>{const pub=new URLSearchParams(location.search).get('public');if(!pub)ensureSession()},0);
+setTimeout(()=>{
+  let pubCheck=new URLSearchParams(location.search).get('public');
+  if(!pubCheck){
+    const p=(location.pathname||'').toLowerCase();
+    if(p.includes('iconi')||p.includes('lena')||p.includes('leña')||p.includes('bravo')||p.includes('cafe'))pubCheck='1';
+  }
+  if(!pubCheck)ensureSession();
+},0);
 </script>
 </body></html>
