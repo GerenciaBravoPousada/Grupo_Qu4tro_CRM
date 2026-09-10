@@ -52,6 +52,7 @@ body[data-house] .sidebar{background:linear-gradient(180deg,var(--nav),color-mix
 .user-chip-role{font-size:9.5px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:0.4px}
 .badge-role-master{background:#0f766e;color:#fff;border-radius:6px;padding:2px 7px;font-size:11px;font-weight:700;display:inline-block}
 .badge-role-gerente{background:#1e40af;color:#fff;border-radius:6px;padding:2px 7px;font-size:11px;font-weight:700;display:inline-block}
+.badge-role-atendimento{background:#2563eb;color:#fff;border-radius:6px;padding:2px 7px;font-size:11px;font-weight:700;display:inline-block}
 .badge-role-operador{background:#475569;color:#fff;border-radius:6px;padding:2px 7px;font-size:11px;font-weight:700;display:inline-block}
 .badge-status-active{background:#dcfce7;color:#15803d;border:1px solid #bbf7d0;border-radius:6px;padding:2px 7px;font-size:11px;font-weight:700;display:inline-block}
 .badge-status-inactive{background:#fee2e2;color:#b91c1c;border:1px solid #fecaca;border-radius:6px;padding:2px 7px;font-size:11px;font-weight:700;display:inline-block}
@@ -140,11 +141,13 @@ body[data-house] .sidebar{background:linear-gradient(180deg,var(--nav),color-mix
   <button data-view="clients"><span class="ico">◎</span>Clientes</button>
   <button data-view="checkin"><span class="ico">✓</span>Check-in</button>
   <button data-view="reservations"><span class="ico">▣</span>Reservas</button>
+  <button data-view="waitlist"><span class="ico">⏳</span>Fila de Espera</button>
+  <button data-view="tables"><span class="ico">⊞</span>Mapa de Mesas</button>
   <button data-view="qrcodes"><span class="ico">⌁</span>QR Codes</button>
-  <div class="navsep">Inteligência</div>
+  <div class="navsep" id="navsep-intel">Inteligência</div>
   <button data-view="segments"><span class="ico">◈</span>Segmentos</button>
   <button data-view="intelligence"><span class="ico">↗</span>Inteligência</button>
-  <div class="navsep">Sistema</div>
+  <div class="navsep" id="navsep-system">Sistema</div>
   <button data-view="settings"><span class="ico">⚙</span>Configurações</button>
   <button data-view="users"><span class="ico">👤</span>Usuários & Login</button>
   <button data-view="data"><span class="ico">🗄</span>Dados & Backup</button>
@@ -180,9 +183,57 @@ body[data-house] .sidebar{background:linear-gradient(180deg,var(--nav),color-mix
    <div class="hero"><div><h2>Reservas</h2><p>Pré-check-in e acompanhamento das reservas.</p></div><button class="btn primary" onclick="openReservation()">＋ Nova reserva</button></div><div class="table-card"><div class="table-head"><div class="search"><span>⌕</span><input id="reservationSearch" placeholder="Buscar reserva..."></div><div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><select id="reservationHouse" class="control" title="Filtrar reservas por casa" style="min-width:250px"></select><select id="reservationStatus" class="control"><option value="all">Todos os status</option><option>Pendente</option><option>Confirmada</option><option>Convertida</option><option>Cancelada</option></select></div></div><div class="table-wrap"><table class="data-table"><thead><tr><th>Cliente</th><th>Data</th><th>Hora</th><th>Casa</th><th>Pessoas</th><th>Status</th><th>Ações</th></tr></thead><tbody id="reservationsBody"></tbody></table></div></div>
   </section>
 
+  <section class="view" id="view-waitlist">
+    <div class="hero">
+      <div>
+        <h2>Fila de Espera</h2>
+        <p>Gestão de clientes aguardando mesa, tempo de espera estimado e chamadas por WhatsApp.</p>
+      </div>
+      <div class="actions-row">
+        <button class="btn" onclick="toast('Módulo operacional em desenvolvimento.')">＋ Adicionar à Fila</button>
+      </div>
+    </div>
+    <div class="card" style="padding:32px 24px;text-align:center;background:#fff;border:1px solid var(--line);border-radius:14px">
+      <div style="width:64px;height:64px;border-radius:50%;background:#eff6ff;color:#2563eb;font-size:28px;display:flex;align-items:center;justify-content:center;margin:0 auto 16px">
+        ⏳
+      </div>
+      <h3 style="font-size:18px;margin:0 0 8px;color:var(--ink)">Módulo Fila de Espera em Implementação</h3>
+      <p style="color:var(--muted);max-width:540px;margin:0 auto 20px;font-size:13.5px;line-height:1.5">
+        Este módulo permitirá o controle de clientes aguardando mesa na recepção, tempo médio de espera, aviso por WhatsApp e ordenação por ordem de chegada ou prioridade.
+      </p>
+      <div style="display:inline-flex;align-items:center;gap:8px;background:#f1f5f9;padding:8px 14px;border-radius:20px;font-size:12px;font-weight:600;color:#475569">
+        <span>📍 Operação vinculada:</span> <strong id="waitlistCurrentHouse">Recepção Ativa</strong>
+      </div>
+    </div>
+  </section>
+
+  <section class="view" id="view-tables">
+    <div class="hero">
+      <div>
+        <h2>Mapa de Mesas</h2>
+        <p>Visão esquemática e status de ocupação do salão em tempo real.</p>
+      </div>
+      <div class="actions-row">
+        <button class="btn" onclick="toast('Módulo operacional em desenvolvimento.')">⊞ Configurar Salão</button>
+      </div>
+    </div>
+    <div class="card" style="padding:32px 24px;text-align:center;background:#fff;border:1px solid var(--line);border-radius:14px">
+      <div style="width:64px;height:64px;border-radius:50%;background:#f0fdf4;color:#16a34a;font-size:28px;display:flex;align-items:center;justify-content:center;margin:0 auto 16px">
+        ⊞
+      </div>
+      <h3 style="font-size:18px;margin:0 0 8px;color:var(--ink)">Módulo Mapa de Mesas em Implementação</h3>
+      <p style="color:var(--muted);max-width:540px;margin:0 auto 20px;font-size:13.5px;line-height:1.5">
+        Visão interativa das mesas do restaurante, com indicação de mesas livres, ocupadas, reservadas e fechamento de conta por ambiente.
+      </p>
+      <div style="display:inline-flex;align-items:center;gap:8px;background:#f1f5f9;padding:8px 14px;border-radius:20px;font-size:12px;font-weight:600;color:#475569">
+        <span>📍 Salão vinculado:</span> <strong id="tablesCurrentHouse">Recepção Ativa</strong>
+      </div>
+    </div>
+  </section>
+
   <section class="view" id="view-qrcodes">
    <div class="hero"><div><h2>QR Codes de Cadastro</h2><p>Autoatendimento para novos clientes na recepção de cada casa.</p></div></div>
-   <div class="card" style="margin-bottom:14px"><div class="section-title"><h3>URL pública do cadastro</h3><small>configurável para o deploy</small></div><div class="field"><label>Endereço-base</label><input id="publicBaseUrl" placeholder="https://seu-dominio.com/gestao-clientes"></div><div class="validation-note">No arquivo local, os botões de teste funcionam normalmente. Para o QR ser lido por outro celular, o HTML precisa estar publicado em um endereço web acessível.</div><div class="form-actions"><button class="btn primary" onclick="savePublicBaseUrl()">Salvar URL e atualizar QR Codes</button></div></div>
+   <div class="card" id="qrBaseUrlConfigCard" style="margin-bottom:14px"><div class="section-title"><h3>URL pública do cadastro</h3><small>configurável para o deploy</small></div><div class="field"><label>Endereço-base</label><input id="publicBaseUrl" placeholder="https://seu-dominio.com/gestao-clientes"></div><div class="validation-note">No arquivo local, os botões de teste funcionam normalmente. Para o QR ser lido por outro celular, o HTML precisa estar publicado em um endereço web acessível.</div><div class="form-actions"><button class="btn primary" onclick="savePublicBaseUrl()">Salvar URL e atualizar QR Codes</button></div></div>
    <div class="qr-grid">
 <div class="card qr-card house-lena"><img class="qr-house-logo" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAOEAAABnCAYAAAD2WiW/AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAACK9SURBVHhe7Z15lGRXedh/371vqaW7p2fXSAIto10IEEIICYwQYMkIiLEVHJ8Eg03wcbxgnMTBcU6OscHOcTjxsYntOJYNcWKSeAtYXoRBiwVIwdGCRoCkEdJon9EstEa9VFW/eu/eL3/cV9XLdPdMa7p7aqbf75xvqqa63lLv3e/d5dvkiteeo1RUVJwwzPwPKioq1pZKCSsqTjCVElZUnGAGRgmdmL4ASP9fQRSMesD3/1IxWIhS3h8PanDEOGJQAyoI4R6G71X3cDYDo4QqilWPVY8AXjyFAVAUwWiEqMFJdQMHEcXgjceQYyiwWpB6V/5VUAQvoOKBai1wNgOjhJF3iELkDdYbVMINVfEUFgqjKAZDMX/TigHB+AgnMc6Atzm5LfC2i5oCUcVJhJOo6gnnIYNhohDQ8Ly0anDi2VwreOWGGgCZt3x7rIOowZDhSefvoOIEE3lDIYB4fDZGpHbuF9IRVAyiHgBfTjsqBkoJy6ejeHzheOs5m/npa88iyqZ4Jq/zsT+7kyLZhjcFxptB6sQryjk9anGdMf7VO9/Apc0wYqlLg05S41f+8qsccDVUBBWHaHX/egzMlTAUFDY8DxITIz4jnh6nNt0iKqbxPkF8ivHxIJ12RUnam/4BQ26KrXaa06IWG+whtpuD/LsbX8WmYhwVhyeavem6Z0Bas8NLmBc6MXR9DoCKpWvmzR96PWbFQFGIYtVRaISRhNRYnAGNU+JCObNW8KF3XEIx0Sm38OWKNxiydT1LHBAlDMhRTkclKGc1sR9U5s5sjE2ZKnXOdwveuK3Gj11zNpLnOIlQDOBxEq/r9dKlW/0ao4QnY8XJypEPxwcPjHPn8xOYJEKzjOvP28B1Zw0heU4hMcC6H54OlBJWnHpEzQa/8aVv8HQxBECDFjddfgaXbbBYdaARUd8RY31SKWHFCjJ3UOldhvWCS8/kU391P23TwNiUM2sFP3HdeWwuDi+02bqjUsKKFWTucNTYGXvuvkz5zH3PMeUiJM/6CzX51GQ5NyybYunmtp6olLBiZQhOoQB47VJoF4BGnABgoia3PXGALz8xjk8aeJfxxm01/tkbdtDuTJU+w55ojm+plG5upzaVElasGt5ltPMuaHBdixtDfOGBp3jggCJRAy3a/JNXbeWd528GIPIRhfF42w0K6QWzDoz6p/4vrBgIVDxOLK1kiJvv+BZPToQVUVtMcdPlZ7C9O0khwfOm501TCH03t1OZSgkrVo3+nFASRA2RAxAOYviN2x7iULcJwOlmmp+94TKa+UT4ug9+p4VV/DqYHlZKWLFqeJfN+X+kEoKe4pT9PuFPdu1lgmGsOC7dLHzgTRfj2i9RWDDkWHXrYo1mHSuhLCIVq0XRX7wxCKa/UNMd3oZmGe84O+GmS86gO9UCjWev9ZzSrGMlrFhLrGfmQacGVUNS28Bn793DQ89OAqBZxvtes4Pv2V7Di8GQ42ReSNQpyDpWQl1A3EyKhhMqpziifbGNUX7/jgfZ52uYJGJYJ/nwWy7gNDNNkXsif+p3h+tYCRdGy9DGEymnOioOlfDASx2MRRv5zdseYspFRJKwvV7wr7/3NUQuI/KnfhM99X/hIhgNoTRzJQyb1kpmdQjHJKcKvd8S+YjMQqTw1PQwf/yNFzhMiopl53DGh7/nEjqtMFQ9lVm3SthjqjM9R7KpzppJPtmh3Z6eI/lkL94u0Oq0+9Jut/vZ6GYI86zQgc4eyg5ul+okwvpgB4xcjJcCJ5ZbHj3El/ccRrMMyTPefMYQN75qG+12e/4uTikGJL3FTONxEiF5znVnDfGz15yO6bZ5zjX5ub+4H59uCl+S3hzuZaJCpMKWqM3H3/sWplrjpLHDdde+4RZiiNRjk/B79k+P8Ot/cyeuPkLemeI/fP/VbNAu+7I2423lpakpnhhr88zeMQ47xaebEI1BspAcS8FoFPK9oBiZpjCWyJnwuVmdOaeKR3xEuzPFJ264gKs2OTROufdAwSe/+BRp04aQpX6XvsD9U0M+NcnH33UZV2wXNMto2xqfvv07PDiZo5qWQ3YfbImnyPBgfSph2U+cnbb4T//o1WjRJsKj3uDmdzSrTISnmDUgebqI+diffxOfbsJkL/K7N72eM+MQzJxJF4katAqh1YVcYNezh9i1v8WuZ7/LlE9oNJoYdSA5hbGIGkQp3wt2lTxQVkIJjXq8wOZ8kl997xXsSCYpXMyzZpRP/dX97MuUxDZxxKiZa4M8mVnjJjcoeLx4oqgR/ussVmtEkmBsumbSOy7OIlEI80k0ODz3Hga5QB4JmXekmqBZRsNNs9VO8wrb4l0XbuHn3nQ2v/Xey/jRK07jNNMJKQe1jvFBAR0pojLw6SJ73jFj8Sifuv0hJnQDAGfFHX7qrZcQuYzcFiHDwinkU7oue8Iwi8rY2Uz49RvP6w977tpziKn85e/3eEiilG6RMaF1bv3W02jSRLotbjhvC9tHGgzXamyoKZsbTYYiRzOBZqRoEeZLxoYFjb0dYdezh7j12wfY143ROCby4fqu5srr0XrCeMiCLt0TgmDU4cXgC8cNO0f4kdftoOGmkTTlS093+J2v7SauDyFqF9nHyce6VELweOO5sG77SnjI1fj5L+xi0tTnf3lVkVjQbgaShGiDeCQsy5sMVYMvWuFvJaY7TTNStg0L5522jXO2beBV2xuMxkEpRUPas+enI+7ec5C/fWgfk6ZOZMulmyMWdlaGlVHCmT8rhm72Eh+6cifX79zIUNRFxfJH9x/klu8cxMTpKTOQOzV+xbIxGDfTsFNjaSYwXIswNsJau2YiCjaqk5gYE9dDygfJEDKQAhPX0TjGJxE+iaDRpJUM8UR3mL97pstvfeUJfvHzu/jMvXu5b3/GlIvw3YLT4xY/fOkmfvXdl/O204bJehmXZrnnhVi9GRPNzDpHqP+xOL19zMiS39cuRllU8XqoeFQEqyHTei0d4rP37uGRsTZxoZhum/e9ZgeXjdbxhfZ/x8nOOlVCkFnBollZMyHHwALG89UUMKgws2opHhXKLOPh9lgNniOzvUeseiw5jXqTVjzCnfsyPnHbI3z81oe44wWhrcOoWF5R6/ChN5/Jx991Gdtsl4n2RFi4AcRHgKGwHi+h9IA3RUjOu6jnzgI/QuWIphTN6r1zK2UJA4eoLqqLogZBccajYlAxJPUR/uCeJ9ndCdnYR2Scn7juPIZ9B18Us0w2fgHzzcnByXnWFX0MQWGsB1vbzHOdYf7znbv52F99ky893aFtawxFXS7abPj0P72KX7j2EjYWk+RTeTBtqMF4g1FP5COMS/BESwxbFcQfKYsq7fLoTTRmTzgOdS03372b/UWTAsMZdeXfvOcqcC8Fe6MRjM5NQHwysdiVrjhJ0FJZIoXUO7wUpMMR3y0a/M5Xd/Nb9zzNt180NCPFTozx9h3Kb77vSn7s6tPZHo3TzV4CLB6Ll6KsqHTiepVeOoswNA3vjY154NAUf7Jrb+jhs4xz6zkfeP1F0Jkk8ooz4E7SVBgn5kpXrBhKb1gb8Fi6pkYh0EhH+cZBx7+9dRf/9d797PM1JE1pxo73npPy6ze+gY9+z6Vc2lSa+SRFkQUzgQpWFVnAda5c3llAlscR+y333UtnYbQXYS84sYzUN4TQpz2HkTSl4dtcv3Mjbz2ngc/GMBqG9ScjlRKeIjjjy55AiJzgbZfCeBwRSW0Dtzx6iF/8/C6+sHuCvR1B0pTN0Thv36H8wvXn8cvvuYIPX3EaVwzDlmKKbmecVqeNcw7nHFrWGOwp/cycdu5DYDHCtgaVsJAzs78ZsWVZvF55vMgbIi+kPgy50/oIn713Dw+PKamxDOskH7rmfHaO1CiIT9qkUPb00zb+8vwP156ZmbqKQbznnNGEq14xjLicCU34u0f2oVFpPjiGm340BNiUwDvO3wTOkZuILz12iI6erNmgPYj0uxVRMKoYUVAhjlMyDN8ca3H/M4eopyNsGakxJJ46nmGbcf5oylsu2sbbLjqd63bu4MLto5xeh9OHI4Z8jnXTDEkBWUbichKXMxILW+KEickWJAl5nnPdeZs5vV6Ajdjb8jzx7H621OuMREJDOwyZnCFTHCENky8qQ6ZgSAo2JJbH9zzLlRefRWS6xM5z8Zmv4M5HH6aIRjA4jGo5TC8fSt7gl1y+PbGsUzthUMLzmjrHWP8vb3mEMZ8e974HmWCOiOj6nMSP8YOvOY8379zGaGRoxg7TbSPlSq16g8bBCQCgFRxS51IOHz9522Psbluy1oydkNLzp00zfE88zZDTcOF9LUFvux6aZaTGknmHpCkPHFB+7ZZ/wG88A0sWnMTVE/lQ7/JYeusTRTUcXWd4gcIUmMgyXdvO/949xb/4i2/wydse4wu7J3hieoQJ3cCEbkDjFN8t0CzDdNsM+xbDvsWQLWi4aTZqTsO3y9XREJ41G6cWnGWj5gzrJA03jWYZmmUM+xYNNz1Hevuf/3lvu54jAoAVh3EZWIcWbV432uVH3nIpWXucyEekDhwxhSkGWgGphqOn0nD06IiCQcmtRTHEXhEcka0xnlm++sx+bv/OXu54ZD8P75vkYNeztxtzuBCmZZguEVM+oVUY2hox4S1tjXhJuzzw1DiHCoPLu1x33mbOrIehcMslPNOt0ZKIl7KYiSKmZSImNGFSozkyockRn/e2mShixjPLeCaMZ8KkiTlMwkgakzrBqfLKLUNMTU3wxITDikU0CkVnTTHQRUmr4ei6Go7OrKY4sSAOqzM9hSfCqpaR7x5Rw2SrRYSlFgsmL00GJkR1eB+qKgGYeh0vlna71R+OOrXcs6/Fp+9+ikJcv4R2IS/foDe7DHfROswH3voGfuCiEZK8oNAukzLMx7/4IE9lQ6CC0DN1DK4SDu6ZVcCcTj+86xXWDJrjlzkoCIZ2Q0GsGVYLwGA9GB9exSeIj0iKhNhFbKgP06gPYaIm1Ieh0cTVR/C1UWgMhc/qw5hFRhBpvcmUTzDJVnxtIz7diEm2LktsshmTbin/vwmfbiKvbcVvPZfP3ruHBw4omQ9K34wdP3vta2l2J0PeUuODz+oRV3J5V241qZRwIAmR8oURtN2i3W7jiwJfOKazKSbakziJ8MajPUUsbWr0BgpL4MWUHjHh9geXNYLLnMlAPIUJ0vt8xjMmIApRGXvkxAa3u3mTL5MExYx9HMKolHCO871tjiJht+EBUhgPohjJiLyjkY5y8x3f4lkzipUwPzxrJOej73g10dQUVvNgyGdGEa3vFZ0ZDEWslHAQUUFVMFmb9191Nj937Xl84PLT+Omrz+ZDV+7kp646lw9eNsrrt9RwElGIKVMD6hrYygTxEbacY4l4jGTHbrA/2hPimAi/MziFw3fjJr/9xf/HpAxTLxTJMy7aFPH+q85mupMh0sVIhtEwzPZSlL6xK3Eux0+lhIOI+KBcRc4bztrA952V8AMXjXD1mSk/eGGT954XcdO5ET9+5dmcIe0QLyiOwgjWUxrEVwsFKShMECXMHY+ZFVqqFDX9IGBHzJ5Wjc/c9xzTtWZ/WHr9zo1873nb8cTBo6Zs7oX15GVo1yCwjKtXsVYY9Vh1JGqJFSQPqRz+9r6nONAJQ7zEK2fGOT/11kvYVIxjKBCVWbUbVq+RBaWbEV8sY6FlRXrC4NbmpJetLcfYmC8+PsbtT4eSbFq02UjGTZefwfnxFK5wFBL3HxhSDUcrlkIJw8veKmTPeN6OG/zOXU/QpkknEjLpculm4YeueRV5e6r09yznOyvT1o8g2N4M4DHTL3FO2uL7zx9lx9BMQdAlWaGeUBGsBmdzFRA8jfoQv/+1b/HIVEKqCZl3nFkr+Mg7r2KrTmHVIT7F+LhclFqli7RMKiU84cx2xJx5OtvSMJ0LeDsT7f/1Q5P8+a4DwQulfOJffUY9DLvydl+BWblOZw6WHOuVVyQRv3zj6/iVd17O+16zgyHtzklZPzuecA4rfFJGw4KQikfEk9c38V/ueoSxIuSn8S7j7GiKH3/bpdApc5gqmL4z+omnUsITyjzlK5UxLK6Exjp7OAowFEf89cP72T3mwVnqhfaHXTuHwsqhVUdR6kNwHfUUZmWbXC0OlZSGdRLEkyAgjkhmkknNr8o00+xX4lw0DIXFlIodmrL18Dx1fvsru2ibBmmZOOuSzQ3ec+lp6PSLCBpWhOft8URRKeHAMrehijqmvcenDVxjlE/f/k32+Rq+rAF4upnmI++8CtpT/ah4FUKqCG9WsKZDcIoeRIIFpCD2yn0tz988tp9uHKFiafiQGuOK7fUQGXKC4iUXYnDOpGJJek7UAJE3TKQj/NG9T9MeGiXzDiuOs+IOP3ntRXSnWuXCQ8CqWXG1SVZ8jyuDNx7rDaoJn3vweR44oCR5gRXHUNTlg9dewM7mNKgdmLSJg3EWFQuwcM8VeYclJ/Keu54+zOfueZK2aYScqd027zg74cZXbcNPTOILF2IKV912ODgkRUJhFOuVJA0Vn3Z3aji1/QRYH3nnVYx0D89xPjiRVEo4sBzZ09RM8GxxxIhkNJsb+Pw39/P1vR3yKHw/yQt+5HU7OHfzMJReNyHR0sogy2gyplcuu4zeWH3CQSIvOBNiKw+RcPPduznkalhxRHjOijt84E0X0+1MLHid15pjv6KrigGOXgxSNA7zHSUMJVTK19nvl/ps5lXLeVOrELBuZmgyP+WClpOrRfc5733pRjZfnIRkSmjIaoaakHlsURb+m6ilsDmeGKseMzLM/7jnUfZMpjgDhXYZsgX//LqLSfwYsVciFwJbV6K5KYJ3wXRyBLOcq3sZ7AByk5f+m5S/a+HfdvwohVGc+DLdv2LiOo+Ne/70/seZNE28rc+tCtwZ7y+GqYT4w7Vm7Y+4THrp4I3popIj+LL2eaiBHmlIcrTUZwutyhkN85r5waILISi9ry11nEgBjdCyEu1sCXYpltEAF1GZ8lg9ly1DwXhtmJvv3k1bQ+/nu0WZCOl8XDbWb5y62D6XSS+R8GzaRWv+RwtwrL/9eNDeJepjI8tdT7X5+vNZmFuXMYjvf9O5XL1tCGcEUYN2M9wqFcxZioFXwt6QpjvZIp+apHBK1+d4l9P1c2Wxz46UgqJ7mHbRmhvhnXVod1r9vCqzZfb+FzvO4sfL8XkWYiUpDeor5Ocp3iI+4rFxzx8/uBefNLDi2EjGuy7cwg0XvBJftHEifYfr1aARBbvlIKKAa4YRw8NjCi4EGw+NH+Aj176Wbd3DIW1i1MCvwD1ZLgMST0hv0HZEPKGoY6pIuOvJA3RLm89KkUiXd124BdNt49Ry69OTK36MHrc//Bz7fb2stRA+U6FMwDsPKUAtJjvM7970ek6LWvikwR/df5C/fnIKZ4TYF8FGViq0IURY/NL3XsIbtkdInuHU0jaNEF83PVTu+3hvd6gXcfGQ4RM37sR020yaJv/xy0/wzVaM64zxS9dfwus3hiiKew8U/NKXvkOjPhTU4biP/3IQCgOGnK1Zi1997xVstdOYJCIulN2dGh+95T7SZCsinSVyrq4OA6+EmgWDr6Qpog7fXX5loV5ITQ/fLfr5SSjT4GfeYZIoGJhdGLLMeT0OJE35ta88w30HhVjLtIJHVcKoXxptKSUMwbcWb3KMNzS7bT75Q2/krLjTz8PyOMN87M/uZLq2fQXshQsr4cdvfYgnstGjKCEnZEVSlNLVDiTPuXKj8OG3XMBWOx3Cn+KUv3umy81feRypN48Yzq42a6vyS6KLrrylxqJFqEeQmuUpRGoscaFzJDWWQoOjL+UigpWg4KkmpMbOeV0uqbFzpJcbxS6rNNnCyuJd2MfskaWoopoQ+YhJsfzebd9ibyd8odAu5zPJz7/9dfjWeDkrXHlFiKJG39WO8hr0/9bzopmV0Hct0TKQGbWYKOLrB6e49ZEDtF0Uysi5jBvOrgePms6xzG1XlgHJMUPZMEJeSnHTbGlGbNx0Gt+dVvZnhkNZzP7MhPdde8zS22a+HOzGtGJlU2pR51EMz03XeabDEd+dv8+jyfzt9xcN7nryRSZaU2BTnFikTB+x4AKMeMAirsO7LjmdIZOjNmbXvhaPT2QoMQZXPrgAEQyKF0VszPPjHerABaePkkSGonCcMZrSzS2PHhrHmojCWEw5L+0V2z42BEHZmgjXnb8JcTldSfjqnhd5MRdi1+GszRvIoxoHO8JTL7Z5cN9hbJTibYEgiz5sV49wVJECRImihF37xnnF1k1Ma8qhLOZQB+ING3nyuy/SXuNKsQMyHC39JmUm/brkOaY7Tfc48pEcjVfXHL/2Q6/vl0b793/5AC8sMxXfgszfhUKtnoLGc+YbomE2dwRLDEdvefwlNKphme2XeeQ+2u02P/PGHbz7go39IfwhV+NTtz/EnlYNY0N+GMGHyz9v+8VZeDj6yS8/zmPjHo1jstZU6P0EIhsTRSkqBl8OnQPHfsSVotcL97LCTWdTABQ+olGejzSaa35mR969E0LvZ4dyzlYVjWNcY5Skdvxi65sXFDc0CmX6vGZsECJsffMR2y9XbG3zXKlvxklcmltCCbKjr08c9QtLkjY28Kf37w3xhzY8yLbXQ1jPsA/VfBG/RPWl5WMjC2pJhpqY5gZMYwM+bcxVwLWecAGUyZ7CdZ8J7k1qQ6S1ERqNJtqsB1nB63GsDIgShjCUntFbUGJfYMkwhCIlPaEcUszPQ7KUROTB1WvOa+gdWoWE/JiApjGWkPpAygYaeorlSVQeoyeWPNRrL+17M73PUpf/+BqrmoJJU+dTtz9EW4fDolO3YEs+xQfedDFx58Uy1cPxqvsMWoZgRa589Urip1E8TiyRD9nPVu6IyydElUBuIsCWJgkXIvWJ5jgcrBVLtYI1QwWcmVm0UEKWaNTiZa4Ez5rl3URfLgj0XsPWrm+s7y0iSGxwIuFZUJ7Xy3lw6zwJH9p+VLcXyI30HREWZnm/cT6igo0sT3brfOa+58hrG0iNpWELrj4z5V0XvwLNe4bt43/6JwSvEyd2li0UnMRhfquCk5BWYu0XZ+Zd6PLcxCc4sSEjW++hd/QhyoqzZDNYK6RXgUe0fFIaihWMuuztv3+cMLOhWzb0zDsQj+ZhKHx8+AWl5zHTL2Xm9SjHOr4fbz2oCrGLuO2JA9zx2CG6ceiNh32L97/pXC7bMPNgCIREuSCIXzxSfiGbf5ey/oVkpZIFRevNAUM+05C2Y+4x14a+bkn4Tzif7qzzUawWMykl15C1vxqLMONF0vtkfn9yRN8yoJiFpWwF4d/Vv+wiPjgxA0ltA5+9ZxdPTkSYJMKpxbYO8qNvvpBmdyr4dc5SjBl37wW0bQlCCesevf3Nvm8zD8G1J9yHmbsQJuazH8z0goTXmLU/YsUxcnwPG9FgGyskZDXP0y3cfPdunp8OCzURnnPSFh99x6vRl/b3/V6NNyhl/tHjPIeKY6NSwoFleb3QfLyUS/JSlEMuy2Pjnr/+1gt9f9zUWC4a9lz/2nPw3RfLHDHlItWaz9vWL5USDizH3wtFzpTRFopRR2SF2x49yG3POFw0hHEZDVvwnst2cPnWEWINtkejM3O5itWnUsKB5fh6QqNgNMJohDOCJ7yX2iZ+7yu7+YeD02RpDaxjp0zxw9dcTD1vI6phG6KXtzRcsWzWrRLq/AbWX1JfqOHJKgmlzTOIMzPxk8eLF4Mr60lYDfbLQjTYSWvD/PHX9vBkFoacHYk4J23xkbdfhGQvUZgCS45oAv3sb8GbaeHrU3E8rNAtP3XoLVPPliOrqx+/GHXhvc6sHgZvoZWbix0xoBVXpq9X9mXK39z7TD9/aWosl4xE/OPLX0l3eqpM8hvOxXpm/D2rYeqKUynhEdh+1aKezF5kXynp73cNOxaVkI3MiWDiOnc91ebu59tImlJol81mmndfeBpXbx0CcagpygdGhJQPiNmREhUrQ6WE83BSusnMklkjxhWVOccph6irmQ8zuGbFWB8M6645zB9+7REeHlN80qAjERvJ+OC1F7BNpkn8NAAr4dNesTird8dPJkoHZwjRG75ozxFXdFZF5hwnDyLdpePZTJlV7eXhibwjUun7rbr6CP/tnhB/aJKIzDtGteDH33Qu7vA4KsG9rmfyWKk5a8UMAxLKdAJQw6VDnk/cuDOUyzYN/vyhF5j2Kzcnezm0qPEPTx8Kq5llKNPWpIVEywtlWphQ06/nTF52x/jC8bYzDB+65nwatMBZ2rbG/3p0ks9/4ymSoSaJc3gszoRCLJc2Fw5lkjiMHI79nCrWrRI6Yl7dzPnEjTtJ8qKf3mJ2pusTwUG3mZ/83N/jmsPEncWVcCZNxvE3dhVP3p7iZ95yEd93VtLPT+NGNvOpWx7kgcngddNblLFklRKuIOv0SnnEdPpp+grtEtkc4zqYbnvNxBZTc97bYoq8/UIoibaGq5CiEDeG+MOvPcK9BwqcCTGWdmKMD157AZvzyXA+ErJ/V6wsA5TeYi0RNFdG4jpnnL6DqSLmxbwWpEjXTmYfrzz+BHX+/tH9mCjup7do2hwxIb3FYy9Og4mwuHJl9XjmiCVqserxcZ0nnj/Ia3eeyWiUIcBIajht2xb+7+69aNzAlvGA2xZIbzGWKWJ7yTJW4LzWCetyOCoaiqTktkCnDwOQiMP75Sd1WkkKcWAamLgBKkumt1jJ4agjBDOrODRXrtwofPTtF9HwbSBki/vTbx/ic994nqQ+AvhqOLqCrMsrJXi6roXVHJtsxiRbydMt+HQTvja6dpJuxKebcPURNB1FahtD6TOifsZvoB/5v1pE5H1PGImFBw9N8OU9h5E0OHqbbpt3X7SN688eXl5p7IpjYl0qoReDiVM8KdobPKktVwtnbHarL0AZ06YSUrFHPriWzbbN2QWSXc0E1h7/aq4CVnvZ34B0hM/eu4eHx0LWAaeWESb50DXns1WnKOannSy3M9Hcz2f9hIolWJdKGCh/umjIDXOET8saSGkiCPReWVKxjs9OeHREg5dQUh/h0196kOfzGKyjcDENN81Hb7gcc+hJuiit9pEPhzAULZn9vmJR1rESnpzMjV5fXQ7JEH9w39N9/1KAV23y/PCbX0NRtCFOkBNQQOVUo1LCikUQNKpx99MTfPmJcdqmAdYhecZNV5zD67ZtmPPtQa3cezJQKWHF4oijUW/y2Xv38MhYG4lCReDG1Et8/+vPpuHbqDeQz5QUqFg+lRIOLAsPO2fPCYOdcPVuYeqCIia1Uf7gzofZOxmUzbiMESaJbGm4j5N+5rq1jAo5VVi9O1hxXPQypeUyE+g77T3e+GAj7M3FVjF72ewV2rF4mP9+zzO0h0bpSERc/tGpLRe2ZugpYqWQx8bq3cGK48J6xXXKYZ6ztNqOmgnp+TwRxkernD6wt2occKQ8cKDD/3ngqb79UL1ZdpWsiiNZzbtY8TJRCT2hrZcePNbRbJRZwpUypbwpLXELD1tXgpAI14D4UDagPsz/vPcFHjig+DJj2+za9BUvj0oJB5DZhUPjZBMSNSjSIfK0EUwUfeO9Q+YY5lYOISSKEiizcjsiBTM8yu/f8SBPFTEaB0X0eaPcqjJXvBzWpe/owKMGZ0Cky1vP2IL4jCQyfHusywuTIe2E0VDpyHizenMvNWUm7wLjDZGPKIzH5x0u2zHK6c3wsMh8zDefH2NcewVWgtG/4tiolHAQUUFEKcRgtegrmfXgsahxa+QkHQqChgbS03QXlFHAuxyfRETehWDhXpnJNTm3U4fqSg0iEhp+yLw2U8jGS1k0R80a3bqeAob3QUzIwiYeE1kiHz4LNRx6dR3W4txOHaqrVVFxgqmUsKLiBFMpYUXFCaZSwoqKE0ylhBUVJ5hKCSsqTjCVElZUnGD+PzCuBWKB2VNCAAAAAElFTkSuQmCC" alt="Leña Casa Italiana"><h3>Cadastro público • Leña</h3><p style="font-size:12px;color:var(--muted)">O cliente entra por este QR e a origem Leña fica gravada automaticamente.</p><div class="qr-code-frame"><div class="qr-img" id="qrLena"></div><div class="qr-caption">LEÑA CASA ITALIANA</div></div><div class="qr-url" id="urlLena"></div><div class="actions-row" style="justify-content:center;margin-top:12px"><button class="btn" onclick="testPublicRegistration('lena')">Testar formulário</button><button class="btn" onclick="copyPublicUrl('lena')">Copiar link</button></div></div>
 <div class="card qr-card house-iconiko"><img class="qr-house-logo" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAOEAAABHCAYAAADx9iCJAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAACnlSURBVHhe7Z15nFPV3f/fJ8lk9swMk7DMhEXAoU9FrSgUERXFFhQsWJ+qVB8t9iet1g3Xii0IfcRWiluxVfxVLQWxuFRFtHRxaUWgbkVHhRGGZTLDQG7ITGaGTDJJzu+Pc+/NMhOYJSPP72k+r9d9Jbm599xzznc53/M93/O9wuk+VZJFFlkcM1hST2SRRRZfLrJCmEUWxxhZIcwii2OMrBBmkcUxRlYIs8jiGCMrhFlkcYyRFcIssjjGyAphFlkcY2SF0IAU8YOE7+nOZ/E/E+no1dPzXyJExiJmUioudPmWIpp0/miQIpJ66ogQ0pZ66iiIpZ4ALAhpTT2ZDKloZHz2qF1SIIXA52mi0JVHgT0HiYWosGGTMSQxVTZRpOiqfnEImUZvSisCC5IYIqGNUvSMoYx+kIn9JGQn+qLTuEf9cETEVBukBYkNISJI0dHjcaITHQ26HQ1d0tc40b/InBAikhtsfs9Q8ZlCF8wEIC0dqaeOiJ4Kv+bx8fLrv2Ppf9/L1up9OIvzFbMh9b5SHSaPwjGWNPWPCdXPQsokZup5/yfQ0bi1E037Un46xIUQUMpIRHsshD1V4ukgpE3xit6v/YkMCmEiYj3uPAOdNNlR0FNNnK78iDWceiotLFL2SAg1j4+VT93HNd+7DF9TgAkTz6X2QBNljmKsMaH6SoqkUS7Y0U5rKAoBo17plESO+ihR7XIWF5qSIhFJo2L3YFyv18UQ+n5nRp1npEgQ7p7zUdTSM37oCj2lb1+RQSFMJbalV50oZM+q01Nzy4CQMuleIa1EhKqrTca6/G78xhT+7revrdXL229sYPwpY/E1BZgx8zts/XQX5cVFCGlBSEEwHKHV2wRYmDH76xw3YijDhg0DoGJIZWqRHG4P0+T30tTUSiBwCK+/lT+/uQX/vn0UuirJt+f2WHiMkUQpBF05YNFNw67QvfZ3D0bfxhIUUnfKjysOiYUYSiGlo2O67wZsMoYUHQh9GtHfyJgQRiMhwlFBW7gDZ3F+wj9H70RDIIKhMG3eZiCka/509+YBMZzuQUe4JhWqM7VWPzS16uWHEv5PrHMirECido0BBYANHIU4HXkJ/6VHNBLC3x7kn2+8xPhTxtLU1M70mbNM01Tz7OXrZ5zGgp/czVkTJ1Ba2r1yu8Lbmz/h148+xro1L+B0u1P/7hJCSg6HO2jrOAxgKgdzrik6iEY68AeVkJY7cuOCmiFoLW3Q3AqluZTl5WOx5fdoJG8PdejWgx/ormWTqEiNZyn6Frkc5OXqlkY/IiNC2B7q4IyJX+Wp3z7GqxteZ97cO3G6y3WN1tWwnjixiKG1BKH5IMOqTuCKy87nq/8xBtegARTkF6XcF0egOcCM6ZfidA9P/SsZUtAeDtPqPQTYWLb8dtyjhjNq2HDKHAWpV3cLjd5D7N2zjy1bt7HioScBG053+RHmEGquF4sE8Tc2smPHe1RVjaCpqZ3xE89j545/sfalP3DZrBnmHZ56H3vqdrN3zz4Ot4dpPnQoqUQDrnIXZYMGUVJspXLwEEaPGmn+986W9znz9IsodJWRn2tPui8ZMcBKQUE+W95Zn0BDF4ZTSRCh0C545+9/5uPqbcyYPle1OQNC2B7qoNXrYdqF3+Rni+/G7R7K5DOncuBQ+Cj1BhC0h8K0ej2cNul05l1zBZVDBuIaOLBP9P18+042vPYmLz+3BhwjcDryE+bumUVGhFALtHPNZeey8vFHeHvTJqZMvhhX5XAgAthSPHY2pLQhiKh5j/djrr/5Nm649kdUVY1IKfnIEELgdJ+qC3VyM6SIYIlZ8da38dWxLpb9cjEXTDs36ZpM4Ymnn2XezYspstt1zRkjapFqvqePJKCqqNoc4J8frjdNU79PM4XntY1vcPtti/is+iOgBDCY0NDIHQnfjd9G37YCeax8ajnXfO8yAJqa2pk542I2Ve+l3FGAwHBcJAtPe6iDk8dW8c4bz+nCO5Ny9zDlOELSHurghKrBbHlnI/u9zVQMHIursqIbc/IYUsSIGWZdLA8LUYSUCCx46xs48eTj+PVjDzB54mkA7Pc2M/nMqTQfjiBkThrmjyFkDt56P9MuPJWfLb6b8aeMTbmm7/A1Bbhn8c9Y8dCTuCpHg2kux0doiaWL+nUf/S6EMoXYhhtda21l5OBCfvf0Y2bnNzW18+7Wd/ns0+3srduddJ+B0GFlQgYj8NL6t49oLmgeH5dcfgF/WP2oee6dLe+zefNm3nl3C9HI0RioaxSVlHH+Oedy+unjTcVRU7OHy+dez/ufbY+bcvqcCr3doLyYgghtrT5zjojOeHO//0M2rn+TIteghHYZCqazokmGMM1mzXOAE08exfPrVpkj7llTvsnuhmby7LpQpzBNT4Rw565ajh99Js7KiqN4SA1TL8Gk1B1jWr1G+dASHr5/IZdf9m3z7yeefpY777oXAKstp5OyiEOgeRpZtvwubrvlOtAFZuvW99n07laqP6vuNX0rBg7k7HOmcO7UqQxxlYBpVcyibPAAbNbOo3Nf5o79J4QVw0Gf5EssiikFQARvWzMTTxzOq6/8kfJSB76mAE89uZp7fv4Ybd6DgAMcKQ21tKtPqTOntOIqLkyriTVPK5dcPtUUwPc+qmb+9Xey6d0tQDlFrnRzwKNDzTsiQAuXXD6bhx5cyhBXCb6mAF856XQkOXEXN4rhlcPJhhRq0u+r28aGP/3NHJ2Ne7VAjPLi4m7MhVKdQup6IQUSi26CH2DHji1UVY2gpmYPY8Ych6tiAhIbWMJJwpN5IYzXT0ireYm3LQDN21m2/FHmXn0F5aUO0C2AJT/7BVs3baNssAuLLR+LFGnoqwRw5VPLzBF/zbMvcsP8RfgbA+AoBqAot2tPeDq0hqIU5VoTvNIBFiy8iXsX3wU6D00YdyJlg8eagqiEL5UWPUPv7+wB1Oin5oaRaJiRg0rZ/Pe/UV7q4L2PqnGWncjtty6jwJ5Dmfs4ytzllDmKkw5nUSnOIgfO4kKcxUWUOwrMtbFUtIc6OPHkgTy+YjnoBJow7kS2feGh3D2KMnc5ObkFvT7KHMWUuctwVbhZt/5tKgaO5r2PqikvdbD5zfX46uqVuWUqHiUgiqGi+FpamX+HMo/3e5upqdlDeamD7R9v5rQTRuELKOfIkdEV6Sz6/M1Cfk4ezopRjBlzBvu9zVRVjWDZ8kfxNhzUTdKu+y5TiFqkbjJKJDG8DX68DTuZ/4M5NBxs4rZbrjPpf/pZU5kx/VtU1+zH6a7AastT66ESfYRPhhYIcv3NV5sCeNW8eVwx52I6ohbK3BUmz6TS7WiHcY+ibzll7uNYuuQxJk6ehq8pwPhTxrJ67Qv4G7268NlMcztptO8huqJkZmBMARLXbST4G5vYuGEdmJrlPFyVTt2RI7HSgYVop0OiPHVGwYKYrqVTEaPVe4BfPXofpaV5vLPlfa6YczFO9ynk5dpR40Tn8o92WImk/O5AihiuokKKXBVMu2AO+73NjB41kmXLF+OtbzEVjxr9VF2jFglNQW6/7SYAHl/xOGPGjDWF+C8bnueMscMJhrrr3UuEYgYpOlTwgSUIJQ4W/eSnAMy9+gqGjxyQelO/wBqzARYi0TBafS2XXP4Nduz4gAd+sZAhrhI89T7+6/s3MmHcND7Z7qV86Gjy8gx2lHqfxbpWFoH93LPoVgB++cCvWfXEMzjdp5KXa+9Ep94eBh86KweyddN2rr7mWgAuv+zbTLvwHNpDaskmapHx+W4v0X9CmAjDFGloZtnyuxg9aiT7vc1Mu2AORa5BukYxGhLDIqNdHgI1IVaHTJocx2Fl9JjRnH3GGQD84Jr5uComAFaikXagc7ndOYRMrpcUET2iA/LtefgPS+74sWL2yy69FAio6uhtN7Slv7mda+ZdbJqvi5csoWzwcUwYdx41NXsoLc3j58sX0+b16+3pLvQ5qP6sqEUStUicRUU8sXKNKeRX/2AO3oaelt1VPxvz3FQhEaB7LDWPlyHOUv6xeSN/WP0oVVUj8DUFuHvRfQx1D2f1829Q5h6GPbfQvFsJX0TRtgtTVAu0M/+OmygvdbBzVy233/pTXBUn6Ka/4olU2vXmkCKCRarnO90uXnn+bzz78gYAbvzRNbq3HawxgVX2RmHG8eUIoYHSCHOvvgKAm+cvwB+MkGe362aaNBlJCuUWP+qhx3xKESFqUaOl5mlm3g8uBX2e8Vn1diIW1Uxjot+pnF4caunFgrREkSKK05HH6id/ha8pgLuynEuvuoj2jlaEPh821txoDjD727MBePGl14AKrLZcCl0DGTPhfP64YTPTv3W1vgbaG1gQ0oY1ZsUasyoHjGMIq1Y9B8B3L/428EXqTUeF7CRsdpBqfVFIPbZUCkTMguZpYfCAYlavfZBPP/mH6Xh74ulncZaVsHTJSlyVY3AW52OVEawygpC2pEMK3bOcQF+kgICfObojZ/Wq5wEXEVsYaenQr+1Mq94cQio+MRxYTrebG65XSvbrXz9N0R4VaofM7ZMo9f7OHkJr8HH99y6ivNRBTc0e1q35Hc6iok5eur7Dz+mnnw7AX994BxyKmSUCkSbuMnMYwdat7wNw2kkn0upVo6GKvIjpI0czp4w7FYAXXnzZdBDl59pxFhfy7ZlXdWNtrCdQJvOKhx4HYPSokZQNHtvjyKRE5OUpjyFATCjGF8TQ6jW8bQGWLb+RLVteM72er218g5O+dhbz5t6M032qPvXQGdw40iHhL4GFIpeTkcepKKLnXlyPqyJel3RzyN6hs2honhr2e5spL3VwyeUzaQ/3bQQ00PlJmUKnfg1x/vTzAXjlVTUCZKy/khBjsEvNe2pqPqMwt/+a2Bk5fPbpdgCGVAw2z0qh5g3GzgTDFN24fkt8yUCHq7I4rfnXN7Syc1ctABPGjyUY7mugc0RXLDG0lja89R+yYOE8Gr7YkuR0mXnRZcyY/h08B/w43UNTCzk6EngkIiwMHlBsetT3HQiYVk7qtf2DInbtUlZESaHuRc0A+o9D9Q6xxAw3cZDRx6kF6fc//kQPOO4kqRmF5vUj+p8y3YJFX5wuco1KOLtHHwXidZRC9BNZ8vHrXtdhQ1x9YqD29mYgRjTajubZzqWzp7Bjx27uXXwXQ1wl7NxVy6zvXM6EcSfy7pZPcVaOxGLLJ6o7qnqLjlBnr7EtlrgGmfhPf8BKNJoY6pgZ9Ae1TSQv1LdSPlCNUHt21lKW3zeCdAfC0ldt33/wHTwEGA6JfucewEoopK+1ZgQNVI2q4B+b3+LZp39DVdUI9nubuXvRfRw/ehKv/HUrrspx2CwFRIWNGFasaXeCZAj/M/Rtj9GvQqjWB421sjbzfEvzYcLRDPVYN/jXQjTNcsaXB+WYif9WCineJ18GcnN7HxSealGsXvsCW97ZmOR0qRj4NZYueYoi1yCcRWUgbeYyjZVIxvb6HRnHls69Qb8KIUS6jPywWjMkgBxZ+8mYYoCYpUNtxZGJSyFfNlRXt3p3JZzrrQe0hxAArZQUqoD4ffu9PY4mScToUSNNp8uzL29gwJATmTf3LlwVA3FWlpCXm4OIqfYKEcGqBwekzQrwb45sr3xJiHsj1ehXXupg+MjKXi7K9wyGQ8iYDjTsq0+5ond44ulnmTN7Jv5GL67KAfoan1BSr38ofJmj05erZM3g/D6g7yVk0S3EzfJC9nubARg8xJl6WT+izfQq1jY0dfLKHhlds8k137uMOo/GgoU34a3/EK1e08PUBFKofDkqSOF/O7run+6ib3f3CIWEO5RGLCjK7zTH6DW+TCXbB8TN8lxa/CpiZfgItTWmv6G0dYX5u817sIcDRixpsX7nrlpumH87+73NuCvLuXfxXWj+ZhYsnIdWfxBf4DDRSEjf1RFNWHLpBbv1hL49uTZDUFZG3xRNL3qlt8jF46kD4PgxY/rkIv//GxYOHtJAX2tqC/evx1CKGMFwO6PHHAegK8LWPnPsiod+ScXAk7h70X3mAva9i++izvMhi26+En9jAK0lmJGR0JhL5uR2sUm3R8rkfya+HCGUAEXU7KgB4LyzzoRAhjyDRyBC6YB4sHJ8R0P/otPWm068buVwsBWAotL+N0eFtNAainLCSScA6Iqw59u4OlsuTsoGO1j68CoqBo5JGhnvWXwHDQc/ZsFNV+Kr26YyJxDT4ztTy0lAakSTfrkhyKnrhHl2FTpnQtBVh2cQUazW3NSTfUa/C6EUKiK+yFXKK6/+DYCZs6aphWp9riRiVj3PTA9d2EIiRdSMlVQmXxGffeEB4LwpZ9LqDUIsDylixCyGiZQB6LGSinEMk8TPyV87EYDPPt9h7oAXUiTsJnGwf58XgIpBTmjOUH3SwGDgoZUqgsffpOk5VHqCrtjEitWah7O4CKe7ghVPvk7FwFJumL+Impo9DHGVxM3Um65E8zSg1WtEsRFF5V014k7VoWcgMPsUQG2DErEcrDFBbp5g54FGc+QdNWIA3tY2iOUhpEWnb99HXkhH3wP8x1eqAPisepfyMAtj21bv0VXvZhxSCPLsdtateRZPvY/yUgf3P/AImsdjRqoroqTfJX9EmJ0lwFHMh5u3AHD2OWcBPj1A2Ghq5pqcGOAbjXQAQU49ZRwAH3z0sYoL1fkpJoS+/9GC16eEUIW29ac5qmctC4QZNkyNuocCbUDukUekbiFxicOK05GH030qK558gTFjzuSG+bezc1etaaY2HNzBsuW34/c04Pc0JtFdLR0l4EixpE1+Pqn+CICLL54ZTwkprXp0Vuboq0biOH2nXXiZ6dza9O4HevaDqJ62svfIYI3TQ6U5soBjCL/45SMA3D7/BiaeeQLe+oMqAh7LURPfpoUZBCxxFuezeMmTAIw/ZSzTLvwmWmsrQoqEELq+wwhaRt/U6W9sYsHCu80tNhvXryffrvLrKLd9HP5m5R0tKyvV8/D0H9RI2EFpmQuAaNDIZJdJxIXG6bDjdA9ixZOvc/zor3PD/EXs9zYzxFXCbbdch+b/hGXLb8dbvwNv/SEEFiIWS9yTmlYAdVYtLeP3q18E4Oq5V0FpTCnZroS5D1A0U9aZom81P1mg9jC++vJGQFlv6tq+jb5fihAilRfJ6chnxUMrzH1Zr77yR6ZdOBnNc0DP8yj7qKENIgZ54ulnAViz6nForuNwuKNTvpueIbmj1e50xTi+llamXTjZTIOweOlDUDI0YVki+V5v434AHCWOTv/1Fwry1JLE/obGlERRmYYyKcscxTgrR7DiqXW6mRofGZUwNujC2Ijf05jiSe26T4S04SwqZfWTvzKzEWx4diVa/ftqLi50q6hX6Jq+AL66nSxYuJTJE0/D1xRgyX2/oGzwAKSwZESE+l5COqRMmI1FzfKhQ5kz+0pzk+maVY9z/c3fRfPsRavXej6vTup09Qyn28W8+T8xif7PD7eQnxdV5Zsw7usu0Tp3lRQxfHX1TDtzvBJ2fdvO6ifXJeReVZtrE9Fw8CAAAwc4e5Afsy+I4B5+PIBKoJWavyfTEPEkya6iApzuU1jx1KscP3oSt9y5xBQgY2S8/4Fb0FoDaB5f51HFJI8+3ZACHCdw421K4V0w7VxWr30BzbMXb0tbwkjad/pGIx346nZy/c3Xmgr2gQcfpXbHAbU3tae8mgadn5wpJLVdt6uxIaSF8qFDmTBuGn9+8y3KSx386sFl7NjxAYsWXovWEkTzbEfz7E747OrwqJHT6PQUDViYU8AVV11r5gbZ/vFm5t8xF83zAZpnP5pHQ/ME0DzN+qdP/zS+G79Tzxufdfjq6lm2fDF/emWtaYbOmP4tyocOTsrenDhncFaUo+m75ovLyjpp4MzCIG87Q8pV8qN9ngY9ZK17HKSmCDHyc9LFnXYuR2U8SAhZlFbKikspcx/Hg4+tY8yYU/mv799oKsnb59+AtvtD7n/gNnx1O9E8XtUvUsTLV7MNBBZcRYVsXP8Bt9y5BPSUEzt2vMe0s0/U6Xsgga7p6Huk7140Tw2OAjsb/vQKv3pwGei5ipYuWaDyseqbwzNBv75lW5PKMZGYbc3I1OWqrNSzi6X3/mme7cy/4w7uvutmyvWsW+iZx3wHD2Gxpm9gLGphzJhTcbrV+lcqJBZ8LS2U5dvY8vZ6MzVhU1M71dur2bVjt+kg6SmGVAxm+IhhZvAy+gg4Y/pUXJXjOs0BARBBkPkQy0WICDXVb1NamocQRTjdX0m9OmOQIoKvrp4vdm5l9KiRTJw8jZpdDZ3SCQZDYb42dkxStjVnxSgQYaLWCB3BmJltTWVuOxune2CXQqgQS9bxZhJhRVOVbXs7V1x9Az+98xaTPr6mAI+uXMmi+x6jrMiFVUbSzBNVxrVpF05mzarHTf7x1Pv4uHob3kZfn+g7fty4pDy4S+7/JYvuvAdX5Ziu6dsH9E0IlRGO1tLGNZd+Q6U83PwJUyZ9oxtCqBPD44XSXBbc+H1mz76QkccNSxLIdPA1BXCWlejJf7uCAKIqdXujl0ULb+G7l1/S4wTDR8N7H1Wz/OFH+cPv1lE+dGiajOPxZMAiloO3wY/mf5/yUkdCAuP+QoxopINPP36HIa4STvraWez3qXXKRCHpnPLwIpwVw5CWDmKWDsLBKGOrhrDlnY146n0MdY87ihB2BzG0QBgCzVwz7yJuuzUujBMnT+PTmkbycu1pnhGfj5fl5fPgzxcya9aFfXp9QFd4beMb/PjOe/hk227KhjlVypAMo49CqBAMhRlZUcpvn/o1a599kQcfX6u/HSg9opa4a1dIgbclBAENyOW0SSdSrptPXSEvz4GmHWJbdU3a5L8qWZB60YrEglbfDLQx7cKzOPWUkygtTZ9i/2gQ0sreut28/eZWPtn2IUWuUWnrYSBenxy8LW1cf/XF5Nit3eqrvkGgeTQaDv6L/Jxc3FUT0qbPaA918MbGNbz00nqWPrQGV1Eh0hIz11aDoQjPrFpBbW0983/04wwIIbrZadXpE+D6m3+Aw5HHb1Y+02m0ToTRn+jrjd76FiDINfMuwj1qGPk5vV9UF9JKzY7t/Pmvm9hbu4eywRV6XbpvxvcEGRFC0F940ngIShzdfCGMYWrqL+g0TH+LevFI6n7DxIiN1lAUV1GhPk8/0kirnp1YfudXjvUSDjtFuVZ9GUI9J9HcSoViGjVKCinxth4G0YGzqDT10szCmDK0tJlp+iWWNPWMoXn2QmkZrsIS8xUGgJn5TM3XbDjdZfo96ejbA0gB0o4gopIDQwIPpSs/mb7GqxW8rXokVgbo6ypWgiyF2gt6JPr2BRkTwviaSXyyqkywNMN3giNFCoFFGovZqiwpRFKZxne1nmgwBkfQTHEhT5w8G5tMLVIQERaVZ7I3bm2pnh9/y266eiQikYDpmCvDkPq2Ir2+hnMjnfJK/2q0xEDsRPSmHQkOFxOpfZNIvy5gtEtvmCSZh9Bp3FsktzdNHTKEDAqhErbEysu0b2XStRfGul58y4tKede5SlKoxXy1Q95goOTOMYQ3GckvJLEYwizVArERSZOaic1I1itFrMtFfjWaxJnTWIZIq3SgE6OlH5EyCN0hEsOKRe+3tOnlpegi16f+CmuTroaAZIAx9VEafXqCTp90PJOIOP9g8oP5Eh6dbomwxKwmTQ0YNDfOJ/JAxBrDGlNZ8uLX64opw8hgiRE9D6ORL1JFqCjhVAld41rWMB+UPW8Ig3G9Yd4dDnfgbT1MzBJPvqsS/wr9bT1CZwj13OFD3YAwn2kwvZAWPQ9nsqDFO1U9Tz3XpgRexNA8DQkCqMzO+DVCf3GmeoY1JvSs06pOaitPvA4GhNk/Vj3Ve/xIjKVUv+P9F7XoCYcTzitlpRIhG+eNPjGvFxIlgmrJQBDT420N5acWpdW9dqLE51KKASURYbQb/R7VrsR6SBHR22wIiLpH3ZdIf6EfgFB1NPhC3ZsQPyoFUUtUF1C9nQZ9pbpWxIzM7IrGytLR87wCvpZWfHX1nQQQ0GkY5wkV56wUeaoyFVK9ykFIqx7rrNNGp1tfkEEhxCRyYj5GZTqmf0xSmvwEBMMRLrpwCg8uXYgvkJzhSnVccuoMrV5jwU9+zKmnjCYYTkxopIRMdZSqh0Eg0Jm2C7PFV+fjrXf/grdevdcwEVLPEh6HIchSPyxYbQYzq2dFIyGkng4/sd5Gn3U1Ih4OB80Ry1QgQuqhboZCU+fV/XF3vjUmUtKzd80osQ5VvmHiq0V2ix4LCxDDFoth0V/rHR8Zkmka64hy1pmTCIbC6s1ThkLRvbMk9rtelfgzFJLbaLQpfl4Kldk7PgImyLOpiAxBFfhaWln201v454dv6nNZAwa9EhH/HRcqlUjZtJb0PpciZvaXEs7UsnqGvt2dgkg0jLf+ICePreKwvk9OYKE91IGvzsdxQ91mZwh95Ix1RPHV+ZRDIAH5dhurX/gL83/0Y8odyZ4uzbOd/MJCXUAwm2G1dtB06BCt3oA+WiqiaC1tSGFB8/jw1am4TYWuGRMJ5UPLmTLpJFyVxnYoJfRavQYCvPUH0Tx+8xnBUBjNs53Swjw0zwGTEdCdHaNGDsdXlxgREsFb78dbf4hgOEIkmuxIaA+HGTLAkcQ8QtrQPD7V9tbkbT3eeo2SonwVyNAShJQggVRIIdE8Bxg1cnhcSHQm0zw+vb5+9Z8+eAVDYXx129Q1Lclb0fyNjVx99eW0eX1YpFCMK9Rr2kaNGIkvECIa6UBIpaQ1z16KHWX46hppb4+BngdVSIHm2U5BYT7e+kPm9AFA8+znK8cPjUc+CUy6eOv30B4Om5FZUkhoCrG37gBPPLYSp9ul08MCCJ3fYmgen3kOLGgeP66yAoKhMMFQ2FTeWkuQYCiCt6UNrb5Rr1EEEqLBeosMzgklMUuU119eza59e/njc6/x2p/fId9uIxIN88cXn2H/wX0U5BYz6/z/g7OyhGA4xEUXTmH6N9S74E4aN1U3ZRShLvjmZE6fNJn5C5bgKlLbb7z1+9heW8OOHZ9wONTCnNnX43SXo3m8rF77IGVlpZw09mSGuk/DVTkAb+thFt00lxmzLwCgZkcNV8y5VffuJb4/MBaf5xFDq2/klT+v51vfvAhnpVMRuvUwyxbewMRJExjsGsCrG7cy/0eLKXLlcsbEr7Jm1eNs3fo+EWkz26i1tvLW6+vYf3Afo4YNZ9oFc7DactA8fu5/4BamTDmHksIibrztLv75XrV65Za0seHV37L/wCF9OWABTncZWiDMskXX8dUTvsJBbztz/+tHqo31h1i9drnZ9l/88hFWPLUOZ3FRWkWjeby8/PrvycuNsXdvI/NuXkx5cTE+TxMrn1pivu32+3OvY3eDUlzG25g9njpWrXqOFU++gKu4kGC4nZPHVvHcH/4v1/7oDjZtqjY9lSsf/gnFZcWMGjac/7zsOg75mxk2yMGLr7xCY6OHgjxBSWERl191E5/v2k15WSnbtv6Zv2/5JzYRYcb07+v0PcCGP/2OiLQxZNAAJoz7Ns7KElMAGw7W8tGHHzBj+g9N3po88QR+tvhuanbU8PXxX+P40eNxVo5Eq2/krXdfo7nZT0lJGVMmzcRV6cTbEmL+Dy9h+vSzKCt1Mv/WxWyrVntgL/jmZG679Vr8TRrtIQuzzr9K5dVJ8g30Dn0T4QQEwxHOO/d0/rWtmjmzZ7JuzSvk2/MIhiNMmngCnr1fMGf2TFqaNM4452Taw2Hyc22sfvJXAPzwuuvUiJVgloW6zBKdx44dnzDr/AsoyE1cS4xRXOrkpz9dyMfV2xhWpQdQN7cy7vSJTBg3jZ8uUi+f7C4i4WBysHNzgLPPOYszTx/Pwyt+k3gp6O+WmDF9KiUlZeCwI6SF004YZbb97Tf/zowLzkkywx5ZsZKXN6zn+FFu/MEI3pYQl14yncPtktraegoLdCUhBUW5Vt76x99xDRzIx5+8DyXGwnSEqjFVzJg+lbXrnlGnpHKodA3VxwNKC5h27jnMm/t/9HfQSyDEf3xlNDOmT2XVqt9x5ZWXmVkQbFbJqxte54nHVjJ86CBzGSDfbmPTm//gvQ+28fJzL8ffBhzwc/akiXh27eXTT/cxtHIQEkmBo4TNmzZz991LePvNv/PyhvVUDh2MQGAXMTb86TVmnX+2nizaGI06KHS4mHX+2bz11pvM+s45tIfD+tQkRxfAqTjdKi1+W7iD86acyfKHH+WKORebiY9Vn+TT3Oxn1vln0xbwMnykU+3ACLQx5Zwp7N3byL+2VVNZMZDWUJRWb5BvzZzKjTfdxOxvX0VLk2b2IRh6Lr3VcTSko1KPkZ+TxycfVHP2pIksWLiU62++mmC4nXy7jc8/30nVmCoWLFyKe/jxbPrgc/LsdrSWINfMu4GqMVUMc49meHnyZtNce9deMpuIQOlg8nIT51GqKfa81EVaGwcaG1j51HKuu0693qqniJsbNmp21HD/A4/wn5dcSaQ9/najpkOHmDnjfBYsXEpBnjAzB3z+xT6z7RMnTeDdTe+a95SWuSh1qPW2HLtSKM7ifLZs+RcFeYKmA3X6u+pVO1tDUU4+6WReemk9s2ZfBM36m5+wsf/AIRYsXMqsGRea5aeHBQgRlbnc/8AjLFh4t5p363x0qOkwCxYu5corr+Kvb/2DwlwLEklEX7vNLcilJCFrgYLR72p9TzlIbOzcXYu/uZkBziIONOzHbo2PzE5nchmt4TBhaeHcqVNZsHBp0n8ABXmCRQt/wZQp5/C3t7aQb7fpfWMlIm3AMHM7XKE9h3e2bOPaH1zHsuWPMmTgEFWI3saSkjIgNbNBDjWfVQNgF8ox4ywqAYedDz6q5q4Fi3j4wV9QXOoEEvwUgrQWR3dgLXBU3JN6slcQEq35MM//8XWOHz2Cv278G6GIWoJoau3g1Q1/Y+rUb3DDTXdSaLeCiCEQDBo8hD279wGwY1c9HfocxGa14dc09tV5aG9pVRpPCESuHb+/mYMNjRw82Ey914vNZsWSa6fZ72dv7X7qGg5Su7sOhKTAUcgffr+e4cdV8sKLG3j/g2oOtbVgt1pBJKTmM79LEDEOB8Jc/r0rWPv7ZygoyQMhKHDks/rFjYwZeRxrnnmebdtq6JDtRKIxqo4fRihsoXF/Iz+771Fy8uxgkditFtasfYXp55/P4oX/Tb12GLs9h8LiAjyeRvbuqWdnrYfa3XsJBztASBq9h/jXv6opKSvl3oefwukqVc/PtfHBR59y/KhRPPnbZ2gOhbDZbBQUF7L+lT9x/OiRPP7bZ9i7p55wKGg6OLpCgaOIX/92HWNGjmBnrQdPXQN2q4WCkiKe/M0znHn2qTz+xLO8ueVjSvPzsNksBFuC7Kyt4/Pq7ezYWcehtmZsNotOlxya/X483oPYcqwgIhQWF/DEb9Zy8iljeWbt8+yp95Kbk0M4Itm16wvq9+6mpraOnbsa2L2zFhntoLw4D7d7ELtq6/n5zx8gKK3YbFYKHA5++/RzTBp/Eg898jRevx+bTXmjRW6u/mwvOTY1F82xWfnos934vY3s8xzg3vtXYMnJQVisWPIsHGhs4OAhP5ovwK699QgkBY58Xn7+bfKLbFRv38mLr79FYa6gINfOG+9uIxZq5fPttfzlL2/T3hHVeVLnmT4gY3NC9HmhFBa0QJDCXEtCeJTyuGmBdpyOfH1dR40uwVCYtpB6F12X4VsyvpbU6VzKf8FQWH+mSNJMQkq8LSFVJ3tu5/K6gBZo58H77tbnY+X6WdWO9lAHeXY7wXCI/Fy7Gfx83pnjWbzkNxS6ilNCwwRaIKiiQHTPoRRC1deeSzAcosCek+QuD4bCtIU7upzXaS1tFNpzOoWftYc6lLlnlqXqeyR0vie5v1LrZdBYLfonb1g22pUIISXBcASJJD9XLR9AjGAoYpat6GYjGumgvKSEH8z7Lrffei9lgwckeJkVtEB7Cm9hlpfaH+j9KBDqBbFS1VdIyeFwB/m5dkXLhJBDo75Ap1BE48Wgqi2dn9VbZFQIO0MxQSJxjO9JBOtK0PoVR2dOdII7HckBwcmMptYspVDLHO3hcALhunblJ6N79UhEV4zeGd15dnfLSkS8XHWvTPOMnrcrcY6lBcI4zT2PqeV0VfbR2tvVPUc6Txf/qd/xAIvU/3uPfhbCLLLI4mjIjCj/m0L0MVIiiwSYQRPG8e+DrBD2AT0z5f73oF+Uj9GV0ji6jmT634isEGbRY/SP8kl4dXbi8W+ArBBmkcUxRlYIs8jiGCMrhFlkcYyRFcIssjjGyAphFlkcY2SFMIssjjGyQphFFscYWSHMIotjjKwQZpHFMUZWCLPI4hgjK4RZZHGMkRXCLLI4xvh/3L76/6z82u8AAAAASUVORK5CYII=" alt="Iconiko Cozinha Japonesa"><h3>Cadastro público • Iconiko</h3><p style="font-size:12px;color:var(--muted)">O cliente entra por este QR e a origem Iconiko fica gravada automaticamente.</p><div class="qr-code-frame"><div class="qr-img" id="qrIconiko"></div><div class="qr-caption">ICONIKO COZINHA JAPONESA</div></div><div class="qr-url" id="urlIconiko"></div><div class="actions-row" style="justify-content:center;margin-top:12px"><button class="btn" onclick="testPublicRegistration('iconiko')">Testar formulário</button><button class="btn" onclick="copyPublicUrl('iconiko')">Copiar link</button></div></div>
@@ -286,19 +337,19 @@ body[data-house] .sidebar{background:linear-gradient(180deg,var(--nav),color-mix
 </section>
 
 <section class="view" id="view-users">
-<div class="hero"><div><h2>Usuários & Login</h2><p>Controle de acessos master, operadores e envio de credenciais por WhatsApp.</p></div><div class="actions-row"><button class="btn" onclick="openLoginModal()">🔑 Trocar / Fazer Login</button><button class="btn primary" onclick="openNewUserModal()">＋ Novo Usuário</button></div></div>
+<div class="hero"><div><h2>Usuários & Login</h2><p id="usersViewSubtitle">Controle geral de acessos Master, Gerentes, Atendentes e envio de credenciais por WhatsApp.</p></div><div class="actions-row"><button class="btn" onclick="openLoginModal()">🔑 Trocar / Fazer Login</button><button class="btn primary" id="openNewUserBtn" onclick="openNewUserModal()">＋ Novo Usuário</button></div></div>
 <div class="cards" style="grid-template-columns:repeat(4,1fr);margin-bottom:20px" id="userKpiCards"></div>
 <div class="table-card">
 <div class="table-head">
 <div class="search"><span>⌕</span><input id="userSearchInput" placeholder="Buscar por nome, e-mail ou telefone..." oninput="renderUsers()"></div>
 <div class="actions-row">
 <select id="userFilterHouse" class="control" onchange="renderUsers()"><option value="all">Todas as casas</option><option value="Bravo Café">Bravo Café</option><option value="Café da Bravo Pousada">Café da Bravo Pousada</option><option value="Íconico">Iconiko</option><option value="Leña">Leña</option></select>
-<select id="userFilterRole" class="control" onchange="renderUsers()"><option value="all">Todos os perfis</option><option value="Master">Master</option><option value="Gerente">Gerente</option><option value="Operador">Operador</option></select>
+<select id="userFilterRole" class="control" onchange="renderUsers()"><option value="all">Todos os perfis</option><option value="Master">Master</option><option value="Gerente">Gerente</option><option value="Atendimento">Atendimento</option></select>
 </div>
 </div>
 <div class="table-wrap">
 <table class="data-table">
-<thead><tr><th>Usuário</th><th>Telefone / WhatsApp</th><th>Perfil</th><th>Casas Vinculadas</th><th>Status</th><th style="text-align:right">Ações Master</th></tr></thead>
+<thead><tr><th>Usuário</th><th>Telefone / WhatsApp</th><th>Perfil</th><th>Casas Vinculadas</th><th>Status</th><th id="userTableActionHeader" style="text-align:right">Ações Master</th></tr></thead>
 <tbody id="usersTableBody"></tbody>
 </table>
 </div>
@@ -639,6 +690,28 @@ const SEED_USERS = [
     houses: ['Bravo Café', 'Café da Bravo Pousada', 'Íconico', 'Leña'],
     active: true,
     createdAt: '2026-09-10'
+  },
+  {
+    id: 'USR-4',
+    name: 'Gerente Bravo Café',
+    email: 'gerente.cafe@bravopousada.com.br',
+    phone: '5522999990004',
+    password: 'Mkt@2026_CRM!',
+    role: 'Gerente',
+    houses: ['Bravo Café'],
+    active: true,
+    createdAt: '2026-09-10'
+  },
+  {
+    id: 'USR-5',
+    name: 'Atendimento Bravo Café',
+    email: 'atendente.cafe@bravopousada.com.br',
+    phone: '5522999990005',
+    password: 'Mkt@2026_CRM!',
+    role: 'Atendimento',
+    houses: ['Bravo Café'],
+    active: true,
+    createdAt: '2026-09-10'
   }
 ];
 
@@ -674,7 +747,99 @@ function clientVisits(c){const p=digits(c.phone);return state.visits.filter(v=>(
 function calcClient(c){const vv=clientVisits(c);const i=vv.filter(v=>v.house==='Íconico').length, l=vv.filter(v=>v.house==='Leña').length;return {...c,iconico:Math.max(c.iconico||0,i),lena:Math.max(c.lena||0,l),totalVisits:Math.max(c.totalVisits||0,i+l),lastVisit:vv[0]?.date||c.lastVisit,firstVisit:vv[vv.length-1]?.date||c.firstVisit}}
 function segmentOf(c){c=calcClient(c);const r=daysSince(c.lastVisit), f=c.totalVisits||0;if(f>=5&&r<=60)return 'VIP ativo';if(f>=5&&r>60)return 'VIP em risco';if(f>=2&&r<=45)return 'Recorrente ativo';if(f>=2&&r>90)return 'Em risco';if(f<=1&&r<=45)return 'Novo';return 'Inativo'}
 const COLORS={'Novo':'#477b9a','Recorrente':'#bf9153'};
-function go(view){document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));el('view-'+view).classList.add('active');document.querySelectorAll('.nav button[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===view));const names={dashboard:'Visão Geral',clients:'Clientes',profile:'Perfil do Cliente',checkin:'Check-in',reservations:'Reservas',qrcodes:'QR Codes',segments:'Segmentos',intelligence:'Inteligência',data:'Dados & Backup',settings:'Configurações',users:'Usuários & Login'};el('pageTitle').textContent=names[view]||view;el('sidebar').classList.remove('open');if(view==='clients')renderClients();if(view==='reservations')renderReservations();if(view==='qrcodes')renderQRCodes();if(view==='segments')renderSegments();if(view==='intelligence')renderIntelligence();if(view==='data')renderData();if(view==='checkin')renderCheckinStats();if(view==='settings')renderSettings();if(view==='users')renderUsers()}
+function getRoleBadgeClass(role){
+  if(role==='Master')return 'badge-role-master';
+  if(role==='Gerente')return 'badge-role-gerente';
+  if(role==='Atendimento')return 'badge-role-atendimento';
+  return 'badge-role-operador';
+}
+
+function isViewAllowedForRole(view, role){
+  if(!role || role === 'Master') return true;
+  if(role === 'Gerente'){
+    const allowed = ['dashboard', 'clients', 'profile', 'checkin', 'reservations', 'waitlist', 'tables', 'qrcodes', 'users'];
+    return allowed.includes(view);
+  }
+  if(role === 'Atendimento'){
+    const allowed = ['checkin', 'reservations', 'waitlist', 'tables', 'qrcodes'];
+    return allowed.includes(view);
+  }
+  return false;
+}
+
+function updateNavPermissions(){
+  const u = getCurrentUser();
+  const role = u ? u.role : 'Master';
+
+  // Visibilidade de botões do menu lateral
+  document.querySelectorAll('.nav button[data-view]').forEach(btn => {
+    const v = btn.dataset.view;
+    const allowed = isViewAllowedForRole(v, role);
+    btn.style.display = allowed ? '' : 'none';
+  });
+
+  // Separadores da barra lateral
+  const intelSep = el('navsep-intel');
+  if(intelSep) intelSep.style.display = (role === 'Master') ? '' : 'none';
+
+  const systemSep = el('navsep-system');
+  if(systemSep) systemSep.style.display = (role === 'Master' || role === 'Gerente') ? '' : 'none';
+
+  // No QR Codes: apenas Master pode editar a URL base
+  const qrCard = el('qrBaseUrlConfigCard');
+  if(qrCard) qrCard.style.display = (role === 'Master') ? '' : 'none';
+
+  // No Usuários & Login: apenas Master pode criar novos usuários
+  const nuBtn = el('openNewUserBtn');
+  if(nuBtn) nuBtn.style.display = (role === 'Master') ? '' : 'none';
+}
+
+function go(view){
+  const cur = getCurrentUser();
+  const role = cur ? cur.role : 'Master';
+
+  if(!isViewAllowedForRole(view, role)){
+    toast(`Módulo "${view}" não disponível para o perfil ${role}.`);
+    const fallback = (role === 'Atendimento') ? 'checkin' : 'dashboard';
+    go(fallback);
+    return;
+  }
+
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  const targetView = el('view-'+view);
+  if(targetView) targetView.classList.add('active');
+
+  document.querySelectorAll('.nav button[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===view));
+
+  const names={
+    dashboard:'Visão Geral',
+    clients:'Clientes',
+    profile:'Perfil do Cliente',
+    checkin:'Check-in',
+    reservations:'Reservas',
+    waitlist:'Fila de Espera',
+    tables:'Mapa de Mesas',
+    qrcodes:'QR Codes',
+    segments:'Segmentos',
+    intelligence:'Inteligência',
+    data:'Dados & Backup',
+    settings:'Configurações',
+    users:'Usuários & Login'
+  };
+
+  el('pageTitle').textContent=names[view]||view;
+  el('sidebar').classList.remove('open');
+
+  if(view==='clients')renderClients();
+  if(view==='reservations')renderReservations();
+  if(view==='qrcodes')renderQRCodes();
+  if(view==='segments')renderSegments();
+  if(view==='intelligence')renderIntelligence();
+  if(view==='data')renderData();
+  if(view==='checkin')renderCheckinStats();
+  if(view==='settings')renderSettings();
+  if(view==='users')renderUsers();
+}
 document.querySelectorAll('.nav button[data-view]').forEach(b=>b.addEventListener('click',()=>go(b.dataset.view)));el('menuBtn').onclick=()=>el('sidebar').classList.toggle('open');
 function filteredVisits(){let a=[...state.visits],h=el('dashHouse').value,p=el('dashPeriod').value;if(h!=='all')a=a.filter(v=>v.house===h);if(p!=='all'){const lim=Number(p);a=a.filter(v=>daysSince(v.date)<=lim)}return a}
 function renderDashboard(){const vv=filteredVisits();const phones=new Set(vv.map(v=>digits(v.phone)).filter(Boolean));const newN=vv.filter(v=>(v.status||'').toLowerCase().includes('novo')).length, recN=vv.filter(v=>(v.status||'').toLowerCase().includes('recorr')).length;const people=vv.reduce((s,v)=>s+(+v.people||0),0);const avg=vv.length?people/vv.length:0;const metrics=[['Clientes únicos',phones.size.toLocaleString('pt-BR'),'na seleção'],['Visitas',vv.length.toLocaleString('pt-BR'),'registros'],['Pessoas atendidas',people.toLocaleString('pt-BR'),`${avg.toFixed(1)} por visita`],['Taxa recorrência',((recN/Math.max(1,newN+recN))*100).toFixed(1)+'%','das visitas classificadas']];el('metrics').innerHTML=metrics.map(m=>`<div class="card metric"><div class="label">${m[0]}</div><div class="value">${m[1]}</div><div class="delta">${m[2]}</div></div>`).join('');
@@ -789,6 +954,8 @@ function applySessionHouse(){
   updateCheckinBranding(el('ciHouse')?.value || h);
   setupReservationHouseFilter(true);
   if(el('view-reservations')?.classList.contains('active')) renderReservations();
+  if(el('waitlistCurrentHouse')) el('waitlistCurrentHouse').textContent = houseLabel(h);
+  if(el('tablesCurrentHouse')) el('tablesCurrentHouse').textContent = houseLabel(h);
 }
 function changeSessionHouse(h){if(!h)return;sessionStorage.setItem('qu4tro_reception_house',h);applySessionHouse();toast('Recepção padrão alterada para '+houseLabel(h)+'.');}
 function startSession(){const h=el('sessionHouseStart').value;if(!h){toast('Selecione a recepção desta sessão.');return;}sessionStorage.setItem('qu4tro_reception_house',h);el('sessionOverlay').classList.remove('show');applySessionHouse();toast('Sessão iniciada • '+houseLabel(h));}
@@ -838,13 +1005,96 @@ function renderUserSessionBadge(){
   if(nm)nm.textContent=u.name;
   if(rl){
     rl.textContent=u.role;
-    rl.className=u.role==='Master'?'user-chip-role' : 'user-chip-role';
+    rl.className='user-chip-role';
   }
+  updateNavPermissions();
+}
+
+function openMyProfileModal(){
+  const u=getCurrentUser();
+  if(!u)return;
+  const housesStr=getUserHouses(u).join(', ');
+  el('modalTitle').textContent='Meus Dados / Minha Conta';
+  el('modalBody').innerHTML=`
+    <form id="myProfileForm" onsubmit="handleMyProfileSubmit(event)">
+      <div class="form-grid">
+        <div class="field span2">
+          <label>Nome Completo *</label>
+          <input id="mpName" required value="${esc(u.name)}" class="control">
+        </div>
+        <div class="field">
+          <label>E-mail *</label>
+          <input id="mpEmail" type="email" required value="${esc(u.email)}" class="control">
+        </div>
+        <div class="field">
+          <label>Telefone / WhatsApp *</label>
+          <input id="mpPhone" inputmode="tel" required value="${fmtPhone(u.phone)}" class="control">
+        </div>
+        <div class="field span2">
+          <label>Nova Senha de Acesso</label>
+          <input id="mpPassword" type="password" placeholder="Deixe em branco para manter a atual" class="control">
+          <div class="field-help">Preencha apenas se desejar alterar sua senha de login.</div>
+        </div>
+        <div class="field span2">
+          <div style="background:#f8fafc;border:1px solid var(--line);border-radius:8px;padding:10px 12px;font-size:12px;display:flex;flex-direction:column;gap:4px">
+            <div><strong>Perfil no Sistema:</strong> <span class="${getRoleBadgeClass(u.role)}">${esc(u.role)}</span></div>
+            <div><strong>Casas com Acesso:</strong> ${esc(housesStr)}</div>
+            <div style="font-size:11px;color:var(--muted)">* Seu perfil e casas são gerenciados pela administração Master.</div>
+          </div>
+        </div>
+      </div>
+      <div class="form-actions" style="margin-top:16px">
+        <button type="button" class="btn" onclick="closeModal()">Cancelar</button>
+        <button type="submit" class="btn primary">Salvar Meus Dados</button>
+      </div>
+    </form>
+  `;
+  el('modal').classList.add('show');
+}
+
+function handleMyProfileSubmit(e){
+  e.preventDefault();
+  const u=getCurrentUser();
+  if(!u)return;
+  const name=normalizeName(el('mpName').value);
+  const email=(el('mpEmail').value||'').trim().toLowerCase();
+  const phoneVal=validatePhone(el('mpPhone').value);
+  const pass=(el('mpPassword').value||'').trim();
+
+  if(!name){toast('Informe seu nome.');return;}
+  if(!email){toast('Informe seu e-mail.');return;}
+  if(state.users.some(x=>x.id!==u.id&&x.email.toLowerCase()===email)){
+    toast('Já existe outro usuário cadastrado com este e-mail.');
+    return;
+  }
+  if(!phoneVal.ok){toast(phoneVal.msg);el('mpPhone').focus();return;}
+
+  u.name=name;
+  u.email=email;
+  u.phone=phoneVal.value;
+  if(pass)u.password=pass;
+
+  save();
+  dbSyncUser(u);
+  closeModal();
+  renderUserSessionBadge();
+  if(typeof renderUsers==='function' && document.getElementById('view-users')?.classList.contains('active')){
+    renderUsers();
+  }
+  toast('Seus dados foram atualizados e sincronizados na nuvem!');
 }
 
 function openUserSessionModal(){
   const u=getCurrentUser();
   const housesHtml=u.houses&&u.houses.length?u.houses.map(h=>`<span class="badge-house-pill ${h==='Leña'?'badge-house-lena':(h==='Íconico'?'badge-house-iconiko':(h==='Café da Bravo Pousada'?'badge-house-cafepousada':'badge-house-cafe'))}">${esc(h)}</span>`).join(''):'<em>Todas as casas</em>';
+  
+  let teamBtn = '';
+  if(u.role === 'Master'){
+    teamBtn = `<button class="btn" style="width:100%;justify-content:center" onclick="closeModal();go('users')">👥 Gestão Geral de Usuários</button>`;
+  } else if(u.role === 'Gerente'){
+    teamBtn = `<button class="btn" style="width:100%;justify-content:center" onclick="closeModal();go('users')">👥 Atendentes da Minha Casa</button>`;
+  }
+
   el('modalTitle').textContent='Sessão & Usuário Ativo';
   el('modalBody').innerHTML=`
     <div style="text-align:center;padding:10px 0 16px">
@@ -854,7 +1104,7 @@ function openUserSessionModal(){
       <h3 style="margin:0;font-size:17px;color:var(--ink)">${esc(u.name)}</h3>
       <div style="color:var(--muted);font-size:12px;margin:2px 0 8px">${esc(u.email)}</div>
       <div style="display:flex;justify-content:center;gap:6px;align-items:center;margin-bottom:12px">
-        <span class="${u.role==='Master'?'badge-role-master':(u.role==='Gerente'?'badge-role-gerente':'badge-role-operador')}">${esc(u.role)}</span>
+        <span class="${getRoleBadgeClass(u.role)}">${esc(u.role)}</span>
         <span class="badge-status-active">● Conectado</span>
       </div>
       <div style="background:#f8fafc;border:1px solid var(--line);border-radius:10px;padding:10px;text-align:left;font-size:12px;margin-bottom:16px">
@@ -862,8 +1112,9 @@ function openUserSessionModal(){
         <div><strong>Casas com Acesso:</strong> ${housesHtml}</div>
       </div>
       <div style="display:flex;flex-direction:column;gap:8px">
-        <button class="btn" style="width:100%;justify-content:center" onclick="closeModal();go('users')">👥 Acessar Gestão de Usuários</button>
+        <button class="btn" style="width:100%;justify-content:center" onclick="closeModal();openMyProfileModal()">✏️ Alterar Meus Dados</button>
         <button class="btn" style="width:100%;justify-content:center" onclick="closeModal();openChangePasswordModal('${u.id}')">🔑 Alterar Minha Senha</button>
+        ${teamBtn}
         <button class="btn" style="width:100%;justify-content:center" onclick="closeModal();openLoginModal()">⇄ Trocar de Conta</button>
         <button class="btn" style="width:100%;justify-content:center;color:#b91c1c;border-color:#fecaca;background:#fef2f2;font-weight:700" onclick="closeModal();performLogout()">⎋ Desconectar / Sair</button>
       </div>
@@ -909,6 +1160,13 @@ function checkAppAuthentication(){
     const appEl = document.querySelector('.app');
     if(appEl) appEl.style.display = 'flex';
     applyCurrentUser();
+    updateNavPermissions();
+    if(validUser.role === 'Atendimento'){
+      const curView = document.querySelector('.view.active');
+      if(!curView || curView.id === 'view-dashboard' || !isViewAllowedForRole(curView.id.replace('view-',''), validUser.role)){
+        go('checkin');
+      }
+    }
     return true;
   } else {
     // Não autenticado: exibe tela de login e esconde o app
@@ -1016,6 +1274,11 @@ async function handleOverlayLogin(e){
   applyCurrentUser();
   applySessionHouse();
   refreshAll();
+  const curView = document.querySelector('.view.active');
+  const viewId = curView ? curView.id.replace('view-', '') : 'dashboard';
+  if(!isViewAllowedForRole(viewId, user.role)){
+    go(user.role === 'Atendimento' ? 'checkin' : 'dashboard');
+  }
   toast(`Bem-vindo(a), ${user.name}!`);
 }
 
@@ -1109,8 +1372,15 @@ function handleLoginSubmit(e){
     return;
   }
   state.currentUser=user.id;
+  setStoredAuthUserId(user.id);
   save();
   closeModal();
+  applyCurrentUser();
+  const curView = document.querySelector('.view.active');
+  const viewId = curView ? curView.id.replace('view-', '') : 'dashboard';
+  if(!isViewAllowedForRole(viewId, user.role)){
+    go(user.role === 'Atendimento' ? 'checkin' : 'dashboard');
+  }
   toast(`Bem-vindo, ${user.name}!`);
 }
 
@@ -1119,9 +1389,16 @@ function quickLoginAs(userId){
   if(!user)return;
   if(!user.active){toast('Usuário inativo.');return;}
   state.currentUser=user.id;
+  setStoredAuthUserId(user.id);
   save();
   closeModal();
-  toast(`Conectado como ${user.name} (Master).`);
+  applyCurrentUser();
+  const curView = document.querySelector('.view.active');
+  const viewId = curView ? curView.id.replace('view-', '') : 'dashboard';
+  if(!isViewAllowedForRole(viewId, user.role)){
+    go(user.role === 'Atendimento' ? 'checkin' : 'dashboard');
+  }
+  toast(`Conectado como ${user.name} (${user.role}).`);
 }
 
 /* ==========================================================================
@@ -1264,11 +1541,32 @@ async function saveSettingsForm(){
 
 function renderUsers(){
   if(!state.users||!state.users.length)state.users=structuredClone(SEED_USERS);
+  const cur = getCurrentUser();
+  const isMaster = cur && cur.role === 'Master';
+  const isGerente = cur && cur.role === 'Gerente';
+
+  // Perfil Atendimento não tem acesso ao módulo de usuários
+  if(cur && cur.role === 'Atendimento'){
+    go('checkin');
+    return;
+  }
+
   const q=(el('userSearchInput')?.value||'').trim().toLowerCase();
   const fHouse=el('userFilterHouse')?.value||'all';
   const fRole=el('userFilterRole')?.value||'all';
 
   let list=[...state.users];
+
+  // Gerente visualiza APENAS a si mesmo e usuários de Atendimento da(s) sua(s) casa(s)
+  if(isGerente){
+    const myHouses = getUserHouses(cur);
+    list = list.filter(u => {
+      if(u.id === cur.id) return true;
+      if(u.role === 'Atendimento' && u.houses && u.houses.some(h => myHouses.includes(h))) return true;
+      return false;
+    });
+  }
+
   if(q){
     list=list.filter(u=>u.name.toLowerCase().includes(q)||u.email.toLowerCase().includes(q)||digits(u.phone).includes(digits(q)));
   }
@@ -1279,19 +1577,45 @@ function renderUsers(){
     list=list.filter(u=>u.role===fRole);
   }
 
+  // Ajustes de títulos e botões conforme perfil
+  const sub = el('usersViewSubtitle');
+  if(sub){
+    sub.textContent = isGerente 
+      ? 'Gestão de atendentes da sua casa e envio de credenciais por WhatsApp.' 
+      : 'Controle geral de acessos Master, Gerentes, Atendentes e envio de credenciais por WhatsApp.';
+  }
+  const thAction = el('userTableActionHeader');
+  if(thAction){
+    thAction.textContent = isGerente ? 'Ações do Gerente' : 'Ações Master';
+  }
+  const nuBtn = el('openNewUserBtn');
+  if(nuBtn){
+    nuBtn.style.display = isMaster ? '' : 'none';
+  }
+
   // Render KPI Cards
   const kpis=el('userKpiCards');
   if(kpis){
-    const total=state.users.length;
-    const actives=state.users.filter(u=>u.active).length;
-    const masters=state.users.filter(u=>u.role==='Master').length;
-    const current=getCurrentUser();
-    kpis.innerHTML=`
-      <div class="card metric"><div class="label">Total de Usuários</div><div class="value">${total}</div><div class="delta">Acessos cadastrados</div></div>
-      <div class="card metric"><div class="label">Usuários Ativos</div><div class="value" style="color:#15803d">${actives}</div><div class="delta">Podem fazer login</div></div>
-      <div class="card metric"><div class="label">Acessos Master</div><div class="value" style="color:#0f766e">${masters}</div><div class="delta">Acesso total irrestrito</div></div>
-      <div class="card metric"><div class="label">Sessão Atual</div><div class="value" style="font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(current.name)}</div><div class="delta">${esc(current.email)}</div></div>
-    `;
+    if(isGerente){
+      const total=list.length;
+      const atendentes=list.filter(u=>u.role==='Atendimento').length;
+      kpis.innerHTML=`
+        <div class="card metric"><div class="label">Sua Equipe</div><div class="value">${total}</div><div class="delta">Usuários visualizáveis</div></div>
+        <div class="card metric"><div class="label">Atendentes</div><div class="value" style="color:#2563eb">${atendentes}</div><div class="delta">Operação da sua casa</div></div>
+        <div class="card metric"><div class="label">Casas sob Gestão</div><div class="value" style="font-size:14px;color:#1e40af;line-height:1.2">${getUserHouses(cur).join(', ')}</div><div class="delta">Permissão de gerência</div></div>
+        <div class="card metric"><div class="label">Sessão Atual</div><div class="value" style="font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(cur.name)}</div><div class="delta"><span class="badge-role-gerente">Gerente</span></div></div>
+      `;
+    } else {
+      const total=state.users.length;
+      const actives=state.users.filter(u=>u.active).length;
+      const masters=state.users.filter(u=>u.role==='Master').length;
+      kpis.innerHTML=`
+        <div class="card metric"><div class="label">Total de Usuários</div><div class="value">${total}</div><div class="delta">Acessos cadastrados</div></div>
+        <div class="card metric"><div class="label">Usuários Ativos</div><div class="value" style="color:#15803d">${actives}</div><div class="delta">Podem fazer login</div></div>
+        <div class="card metric"><div class="label">Acessos Master</div><div class="value" style="color:#0f766e">${masters}</div><div class="delta">Acesso total irrestrito</div></div>
+        <div class="card metric"><div class="label">Sessão Atual</div><div class="value" style="font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(cur.name)}</div><div class="delta">${esc(cur.email)}</div></div>
+      `;
+    }
   }
 
   // Render Table
@@ -1303,11 +1627,32 @@ function renderUsers(){
   }
 
   tbody.innerHTML=list.map(u=>{
-    const roleBadge=u.role==='Master'?'badge-role-master':(u.role==='Gerente'?'badge-role-gerente':'badge-role-operador');
+    const roleBadge=getRoleBadgeClass(u.role);
     const statusBadge=u.active?'badge-status-active':'badge-status-inactive';
     const statusLabel=u.active?'Ativo':'Inativo';
-    const housesPills=u.houses&&u.houses.length?u.houses.map(h=>`<span class="badge-house-pill ${h==='Leña'?'badge-house-lena':(h==='Íconico'?'badge-house-iconiko':'badge-house-cafe')}">${esc(h)}</span>`).join(' '):'<span style="color:var(--muted);font-size:11px">Nenhuma</span>';
-    const isSelf=u.id===state.currentUser;
+    const housesPills=u.houses&&u.houses.length?u.houses.map(h=>`<span class="badge-house-pill ${h==='Leña'?'badge-house-lena':(h==='Íconico'?'badge-house-iconiko':(h==='Café da Bravo Pousada'?'badge-house-cafepousada':'badge-house-cafe'))}">${esc(h)}</span>`).join(' '):'<span style="color:var(--muted);font-size:11px">Nenhuma</span>';
+    const isSelf=u.id===cur.id;
+
+    let actionBtns = '';
+    if(isMaster){
+      actionBtns = `
+        <button class="btn" style="padding:4px 8px;font-size:11px" onclick="openEditUserModal('${u.id}')" title="Editar Perfil">✏️ Editar</button>
+        <button class="btn" style="padding:4px 8px;font-size:11px" onclick="openChangePasswordModal('${u.id}')" title="Alterar Senha">🔑 Senha</button>
+        <button class="btn ${u.active?'danger':''}" style="padding:4px 8px;font-size:11px" onclick="toggleUserStatus('${u.id}')" title="${u.active?'Inativar Usuário':'Reativar Usuário'}">${u.active?'Inativar':'Ativar'}</button>
+      `;
+    } else if(isGerente){
+      if(isSelf){
+        actionBtns = `
+          <button class="btn" style="padding:4px 8px;font-size:11px" onclick="openMyProfileModal()" title="Editar Meus Dados">✏️ Meus Dados</button>
+          <button class="btn" style="padding:4px 8px;font-size:11px" onclick="openChangePasswordModal('${u.id}')" title="Alterar Minha Senha">🔑 Minha Senha</button>
+        `;
+      } else if(u.role === 'Atendimento'){
+        actionBtns = `
+          <button class="btn" style="padding:4px 8px;font-size:11px" onclick="openChangePasswordModal('${u.id}')" title="Alterar Senha do Atendente">🔑 Senha</button>
+          <button class="btn" style="padding:4px 8px;font-size:11px;color:#16a34a;border-color:#bbf7d0" onclick="sendUserPasswordWhatsApp('${u.id}')" title="Reenviar Senha no WhatsApp">💬 WhatsApp</button>
+        `;
+      }
+    }
 
     return `
       <tr style="${!u.active?'opacity:0.65;background:#fcfcfc':''}">
@@ -1334,11 +1679,7 @@ function renderUsers(){
         <td>${housesPills}</td>
         <td><span class="${statusBadge}">● ${statusLabel}</span></td>
         <td style="text-align:right;white-space:nowrap">
-          <button class="btn" style="padding:4px 8px;font-size:11px" onclick="openEditUserModal('${u.id}')" title="Editar Perfil">✏️ Editar</button>
-          <button class="btn" style="padding:4px 8px;font-size:11px" onclick="openChangePasswordModal('${u.id}')" title="Alterar Senha">🔑 Senha</button>
-          <button class="btn ${u.active?'danger':''}" style="padding:4px 8px;font-size:11px" onclick="toggleUserStatus('${u.id}')" title="${u.active?'Inativar Usuário':'Ativar Usuário'}">
-            ${u.active?'⊘ Inativar':'✓ Ativar'}
-          </button>
+          ${actionBtns}
         </td>
       </tr>
     `;
@@ -1364,25 +1705,28 @@ function openNewUserModal(){
           <div class="field-help">Com DDD (ex: 22 99999-8888).</div>
         </div>
         <div class="field span2">
-          <label>Casas Vinculadas * (Múltipla Escolha)</label>
+          <label>Casas Vinculadas * (Múltipla Escolha - Ordem Alfabética)</label>
           <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:6px">
             <label class="checkbox-card">
-              <input type="checkbox" name="nuHouses" value="Leña" checked> Leña Casa Italiana
+              <input type="checkbox" name="nuHouses" value="Bravo Café" checked> Bravo Café
+            </label>
+            <label class="checkbox-card">
+              <input type="checkbox" name="nuHouses" value="Café da Bravo Pousada" checked> Café da Bravo Pousada
             </label>
             <label class="checkbox-card">
               <input type="checkbox" name="nuHouses" value="Íconico" checked> Iconiko Cozinha Japonesa
             </label>
             <label class="checkbox-card">
-              <input type="checkbox" name="nuHouses" value="Bravo Café" checked> Bravo Café
+              <input type="checkbox" name="nuHouses" value="Leña" checked> Leña Casa Italiana
             </label>
           </div>
         </div>
         <div class="field">
           <label>Perfil de Acesso *</label>
           <select id="nuRole" class="control">
-            <option value="Operador">Operador (Check-in e Reservas)</option>
-            <option value="Gerente">Gerente</option>
-            <option value="Master">Master (Acesso Total)</option>
+            <option value="Atendimento">Atendimento (Operação de Salão e Recepção)</option>
+            <option value="Gerente">Gerente (Gestão Operacional da Casa)</option>
+            <option value="Master">Master (Acesso Total Irrestrito)</option>
           </select>
         </div>
         <div class="field">
@@ -1455,9 +1799,10 @@ function handleNewUserSubmit(e){
 function openEditUserModal(userId){
   const u=state.users.find(x=>x.id===userId);
   if(!u)return;
-  const hasLena=u.houses&&u.houses.includes('Leña');
-  const hasIconiko=u.houses&&u.houses.includes('Íconico');
   const hasCafe=u.houses&&u.houses.includes('Bravo Café');
+  const hasCafePousada=u.houses&&u.houses.includes('Café da Bravo Pousada');
+  const hasIconiko=u.houses&&u.houses.includes('Íconico');
+  const hasLena=u.houses&&u.houses.includes('Leña');
 
   el('modalTitle').textContent='Editar Perfil do Usuário';
   el('modalBody').innerHTML=`
@@ -1476,25 +1821,28 @@ function openEditUserModal(userId){
           <input id="euPhone" inputmode="tel" required value="${fmtPhone(u.phone)}" class="control">
         </div>
         <div class="field span2">
-          <label>Casas Vinculadas * (Múltipla Escolha)</label>
+          <label>Casas Vinculadas * (Múltipla Escolha - Ordem Alfabética)</label>
           <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:6px">
             <label class="checkbox-card">
-              <input type="checkbox" name="euHouses" value="Leña" ${hasLena?'checked':''}> Leña Casa Italiana
+              <input type="checkbox" name="euHouses" value="Bravo Café" ${hasCafe?'checked':''}> Bravo Café
+            </label>
+            <label class="checkbox-card">
+              <input type="checkbox" name="euHouses" value="Café da Bravo Pousada" ${hasCafePousada?'checked':''}> Café da Bravo Pousada
             </label>
             <label class="checkbox-card">
               <input type="checkbox" name="euHouses" value="Íconico" ${hasIconiko?'checked':''}> Iconiko Cozinha Japonesa
             </label>
             <label class="checkbox-card">
-              <input type="checkbox" name="euHouses" value="Bravo Café" ${hasCafe?'checked':''}> Bravo Café
+              <input type="checkbox" name="euHouses" value="Leña" ${hasLena?'checked':''}> Leña Casa Italiana
             </label>
           </div>
         </div>
         <div class="field span2">
           <label>Perfil de Acesso *</label>
           <select id="euRole" class="control">
-            <option value="Operador" ${u.role==='Operador'?'selected':''}>Operador (Check-in e Reservas)</option>
-            <option value="Gerente" ${u.role==='Gerente'?'selected':''}>Gerente</option>
-            <option value="Master" ${u.role==='Master'?'selected':''}>Master (Acesso Total)</option>
+            <option value="Atendimento" ${u.role==='Atendimento'?'selected':''}>Atendimento (Operação de Salão e Recepção)</option>
+            <option value="Gerente" ${u.role==='Gerente'?'selected':''}>Gerente (Gestão Operacional da Casa)</option>
+            <option value="Master" ${u.role==='Master'?'selected':''}>Master (Acesso Total Irrestrito)</option>
           </select>
         </div>
       </div>
