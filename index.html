@@ -73,9 +73,53 @@ body[data-house] .sidebar{background:linear-gradient(180deg,var(--nav),color-mix
 .checkbox-card:hover{border-color:var(--accent);background:#f1f5f9}
 .checkbox-card input[type="checkbox"]{width:16px;height:16px;accent-color:var(--accent);cursor:pointer}
 
+
+/* Fullscreen Login Overlay */
+.login-screen-overlay{position:fixed;inset:0;z-index:999999;background:radial-gradient(ellipse at top,#1e293b 0%,#0f172a 60%,#020617 100%);display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(10px)}
+.login-screen-overlay.hidden{display:none !important}
+.login-box-card{width:100%;max-width:400px;background:#fff;border-radius:20px;box-shadow:0 25px 50px -12px rgba(0,0,0,0.5),0 0 0 1px rgba(255,255,255,0.1);padding:32px 28px;color:var(--ink);animation:fadeInUp .25s ease}
+.login-header{text-align:center;margin-bottom:22px}
+.login-header h2{font-size:20px;font-weight:800;margin:8px 0 4px;color:#0f172a}
+.login-header p{font-size:12.5px;color:#64748b;margin:0}
+.login-error-alert{background:#fef2f2;border:1.5px solid #fecaca;border-radius:10px;padding:10px 14px;color:#b91c1c;font-size:12px;font-weight:600;margin-bottom:16px;display:none}
+.btn-logout-sidebar{margin-top:10px;width:100%;padding:8px 12px;background:transparent;border:1px solid #334155;border-radius:8px;color:#94a3b8;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .15s}
+.btn-logout-sidebar:hover{background:#1e293b;color:#f8fafc;border-color:#475569}
+
 </style>
 </head>
 <body>
+
+<div class="login-screen-overlay" id="loginScreenOverlay">
+  <div class="login-box-card">
+    <div class="login-header">
+      <div style="width:48px;height:48px;background:#0f172a;border-radius:14px;display:inline-flex;align-items:center;justify-content:center;color:#fff;font-size:22px;box-shadow:0 4px 12px rgba(0,0,0,0.2)">🔒</div>
+      <h2>GRUPO QU4TRO</h2>
+      <p>Gestão de Clientes • Identifique-se para entrar</p>
+    </div>
+    <div class="login-error-alert" id="authOverlayError"></div>
+    <form id="authOverlayForm" onsubmit="handleOverlayLogin(event)">
+      <div class="field" style="margin-bottom:14px">
+        <label style="font-size:12px;font-weight:700;margin-bottom:4px;display:block">E-mail ou Telefone *</label>
+        <input id="authOverlayIdentifier" type="text" class="control" required placeholder="usuario@bravopousada.com.br ou celular" style="width:100%;padding:10px 12px" autocomplete="username">
+      </div>
+      <div class="field" style="margin-bottom:16px">
+        <label style="font-size:12px;font-weight:700;margin-bottom:4px;display:block">Senha *</label>
+        <input id="authOverlayPassword" type="password" class="control" required placeholder="••••••••" style="width:100%;padding:10px 12px" autocomplete="current-password">
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;font-size:12px;color:#64748b">
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer">
+          <input type="checkbox" id="authRememberMe" checked style="width:16px;height:16px;accent-color:var(--accent);cursor:pointer">
+          <span>Manter conectado neste aparelho</span>
+        </label>
+      </div>
+      <button type="submit" class="btn primary" style="width:100%;padding:12px;justify-content:center;font-size:14px;font-weight:700">Entrar no Sistema</button>
+    </form>
+    <div style="margin-top:18px;text-align:center;font-size:11.5px;color:#94a3b8">
+      Acesso restrito a colaboradores autorizados.<br>Autoatendimento de clientes disponível via QR Code.
+    </div>
+  </div>
+</div>
+
 <div class="public-reg" id="publicRegistration"><div class="public-wrap"><div class="public-brand"><img id="publicHouseLogo" class="public-brand-logo" alt="Logo da casa"><strong>GRUPO QU4TRO</strong><div style="font-size:12px;opacity:.75;margin-top:3px" id="publicHouseTop"></div></div><div class="public-card" id="publicCard"><div class="house-pill" id="publicHousePill"></div><h1>Faça seu cadastro</h1><p class="lead">Enquanto nossa equipe verifica sua mesa, preencha seus dados. É rápido e evita que você precise informar tudo na recepção.</p><form id="publicForm"><div class="field" id="pubNameField"><label>Nome e sobrenome *</label><input id="pubName" autocomplete="name" placeholder="Ex.: Gabriel Sá" required><div class="field-help">Informe pelo menos nome + segundo nome, usando somente letras.</div><div class="field-error" id="pubNameError"></div></div><div class="field" id="pubPhoneField" style="margin-top:13px"><label>Telefone completo *</label><input id="pubPhone" inputmode="tel" autocomplete="tel" placeholder="(22) 99999-9999" required><div class="field-help">Inclua DDD. Números brasileiros são salvos com código do país +55.</div><div class="field-error" id="pubPhoneError"></div></div><div class="field" style="margin-top:13px"><label>Como conheceu a casa?</label><select id="pubSource"><option value="">Selecione</option><option>Instagram</option><option>Google</option><option>Indicação</option><option>Passagem/Passante</option><option>TikTok</option><option>Já conhecia a casa</option><option>Outro</option></select></div><div class="privacy-note">Os dados são utilizados para identificação do cadastro e histórico de relacionamento com a casa. Este protótipo armazena as informações somente neste navegador.</div><button class="btn gold" style="width:100%;justify-content:center;margin-top:16px;padding:13px" type="submit">Concluir cadastro</button></form></div></div></div>
 <div class="app">
 <aside class="sidebar" id="sidebar">
@@ -436,7 +480,8 @@ function loadState(){let s;try{const raw=localStorage.getItem(STORE);s=raw?JSON.
       s.settingsByHouse[h]=Object.assign({},DEFAULT_HOUSE_SETTINGS[h],s.settingsByHouse[h]||{});
     }
   }
-  if(!s.users||!Array.isArray(s.users)||s.users.length===0)s.users=structuredClone(SEED_USERS);if(!s.currentUser)s.currentUser='USR-1';return s}
+  if(!s.users||!Array.isArray(s.users)||s.users.length===0)s.users=structuredClone(SEED_USERS);// s.currentUser initialized via authentication
+return s}
 function save(){localStorage.setItem(STORE,JSON.stringify(state));refreshAll()}
 const el=id=>document.getElementById(id);
 const digits=v=>String(v||'').replace(/\D/g,'');
@@ -563,11 +608,142 @@ function openUserSessionModal(){
       <div style="display:flex;flex-direction:column;gap:8px">
         <button class="btn" style="width:100%;justify-content:center" onclick="closeModal();go('users')">👥 Acessar Gestão de Usuários</button>
         <button class="btn" style="width:100%;justify-content:center" onclick="closeModal();openChangePasswordModal('${u.id}')">🔑 Alterar Minha Senha</button>
-        <button class="btn primary" style="width:100%;justify-content:center;background:#0f202a;border-color:#0f202a" onclick="closeModal();openLoginModal()">⇄ Trocar Usuário / Fazer Login</button>
+        <button class="btn" style="width:100%;justify-content:center" onclick="closeModal();openLoginModal()">⇄ Trocar de Conta</button>
+        <button class="btn" style="width:100%;justify-content:center;color:#b91c1c;border-color:#fecaca;background:#fef2f2;font-weight:700" onclick="closeModal();performLogout()">⎋ Desconectar / Sair</button>
       </div>
     </div>
   `;
   el('modal').classList.add('show');
+}
+
+
+/* ==========================================================================
+   AUTENTICAÇÃO & SESSÃO OBRIGATÓRIA (PRODUÇÃO)
+   ========================================================================== */
+
+function getStoredAuthUserId(){
+  return localStorage.getItem('qu4tro_auth_user') || sessionStorage.getItem('qu4tro_auth_user') || null;
+}
+
+function checkAppAuthentication(){
+  // 1. Se estiver no modo público (QR code de cliente), libera sem login e isola o CRM
+  let pub = new URLSearchParams(location.search).get('public');
+  if(!pub){
+    const p = (location.pathname || '').toLowerCase();
+    if(p.includes('iconi')) pub = 'iconiko';
+    else if(p.includes('lena') || p.includes('leña') || p.includes('le%c3%b1a')) pub = 'lena';
+    else if(p.includes('bravo') || p.includes('cafe') || p.includes('caf%c3%a9')) pub = 'cafe';
+  }
+  if(pub){
+    // Modo público: esconde login e esconde o app CRM por completo
+    if(el('loginScreenOverlay')) el('loginScreenOverlay').classList.add('hidden');
+    const appEl = document.querySelector('.app');
+    if(appEl) appEl.style.display = 'none';
+    initPublicMode(pub);
+    return true;
+  }
+
+  // 2. Se for acesso ao CRM: verifica sessão autenticada
+  const storedId = getStoredAuthUserId();
+  const validUser = storedId && state.users ? state.users.find(u => u.id === storedId && u.active) : null;
+
+  if(validUser){
+    state.currentUser = validUser.id;
+    if(el('loginScreenOverlay')) el('loginScreenOverlay').classList.add('hidden');
+    const appEl = document.querySelector('.app');
+    if(appEl) appEl.style.display = 'flex';
+    applyCurrentUser();
+    return true;
+  } else {
+    // Não autenticado: exibe tela de login e esconde o app
+    state.currentUser = null;
+    const appEl = document.querySelector('.app');
+    if(appEl) appEl.style.display = 'none';
+    if(el('loginScreenOverlay')) el('loginScreenOverlay').classList.remove('hidden');
+    setTimeout(() => el('authOverlayIdentifier')?.focus(), 100);
+    return false;
+  }
+}
+
+function handleOverlayLogin(e){
+  e.preventDefault();
+  const identifier = (el('authOverlayIdentifier')?.value || '').trim();
+  const pass = (el('authOverlayPassword')?.value || '').trim();
+  const remember = el('authRememberMe')?.checked ?? true;
+  const errBox = el('authOverlayError');
+
+  if(!identifier || !pass){
+    if(errBox){errBox.textContent = 'Informe e-mail/telefone e senha.'; errBox.style.display = 'block';}
+    return;
+  }
+
+  const cleanPhone = digits(identifier);
+  const user = (state.users || []).find(u => {
+    const mailMatch = u.email && u.email.toLowerCase() === identifier.toLowerCase();
+    const phoneMatch = cleanPhone && digits(u.phone) === cleanPhone;
+    return mailMatch || phoneMatch;
+  });
+
+  if(!user){
+    if(errBox){errBox.textContent = 'Usuário não encontrado no sistema.'; errBox.style.display = 'block';}
+    return;
+  }
+
+  if(!user.active){
+    if(errBox){errBox.textContent = 'Este usuário está inativo. Contate o administrador master.'; errBox.style.display = 'block';}
+    return;
+  }
+
+  if(user.password !== pass){
+    if(errBox){errBox.textContent = 'Senha incorreta. Verifique e tente novamente.'; errBox.style.display = 'block';}
+    return;
+  }
+
+  // Sucesso na autenticação
+  state.currentUser = user.id;
+  if(remember){
+    localStorage.setItem('qu4tro_auth_user', user.id);
+    sessionStorage.removeItem('qu4tro_auth_user');
+  } else {
+    sessionStorage.setItem('qu4tro_auth_user', user.id);
+    localStorage.removeItem('qu4tro_auth_user');
+  }
+
+  if(errBox) errBox.style.display = 'none';
+  if(el('loginScreenOverlay')) el('loginScreenOverlay').classList.add('hidden');
+  const appEl = document.querySelector('.app');
+  if(appEl) appEl.style.display = 'flex';
+
+  // Define a casa de recepção padrão para as casas permitidas do usuário
+  if(user.houses && user.houses.length > 0){
+    const currentH = getSessionHouse();
+    if(!user.houses.includes(currentH)){
+      sessionStorage.setItem('qu4tro_reception_house', user.houses[0]);
+    }
+  }
+
+  applyCurrentUser();
+  applySessionHouse();
+  refreshAll();
+  toast(`Bem-vindo(a), ${user.name}!`);
+}
+
+function performLogout(){
+  if(!confirm('Deseja realmente sair do sistema?')) return;
+  localStorage.removeItem('qu4tro_auth_user');
+  sessionStorage.removeItem('qu4tro_auth_user');
+  state.currentUser = null;
+
+  const appEl = document.querySelector('.app');
+  if(appEl) appEl.style.display = 'none';
+
+  if(el('authOverlayPassword')) el('authOverlayPassword').value = '';
+  if(el('authOverlayError')) el('authOverlayError').style.display = 'none';
+  if(el('loginScreenOverlay')) el('loginScreenOverlay').classList.remove('hidden');
+
+  closeModal();
+  toast('Você saiu do sistema.');
+  setTimeout(() => el('authOverlayIdentifier')?.focus(), 100);
 }
 
 function openLoginModal(){
@@ -1366,22 +1542,14 @@ function resetData(){if(!confirm('Restaurar a base inicial deste protótipo? Alt
 function exportCSV(type){const rows=type==='clients'?getFilteredClients():state.visits;let headers,body;if(type==='clients'){headers=['Nome','Telefone','Primeira visita','Última visita','Visitas Iconico','Visitas Lena','Visitas Bravo Cafe','Total','Origem','Segmento'];body=rows.map(c=>[c.name,c.phone,c.firstVisit,c.lastVisit,c.iconico,c.lena,c.cafe||0,c.totalVisits,c.source,segmentOf(c)])}const csv=[headers,...body].map(r=>r.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(';')).join('\n');const blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='grupo_qu4tro_clientes.csv';a.click();URL.revokeObjectURL(a.href)}
 function refreshAll(){renderDashboard();renderClients();renderReservations();renderSegments();renderIntelligence();renderData();renderCheckinStats();renderQRCodes();renderSettings();renderUsers();renderUserSessionBadge()}
 refreshAll();
-let publicParam=new URLSearchParams(location.search).get('public');
-if(!publicParam){
-  const p=(location.pathname||'').toLowerCase();
-  if(p.includes('iconi'))publicParam='iconiko';
-  else if(p.includes('lena')||p.includes('leña')||p.includes('le%c3%b1a'))publicParam='lena';
-  else if(p.includes('bravo')||p.includes('cafe')||p.includes('caf%c3%a9'))publicParam='cafe';
-}
-if(publicParam)initPublicMode(publicParam);
-
+checkAppAuthentication();
 setTimeout(()=>{
   let pubCheck=new URLSearchParams(location.search).get('public');
   if(!pubCheck){
     const p=(location.pathname||'').toLowerCase();
     if(p.includes('iconi')||p.includes('lena')||p.includes('leña')||p.includes('bravo')||p.includes('cafe'))pubCheck='1';
   }
-  if(!pubCheck)ensureSession();
+  if(!pubCheck && getStoredAuthUserId()) ensureSession();
 },0);
 </script>
 </body></html>
