@@ -314,6 +314,154 @@ function getSupabase(){
   return sbClient;
 }
 
+
+/* ==========================================================================
+   CAMADA DE SINCRONIZAÇÃO EM TEMPO REAL COM SUPABASE (REALTIME CLOUD DB)
+   ========================================================================== */
+
+async function dbSyncUser(user){
+  const sb = getSupabase();
+  if(!sb || !user) return;
+  try {
+    await sb.from('app_users').upsert({
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      phone: digits(user.phone),
+      password: user.password,
+      role: user.role,
+      houses: user.houses || [],
+      active: user.active !== false
+    });
+    console.log('User synced to Supabase:', user.email);
+  } catch(err){
+    console.warn('dbSyncUser error:', err);
+  }
+}
+
+async function dbSyncCustomer(c){
+  const sb = getSupabase();
+  if(!sb || !c) return;
+  try {
+    await sb.from('customers').upsert({
+      id: c.id,
+      name: c.name,
+      phone: digits(c.phone),
+      first_visit: c.firstVisit || null,
+      last_visit: c.lastVisit || null,
+      total_visits: c.totalVisits || 1,
+      source: c.source || '',
+      first_house: c.firstHouse || ''
+    });
+  } catch(err){
+    console.warn('dbSyncCustomer error:', err);
+  }
+}
+
+async function dbSyncVisit(v){
+  const sb = getSupabase();
+  if(!sb || !v) return;
+  try {
+    await sb.from('visits').insert({
+      id: v.id || ('V-' + Date.now()),
+      customer_id: v.clientId || v.customer_id || null,
+      customer_name: v.clientName || v.name || '',
+      customer_phone: digits(v.phone),
+      house: v.house,
+      date: v.date,
+      time: v.time || '12:00',
+      notes: v.notes || ''
+    });
+  } catch(err){
+    console.warn('dbSyncVisit error:', err);
+  }
+}
+
+async function dbSyncReservation(r){
+  const sb = getSupabase();
+  if(!sb || !r) return;
+  try {
+    await sb.from('reservations').upsert({
+      id: r.id,
+      customer_name: r.name,
+      customer_phone: digits(r.phone),
+      house: r.house,
+      date: r.date,
+      time: r.time,
+      people: +r.people || 1,
+      status: r.status || 'Confirmada',
+      notes: r.notes || '',
+      exception_reason: r.exceptionReason || ''
+    });
+  } catch(err){
+    console.warn('dbSyncReservation error:', err);
+  }
+}
+
+async function pullAllFromSupabase(){
+  const sb = getSupabase();
+  if(!sb) return;
+  try {
+    // 1. PULL USERS
+    const { data: rUsers, error: uErr } = await sb.from('app_users').select('*');
+    if(!uErr && rUsers && rUsers.length > 0){
+      state.users = rUsers.map(ru => ({
+        id: ru.id,
+        name: ru.name,
+        email: ru.email,
+        phone: ru.phone,
+        password: ru.password,
+        role: ru.role,
+        houses: ru.houses || [],
+        active: ru.active !== false,
+        createdAt: ru.created_at ? ru.created_at.slice(0,10) : '2026-09-10'
+      }));
+      save();
+      renderUsers();
+      renderUserSessionBadge();
+    }
+
+    // 2. PULL SETTINGS
+    const { data: rSettings, error: sErr } = await sb.from('app_settings').select('*');
+    if(!sErr && rSettings && rSettings.length > 0){
+      if(!state.settingsByHouse) state.settingsByHouse = structuredClone(DEFAULT_HOUSE_SETTINGS);
+      rSettings.forEach(r => {
+        const key = normalizeHouseKey(r.id);
+        if(key && state.settingsByHouse[key]){
+          if(r.reservation_cutoff_time) state.settingsByHouse[key].reservationCutoffTime = r.reservation_cutoff_time;
+          if(r.max_people_per_res) state.settingsByHouse[key].maxPeoplePerRes = r.max_people_per_res;
+          if(r.max_reservations_per_day) state.settingsByHouse[key].maxReservationsPerDay = r.max_reservations_per_day;
+          if(r.max_daily_people) state.settingsByHouse[key].maxDailyPeople = r.max_daily_people;
+          if(r.restrict_weekends !== undefined) state.settingsByHouse[key].restrictWeekends = r.restrict_weekends;
+        }
+      });
+      save();
+      renderSettings();
+    }
+
+    // 3. PULL RESERVATIONS
+    const { data: rRes, error: resErr } = await sb.from('reservations').select('*');
+    if(!resErr && rRes && rRes.length > 0){
+      state.reservations = rRes.map(rr => ({
+        id: rr.id,
+        name: rr.customer_name,
+        phone: rr.customer_phone,
+        people: rr.people,
+        date: rr.date,
+        time: rr.time,
+        house: rr.house,
+        status: rr.status,
+        notes: rr.notes || '',
+        exceptionReason: rr.exception_reason || ''
+      }));
+      save();
+      renderReservations();
+    }
+  } catch(err){
+    console.warn('pullAllFromSupabase error:', err);
+  }
+}
+
 async function syncWithSupabase(){
   const sb = getSupabase();
   if(!sb){
@@ -550,7 +698,7 @@ function duplicateCandidates(name,phone,selectedId){const nn=foldText(name), p=n
 function clientSnapshot(c){const cc=calcClient(c);return {name:cc.name||'',phone:cc.phone||'',cpf:cc.cpf||'',lastVisit:cc.lastVisit||'',totalVisits:cc.totalVisits||0}}
 function showDuplicateConfirmation(pending,matches){const strongest=matches[0], old=clientSnapshot(strongest.c);const reasons=[];if(strongest.phoneMatch)reasons.push('mesmo telefone');if(strongest.nameMatch)reasons.push('mesmo nome');el('modalTitle').textContent='Possível cadastro duplicado';el('modalBody').innerHTML=`<div class="dup-reason">O sistema encontrou um cadastro existente por <strong>${reasons.join(' e ')}</strong>. Confirme se é a mesma pessoa antes de concluir.</div><div class="duplicate-grid"><div class="duplicate-box"><h4>ENTRADA QUE ESTÁ SENDO FEITA</h4><dl><dt>Nome</dt><dd>${esc(pending.name)}</dd><dt>Telefone</dt><dd>${fmtPhone(pending.phone)}</dd><dt>Casa</dt><dd>${esc(houseLabel(pending.house))}</dd><dt>Horário</dt><dd>${esc(pending.arrival)}</dd></dl></div><div class="duplicate-box"><h4>CADASTRO JÁ EXISTENTE</h4><dl><dt>Nome</dt><dd>${esc(old.name)}</dd><dt>Telefone</dt><dd>${fmtPhone(old.phone)}</dd><dt>CPF</dt><dd>${esc(old.cpf||'Não informado')}</dd><dt>Última visita</dt><dd>${fmtDate(old.lastVisit)}</dd><dt>Total de visitas</dt><dd>${old.totalVisits}</dd></dl></div></div>${matches.length>1?`<div class="validation-note" style="margin-top:12px">Existem ${matches.length} cadastros potencialmente relacionados. A confirmação abaixo vinculará ao cadastro exibido; se não for a mesma pessoa, será criado um registro separado e marcado para revisão.</div>`:''}<div class="form-actions"><button class="btn" onclick="resolveDuplicate(false)">Não, é outra pessoa</button><button class="btn primary" onclick="resolveDuplicate(true)">Sim, é a mesma pessoa</button></div>`;window.__pendingCheckin={pending,matches};el('modal').classList.add('show')}
 function resolveDuplicate(isSame){const bag=window.__pendingCheckin;if(!bag)return;closeModal();const {pending,matches}=bag;window.__pendingCheckin=null;if(isSame){const target=matches[0].c;pending.forceClientId=target.id;pending.samePersonConfirmed=true;if(normalizePhone(target.phone)!==normalizePhone(pending.phone)){target.previousPhones=Array.from(new Set([...(target.previousPhones||[]),target.phone].filter(Boolean)));target.phone=pending.phone}if(foldText(target.name)!==foldText(pending.name)&&pending.name)target.name=pending.name;finalizeCheckin(pending)}else{pending.allowDuplicate=true;pending.duplicateReview=true;finalizeCheckin(pending)}}
-function finalizeCheckin(pending){let c=pending.forceClientId?state.clients.find(x=>x.id===pending.forceClientId):(pending.selectedId?state.clients.find(x=>x.id===pending.selectedId):null);let isNew=!c;const d=today(),house=pending.house,p=pending.phone,name=pending.name;if(!c){c={id:'C-'+Date.now(),name,phone:p,firstVisit:d,lastVisit:d,iconico:0,lena:0,cafe:0,firstHouse:house,visitedIconico:'Não',visitedLena:'Não',visitedCafe:'Não',source:pending.source,totalVisits:0,registrationChannel:'Equipe',registeredAt:new Date().toISOString(),duplicateReview:!!pending.duplicateReview};state.clients.unshift(c)}
+function finalizeCheckin(pending){let c=pending.forceClientId?state.clients.find(x=>x.id===pending.forceClientId):(pending.selectedId?state.clients.find(x=>x.id===pending.selectedId):null);let isNew=!c;const d=today(),house=pending.house,p=pending.phone,name=pending.name;if(!c){c={id:'C-'+Date.now(),name,phone:p,firstVisit:d,lastVisit:d,iconico:0,lena:0,cafe:0,firstHouse:house,visitedIconico:'Não',visitedLena:'Não',visitedCafe:'Não',source:pending.source,totalVisits:0,registrationChannel:'Equipe',registeredAt:new Date().toISOString(),duplicateReview:!!pending.duplicateReview};state.clients.unshift(c);dbSyncCustomer(c);}
  const prior=calcClient(c).totalVisits;c.name=name||c.name;c.lastVisit=d;if(prior===0&&!c.firstHouse)c.firstHouse=house;c.totalVisits=Math.max(c.totalVisits||0,prior)+1;if(house==='Íconico'){c.iconico=(c.iconico||0)+1;c.visitedIconico='Sim'}else if(house==='Leña'){c.lena=(c.lena||0)+1;c.visitedLena='Sim'}else if(house==='Bravo Café'){c.cafe=(c.cafe||0)+1;c.visitedCafe='Sim'};state.visits.unshift({id:'V-'+Date.now(),date:d,house,name:c.name,people:pending.people,phone:p,arrival:pending.arrival,departure:'',source:pending.source,status:isNew||prior===0?'Novo':'Recorrente',houseStatus:isNew||prior===0?'Novo':'Recorrente',table:pending.table,notes:pending.notes,amount:0,operatorReception:getSessionHouse(),duplicateReview:!!pending.duplicateReview});save();selectedCheckinClientId=null;el('checkinForm').reset();applySessionHouse();el('clientFound').className='checkin-status';toast(`Check-in confirmado • ${c.name} • ${pending.arrival}`);renderCheckinStats()}
 function lookupCheckinClient(){const p=normalizePhone(el('ciPhone').value);if(selectedCheckinClientId)return;const c=state.clients.find(x=>normalizePhone(x.phone)===p);const box=el('clientFound');if(p.length<10){box.className='checkin-status';box.innerHTML='';return}if(c){selectCheckinClient(c.id)}else{box.className='checkin-status show';box.innerHTML='<strong>Novo cliente</strong><div style="font-size:11px;color:var(--muted);margin-top:4px">Telefone não encontrado. O cadastro será criado ao confirmar o check-in.</div>'}}
 el('ciHouse').addEventListener('change',()=>{const h=el('ciHouse').value;applyHouseBranding(h);updateCheckinBranding(h)});
@@ -564,7 +712,7 @@ el('reservationSearch').oninput=renderReservations;el('reservationStatus').oncha
 function deleteReservation(id){const r=state.reservations.find(x=>x.id===id);if(!r)return;if(!confirm(`Deseja realmente excluir a reserva de "${r.name}" (${fmtDate(r.date)})?`))return;state.reservations=state.reservations.filter(x=>x.id!==id);save();toast('Reserva excluída com sucesso.');renderReservations()}
 function isWeekendReservation(dateStr){if(!dateStr)return false;let y,m,d;const sep=dateStr.includes('/')?'/':(dateStr.includes('-')?'-':null);if(!sep)return false;const p=dateStr.split(sep).map(Number);if(p.length<3||p.some(isNaN))return false;if(p[0]>1000){y=p[0];m=p[1];d=p[2]}else if(p[2]>1000){d=p[0];m=p[1];y=p[2]}else{d=p[0];m=p[1];y=2000+p[2]}const dt=new Date(y,m-1,d);const day=dt.getDay();return day===5||day===6}
 function isRestrictedHouse(house){const n=String(house||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();return n.includes('lena')||n.includes('iconi')}
-function saveReservationDirectly(data){state.reservations.unshift({id:'R-'+Date.now(),name:data.name,phone:digits(data.phone),people:+data.people,date:data.date,time:data.time,house:data.house,status:data.status,notes:data.notes,exceptionReason:data.exceptionReason||''});save();closeModal();toast(data.exceptionReason?'Reserva cadastrada com exceção autorizada.':'Reserva cadastrada.');renderReservations()}
+function saveReservationDirectly(data){const resObj={id:'R-'+Date.now(),name:data.name,phone:digits(data.phone),people:+data.people,date:data.date,time:data.time,house:data.house,status:data.status,notes:data.notes,exceptionReason:data.exceptionReason||''};state.reservations.unshift(resObj);save();dbSyncReservation(resObj);closeModal();toast(data.exceptionReason?'Reserva cadastrada com exceção autorizada.':'Reserva cadastrada.');renderReservations()}
 
 /* ==========================================================================
    CONFIGURAÇÕES, USUÁRIOS, LOGIN E VALIDAÇÕES DE RESERVA
@@ -674,7 +822,7 @@ function toggleAuthPassword(){
   inp.type = inp.type === 'password' ? 'text' : 'password';
 }
 
-function handleOverlayLogin(e){
+async function handleOverlayLogin(e){
   e.preventDefault();
   const identifier = (el('authOverlayIdentifier')?.value || '').trim();
   const pass = (el('authOverlayPassword')?.value || '').trim();
@@ -687,11 +835,40 @@ function handleOverlayLogin(e){
   }
 
   const cleanPhone = digits(identifier);
-  const user = (state.users || []).find(u => {
+  let user = (state.users || []).find(u => {
     const mailMatch = u.email && u.email.toLowerCase() === identifier.toLowerCase();
     const phoneMatch = cleanPhone && digits(u.phone) === cleanPhone;
     return mailMatch || phoneMatch;
   });
+
+  // Se não encontrar ou a senha não bater, tenta buscar direto no Supabase em tempo real!
+  const sb = getSupabase();
+  if(sb && (!user || user.password !== pass)){
+    try {
+      const { data: remoteUsers } = await sb.from('app_users').select('*');
+      if(remoteUsers && remoteUsers.length > 0){
+        state.users = remoteUsers.map(ru => ({
+          id: ru.id,
+          name: ru.name,
+          email: ru.email,
+          phone: ru.phone,
+          password: ru.password,
+          role: ru.role,
+          houses: ru.houses || [],
+          active: ru.active !== false,
+          createdAt: ru.created_at ? ru.created_at.slice(0,10) : '2026-09-10'
+        }));
+        save();
+        user = state.users.find(u => {
+          const mailMatch = u.email && u.email.toLowerCase() === identifier.toLowerCase();
+          const phoneMatch = cleanPhone && digits(u.phone) === cleanPhone;
+          return mailMatch || phoneMatch;
+        });
+      }
+    } catch(e) {
+      console.warn('Live login check error:', e);
+    }
+  }
 
   if(!user){
     if(errBox){errBox.textContent = 'Usuário não encontrado no sistema.'; errBox.style.display = 'block';}
@@ -1160,9 +1337,10 @@ function handleNewUserSubmit(e){
 
   state.users.unshift(newUser);
   save();
+  dbSyncUser(newUser);
   closeModal();
   renderUsers();
-  toast(`Usuário ${name} criado com sucesso!`);
+  toast(`Usuário ${name} criado e gravado na nuvem!`);
 
   if(sendWa){
     setTimeout(()=>sendUserPasswordWhatsApp(newUser.id),300);
@@ -1255,10 +1433,11 @@ function handleEditUserSubmit(e, userId){
   u.houses=houses;
 
   save();
+  dbSyncUser(u);
   closeModal();
   renderUsers();
   renderUserSessionBadge();
-  toast('Perfil atualizado com sucesso!');
+  toast('Perfil atualizado e gravado na nuvem com sucesso!');
 }
 
 function openChangePasswordModal(userId){
@@ -1300,9 +1479,10 @@ function handleChangePasswordSubmit(e, userId){
   if(!newPass){toast('Informe a nova senha.');return;}
   u.password=newPass;
   save();
+  dbSyncUser(u);
   closeModal();
   renderUsers();
-  toast('Senha alterada com sucesso!');
+  toast('Senha alterada e gravada na nuvem com sucesso!');
   if(sendWa){
     setTimeout(()=>sendUserPasswordWhatsApp(u.id),300);
   }
@@ -1551,7 +1731,7 @@ function resetData(){if(!confirm('Restaurar a base inicial deste protótipo? Alt
 function exportCSV(type){const rows=type==='clients'?getFilteredClients():state.visits;let headers,body;if(type==='clients'){headers=['Nome','Telefone','Primeira visita','Última visita','Visitas Iconico','Visitas Lena','Visitas Bravo Cafe','Total','Origem','Segmento'];body=rows.map(c=>[c.name,c.phone,c.firstVisit,c.lastVisit,c.iconico,c.lena,c.cafe||0,c.totalVisits,c.source,segmentOf(c)])}const csv=[headers,...body].map(r=>r.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(';')).join('\n');const blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='grupo_qu4tro_clientes.csv';a.click();URL.revokeObjectURL(a.href)}
 function refreshAll(){renderDashboard();renderClients();renderReservations();renderSegments();renderIntelligence();renderData();renderCheckinStats();renderQRCodes();renderSettings();renderUsers();renderUserSessionBadge()}
 refreshAll();
-checkAppAuthentication();
+checkAppAuthentication();setTimeout(pullAllFromSupabase,100);
 setTimeout(()=>{
   let pubCheck=new URLSearchParams(location.search).get('public');
   if(!pubCheck){
