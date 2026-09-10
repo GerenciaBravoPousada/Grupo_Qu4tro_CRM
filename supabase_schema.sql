@@ -151,3 +151,34 @@ CREATE POLICY "Permitir leitura e gestão de reservas"
 CREATE POLICY "Permitir leitura de tags"
     ON tags FOR SELECT
     USING (true);
+
+-- 8. Tabela de Usuários do Sistema
+CREATE TABLE IF NOT EXISTS app_users (
+    id VARCHAR(50) PRIMARY KEY,
+    name VARCHAR(150) NOT NULL,
+    email VARCHAR(150) UNIQUE NOT NULL,
+    phone VARCHAR(30),
+    password VARCHAR(100) NOT NULL,
+    role VARCHAR(50) DEFAULT 'Operador',
+    houses TEXT[] DEFAULT ARRAY['Leña', 'Íconico', 'Bravo Café'],
+    active BOOLEAN DEFAULT true,
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE app_users ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Permitir leitura e gestão de usuários" ON app_users FOR ALL USING (true) WITH CHECK (true);
+
+-- 9. Tabela de Configurações Operacionais
+CREATE TABLE IF NOT EXISTS app_settings (
+    id VARCHAR(50) PRIMARY KEY DEFAULT 'global',
+    reservation_cutoff_time VARCHAR(10) DEFAULT '19:59',
+    max_people_per_res INT DEFAULT 8,
+    max_reservations_per_day INT DEFAULT 20,
+    max_daily_people INT DEFAULT 60,
+    restrict_weekends BOOLEAN DEFAULT true,
+    updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE app_settings ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Permitir leitura e atualização de configurações" ON app_settings FOR ALL USING (true) WITH CHECK (true);
+
