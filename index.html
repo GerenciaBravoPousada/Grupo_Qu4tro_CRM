@@ -51,6 +51,21 @@ body[data-house] .sidebar{background:linear-gradient(180deg,var(--nav),color-mix
 .badge-house-lena{background:#ffedd5;color:#c2410c;border:1px solid #fed7aa}
 .badge-house-iconiko{background:#e0e7ff;color:#3730a3;border:1px solid #c7d2fe}
 .badge-house-cafe{background:#f5ebe6;color:#78350f;border:1px solid #e6ceba}
+
+/* Settings House Selector Bar */
+.settings-house-bar{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;background:#f8fafc;padding:8px;border-radius:14px;border:1px solid var(--line);margin-bottom:18px}
+.settings-house-tab{display:flex;align-items:center;gap:12px;padding:12px 16px;background:#fff;border:2px solid transparent;border-radius:10px;cursor:pointer;transition:all .2s ease;font-family:inherit;text-align:left}
+.settings-house-tab:hover{background:#fff;border-color:#cbd5e1;transform:translateY(-1px);box-shadow:0 3px 8px rgba(0,0,0,0.04)}
+.settings-house-tab.active{background:#fff;border-color:var(--accent);box-shadow:0 4px 12px rgba(194,65,12,0.12)}
+.settings-house-tab.active[data-house="Leña"],.settings-house-tab.active[data-house="Lena"]{border-color:#ea580c;box-shadow:0 4px 12px rgba(234,88,12,0.15)}
+.settings-house-tab.active[data-house="Íconico"],.settings-house-tab.active[data-house="Iconiko"]{border-color:#4f46e5;box-shadow:0 4px 12px rgba(79,70,229,0.15)}
+.settings-house-tab.active[data-house="Bravo Café"],.settings-house-tab.active[data-house="Bravo Cafe"]{border-color:#78350f;box-shadow:0 4px 12px rgba(120,53,15,0.15)}
+.settings-house-tab .tab-icon{font-size:24px;line-height:1}
+.settings-house-tab .tab-title{font-size:13.5px;font-weight:800;color:var(--ink);display:block}
+.settings-house-tab .tab-status{font-size:11px;color:var(--muted);display:block;margin-top:2px}
+.settings-house-tab.active .tab-status{color:var(--accent);font-weight:700}
+@media(max-width:768px){.settings-house-bar{grid-template-columns:1fr}}
+
 .cfg-rule-card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px 16px;transition:all .15s}
 .cfg-rule-card:hover{border-color:var(--accent);box-shadow:0 3px 8px rgba(0,0,0,0.03)}
 .cfg-rule-val{font-size:20px;font-weight:800;color:var(--ink);margin:4px 0}
@@ -133,19 +148,44 @@ body[data-house] .sidebar{background:linear-gradient(180deg,var(--nav),color-mix
   </section>
 
 <section class="view" id="view-settings">
-<div class="hero"><div><h2>Configurações do Sistema</h2><p>Parâmetros operacionais, regras de aceitação de reservas e limites por casa.</p></div><div class="actions-row"><button class="btn" onclick="restoreDefaultSettings()">↺ Restaurar Padrões</button><button class="btn primary" onclick="saveSettingsForm()">💾 Salvar Configurações</button></div></div>
+<div class="hero"><div><h2>Configurações do Sistema</h2><p>Parâmetros operacionais, regras de aceitação de reservas e limites individualizados por casa.</p></div><div class="actions-row"><button class="btn primary" onclick="saveSettingsForm()" id="btnSaveSettings">💾 Salvar Configurações</button></div></div>
+
+<div class="settings-house-bar" id="settingsHouseTabs">
+  <button type="button" class="settings-house-tab active" data-house="Leña" onclick="switchSettingsHouse('Leña')">
+    <span class="tab-icon">🍕</span>
+    <div>
+      <span class="tab-title">Leña Casa Italiana</span>
+      <span class="tab-status" id="tabStatus-Leña">Regras Ativas</span>
+    </div>
+  </button>
+  <button type="button" class="settings-house-tab" data-house="Íconico" onclick="switchSettingsHouse('Íconico')">
+    <span class="tab-icon">🍣</span>
+    <div>
+      <span class="tab-title">Iconiko Cozinha Japonesa</span>
+      <span class="tab-status" id="tabStatus-Íconico">Regras Ativas</span>
+    </div>
+  </button>
+  <button type="button" class="settings-house-tab" data-house="Bravo Café" onclick="switchSettingsHouse('Bravo Café')">
+    <span class="tab-icon">☕</span>
+    <div>
+      <span class="tab-title">Bravo Café</span>
+      <span class="tab-status" id="tabStatus-Bravo Café">Regras Ativas</span>
+    </div>
+  </button>
+</div>
+
 <div class="grid2">
 <div class="card">
-<div class="section-title"><h3>Regras de Reservas</h3><small>Limites operacionais automáticos</small></div>
+<div class="section-title"><h3>Regras de Reservas • <span id="cfgCurrentHouseBadge" style="color:var(--accent);font-weight:800">Leña Casa Italiana</span></h3><small>Limites operacionais exclusivos para esta unidade</small></div>
 <form id="settingsForm" onsubmit="event.preventDefault();saveSettingsForm();">
 <div class="form-grid" style="grid-template-columns:1fr 1fr;gap:14px">
 <div class="field span2" style="background:#fffbeb;border:1.5px solid #fde68a;border-radius:12px;padding:14px 16px">
 <label style="font-weight:700;color:#92400e;display:flex;align-items:center;gap:6px;font-size:13px"><span>⏱️</span> Horário limite para aceitar reservas</label>
 <div style="display:flex;gap:12px;align-items:center;margin-top:8px">
 <input type="time" id="cfgCutoffTime" class="control" style="max-width:160px;font-weight:800;font-size:16px;padding:8px 10px">
-<span style="font-size:12px;color:#b45309;font-weight:600">Padrão: 19:59 (reservas após esse horário exigirão exceção)</span>
+<span style="font-size:12px;color:#b45309;font-weight:600">Padrão da unidade (reservas após esse horário exigirão justificativa)</span>
 </div>
-<div class="field-help" style="color:#78350f;margin-top:6px;font-size:11.5px;line-height:1.4">Se configurado 19:59, reservas marcadas para clientes chegarem após este horário acionarão o modal de advertência solicitando justificativa e autorização da exceção.</div>
+<div class="field-help" style="color:#78350f;margin-top:6px;font-size:11.5px;line-height:1.4">Reservas solicitadas para clientes chegarem após este horário acionarão o modal de advertência solicitando justificativa e autorização da exceção.</div>
 </div>
 <div class="field">
 <label style="font-weight:700;color:var(--ink);display:flex;align-items:center;gap:6px;font-size:13px"><span>👥</span> Limite de pessoas por reserva</label>
@@ -153,31 +193,30 @@ body[data-house] .sidebar{background:linear-gradient(180deg,var(--nav),color-mix
 <div class="field-help">Máximo de pessoas em uma única reserva sem precisar de autorização de exceção.</div>
 </div>
 <div class="field">
-<label style="font-weight:700;color:var(--ink);display:flex;align-items:center;gap:6px;font-size:13px"><span>📅</span> Limite de reservas por dia (por casa)</label>
+<label style="font-weight:700;color:var(--ink);display:flex;align-items:center;gap:6px;font-size:13px"><span>📅</span> Limite de reservas por dia</label>
 <input type="number" id="cfgMaxReservationsPerDay" min="1" max="500" class="control" style="font-weight:800;font-size:15px;margin-top:6px;padding:8px 10px" placeholder="20">
-<div class="field-help">Quantidade máxima de reservas cadastradas para o mesmo dia e casa.</div>
+<div class="field-help">Quantidade máxima de reservas cadastradas para o mesmo dia nesta unidade.</div>
 </div>
 <div class="field span2">
 <label style="font-weight:700;color:var(--ink);display:flex;align-items:center;gap:6px;font-size:13px"><span>🪑</span> Limite de pessoas no dia (soma de todas as reservas)</label>
 <input type="number" id="cfgMaxDailyPeople" min="1" max="1000" class="control" style="font-weight:800;font-size:15px;margin-top:6px;padding:8px 10px" placeholder="60">
-<div class="field-help">Capacidade máxima somada de pessoas em reservas para a mesma data e casa. Ultrapassar este teto exigirá justificativa de exceção.</div>
+<div class="field-help">Capacidade máxima somada de pessoas em reservas para a mesma data nesta unidade.</div>
 </div>
 <div class="field span2" style="border-top:1px solid var(--line);padding-top:14px;display:flex;align-items:center;justify-content:space-between">
 <div>
-<strong style="font-size:13px;color:var(--ink);display:block">Bloqueio automático de Sexta e Sábado (Leña e Iconiko)</strong>
-<span style="font-size:11.5px;color:var(--muted)">Mantém a trava de alta demanda com popup de advertência obrigatório.</span>
+<strong style="font-size:13px;color:var(--ink);display:block">Bloqueio automático de Sexta e Sábado</strong>
+<span style="font-size:11.5px;color:var(--muted)">Ativa a trava de alta demanda com advertência obrigatória de exceção para esta casa.</span>
 </div>
 <input type="checkbox" id="cfgRestrictWeekends" style="width:20px;height:20px;cursor:pointer" checked>
 </div>
 </div>
-<div style="margin-top:18px;display:flex;justify-content:flex-end;gap:10px">
-<button type="button" class="btn" onclick="restoreDefaultSettings()">↺ Restaurar Padrões</button>
-<button type="submit" class="btn primary">💾 Salvar Alterações</button>
+<div style="margin-top:14px;padding:10px 14px;background:#f8fafc;border:1px dashed #cbd5e1;border-radius:10px;display:flex;align-items:center;justify-content:space-between">
+<span style="font-size:12px;color:var(--muted)">💡 Altere os valores desta unidade e clique no botão <strong>Salvar Configurações</strong> no topo para gravar.</span>
 </div>
 </form>
 </div>
 <div class="card">
-<div class="section-title"><h3>Resumo Operacional das Regras</h3><small>Parâmetros vigentes</small></div>
+<div class="section-title"><h3>Resumo Operacional • <span id="summaryHouseBadge" style="color:var(--accent);font-weight:800">Leña</span></h3><small>Parâmetros vigentes desta unidade</small></div>
 <div id="settingsSummaryCards" style="display:flex;flex-direction:column;gap:10px;margin-top:10px"></div>
 </div>
 </div>
@@ -236,16 +275,36 @@ async function syncWithSupabase(){
   }
   toast('Sincronizando com o Supabase...');
   try {
-    // 1. Sync Settings
-    if(state.settings){
-      await sb.from('app_settings').upsert({
-        id: 'global',
-        reservation_cutoff_time: state.settings.reservationCutoffTime || '19:59',
-        max_people_per_res: state.settings.maxPeoplePerRes || 8,
-        max_reservations_per_day: state.settings.maxReservationsPerDay || 20,
-        max_daily_people: state.settings.maxDailyPeople || 60,
-        restrict_weekends: state.settings.restrictWeekends !== false
-      }).then(() => {}).catch(() => {});
+    // 1. Sync Settings (Per-House & Remote Fetch)
+    try {
+      const { data: remoteSettings, error: sErr } = await sb.from('app_settings').select('*');
+      if(!sErr && remoteSettings && remoteSettings.length > 0){
+        if(!state.settingsByHouse) state.settingsByHouse = structuredClone(DEFAULT_HOUSE_SETTINGS);
+        remoteSettings.forEach(r => {
+          const key = normalizeHouseKey(r.id);
+          if(key && state.settingsByHouse[key]){
+            if(r.reservation_cutoff_time) state.settingsByHouse[key].reservationCutoffTime = r.reservation_cutoff_time;
+            if(r.max_people_per_res) state.settingsByHouse[key].maxPeoplePerRes = r.max_people_per_res;
+            if(r.max_reservations_per_day) state.settingsByHouse[key].maxReservationsPerDay = r.max_reservations_per_day;
+            if(r.max_daily_people) state.settingsByHouse[key].maxDailyPeople = r.max_daily_people;
+            if(r.restrict_weekends !== undefined) state.settingsByHouse[key].restrictWeekends = r.restrict_weekends;
+          }
+        });
+        save();
+        renderSettings();
+      } else if(state.settingsByHouse){
+        const sRows = Object.entries(state.settingsByHouse).map(([h, cfg]) => ({
+          id: h,
+          reservation_cutoff_time: cfg.reservationCutoffTime || '19:59',
+          max_people_per_res: cfg.maxPeoplePerRes || 8,
+          max_reservations_per_day: cfg.maxReservationsPerDay || 20,
+          max_daily_people: cfg.maxDailyPeople || 60,
+          restrict_weekends: cfg.restrictWeekends !== false
+        }));
+        await sb.from('app_settings').upsert(sRows).then(() => {}).catch(() => {});
+      }
+    } catch(e) {
+      console.warn('Sync app_settings:', e);
     }
 
     // 2. Sync Users
@@ -280,6 +339,30 @@ async function syncWithSupabase(){
   }
 }
 
+const DEFAULT_HOUSE_SETTINGS = {
+  'Leña': {
+    reservationCutoffTime: '19:59',
+    maxPeoplePerRes: 8,
+    maxReservationsPerDay: 20,
+    maxDailyPeople: 60,
+    restrictWeekends: true
+  },
+  'Íconico': {
+    reservationCutoffTime: '19:59',
+    maxPeoplePerRes: 8,
+    maxReservationsPerDay: 20,
+    maxDailyPeople: 60,
+    restrictWeekends: true
+  },
+  'Bravo Café': {
+    reservationCutoffTime: '21:00',
+    maxPeoplePerRes: 10,
+    maxReservationsPerDay: 30,
+    maxDailyPeople: 80,
+    restrictWeekends: false
+  }
+};
+
 const DEFAULT_SETTINGS = {
   reservationCutoffTime: '19:59',
   maxPeoplePerRes: 8,
@@ -287,6 +370,23 @@ const DEFAULT_SETTINGS = {
   maxDailyPeople: 60,
   restrictWeekends: true
 };
+
+function normalizeHouseKey(house){
+  const n = String(house || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+  if(n.includes('lena')) return 'Leña';
+  if(n.includes('iconi') || n.includes('japonesa')) return 'Íconico';
+  if(n.includes('bravo') || n.includes('cafe')) return 'Bravo Café';
+  return house || 'Leña';
+}
+
+function getHouseSettings(house){
+  const key = normalizeHouseKey(house);
+  if (state.settingsByHouse && state.settingsByHouse[key]) {
+    return state.settingsByHouse[key];
+  }
+  return DEFAULT_HOUSE_SETTINGS[key] || DEFAULT_SETTINGS;
+}
+
 
 const SEED_USERS = [
   {
@@ -327,7 +427,16 @@ const SEED_USERS = [
 const STORE='grupo_qu4tro_gestao_clientes_v1';
 let state=loadState(), currentClient=null, clientPage=1, selectedSegment=null;
 const pageSize=40;
-function loadState(){let s;try{const raw=localStorage.getItem(STORE);s=raw?JSON.parse(raw):structuredClone(SEED_DATA)}catch(e){s=structuredClone(SEED_DATA)}if(!s.settings)s.settings=structuredClone(DEFAULT_SETTINGS);else s.settings=Object.assign({},DEFAULT_SETTINGS,s.settings);if(!s.users||!Array.isArray(s.users)||s.users.length===0)s.users=structuredClone(SEED_USERS);if(!s.currentUser)s.currentUser='USR-1';return s}
+function loadState(){let s;try{const raw=localStorage.getItem(STORE);s=raw?JSON.parse(raw):structuredClone(SEED_DATA)}catch(e){s=structuredClone(SEED_DATA)}if(!s.settings)s.settings=structuredClone(DEFAULT_SETTINGS);else s.settings=Object.assign({},DEFAULT_SETTINGS,s.settings);
+  if(!s.settingsByHouse){
+    s.settingsByHouse=structuredClone(DEFAULT_HOUSE_SETTINGS);
+    if(s.settings){s.settingsByHouse['Leña']=Object.assign({},DEFAULT_HOUSE_SETTINGS['Leña'],s.settings);}
+  }else{
+    for(const h of ['Leña','Íconico','Bravo Café']){
+      s.settingsByHouse[h]=Object.assign({},DEFAULT_HOUSE_SETTINGS[h],s.settingsByHouse[h]||{});
+    }
+  }
+  if(!s.users||!Array.isArray(s.users)||s.users.length===0)s.users=structuredClone(SEED_USERS);if(!s.currentUser)s.currentUser='USR-1';return s}
 function save(){localStorage.setItem(STORE,JSON.stringify(state));refreshAll()}
 const el=id=>document.getElementById(id);
 const digits=v=>String(v||'').replace(/\D/g,'');
@@ -552,79 +661,135 @@ function quickLoginAs(userId){
    CONFIGURAÇÕES OPERACIONAIS (REGRAS E LIMITES DE RESERVAS)
    ========================================================================== */
 
-function renderSettings(){
-  const cfg=state.settings||DEFAULT_SETTINGS;
-  if(el('cfgCutoffTime'))el('cfgCutoffTime').value=cfg.reservationCutoffTime||'19:59';
-  if(el('cfgMaxPeoplePerRes'))el('cfgMaxPeoplePerRes').value=cfg.maxPeoplePerRes||8;
-  if(el('cfgMaxReservationsPerDay'))el('cfgMaxReservationsPerDay').value=cfg.maxReservationsPerDay||20;
-  if(el('cfgMaxDailyPeople'))el('cfgMaxDailyPeople').value=cfg.maxDailyPeople||60;
-  if(el('cfgRestrictWeekends'))el('cfgRestrictWeekends').checked=cfg.restrictWeekends!==false;
+let currentSettingsHouse = 'Leña';
 
-  const box=el('settingsSummaryCards');
-  if(!box)return;
-  box.innerHTML=`
+function switchSettingsHouse(house){
+  currentSettingsHouse = normalizeHouseKey(house);
+  renderSettings();
+}
+
+function renderSettings(){
+  if(!state.settingsByHouse){
+    state.settingsByHouse = structuredClone(DEFAULT_HOUSE_SETTINGS);
+  }
+  if(!currentSettingsHouse){
+    currentSettingsHouse = normalizeHouseKey(getSessionHouse() || 'Leña');
+  }
+  const key = currentSettingsHouse;
+  const cfg = getHouseSettings(key);
+
+  // Update tabs active state
+  const tabs = document.querySelectorAll('.settings-house-tab');
+  tabs.forEach(tab => {
+    const h = tab.getAttribute('data-house');
+    if (normalizeHouseKey(h) === key) {
+      tab.classList.add('active');
+    } else {
+      tab.classList.remove('active');
+    }
+  });
+
+  // Update badges
+  const bTitle = el('cfgCurrentHouseBadge');
+  if (bTitle) bTitle.textContent = houseLabel(key);
+  const bSum = el('summaryHouseBadge');
+  if (bSum) bSum.textContent = houseLabel(key);
+
+  // Fill form inputs
+  if (el('cfgCutoffTime')) el('cfgCutoffTime').value = cfg.reservationCutoffTime || '19:59';
+  if (el('cfgMaxPeoplePerRes')) el('cfgMaxPeoplePerRes').value = cfg.maxPeoplePerRes || 8;
+  if (el('cfgMaxReservationsPerDay')) el('cfgMaxReservationsPerDay').value = cfg.maxReservationsPerDay || 20;
+  if (el('cfgMaxDailyPeople')) el('cfgMaxDailyPeople').value = cfg.maxDailyPeople || 60;
+  if (el('cfgRestrictWeekends')) el('cfgRestrictWeekends').checked = cfg.restrictWeekends !== false;
+
+  const box = el('settingsSummaryCards');
+  if (!box) return;
+  box.innerHTML = `
     <div class="cfg-rule-card">
       <div style="display:flex;justify-content:space-between;align-items:center">
         <span style="font-size:12px;font-weight:700;color:var(--muted)">⏱️ HORÁRIO LIMITE DE RESERVAS</span>
         <span class="badge-status-active">Ativo</span>
       </div>
-      <div class="cfg-rule-val">${cfg.reservationCutoffTime||'19:59'}</div>
-      <div style="font-size:11.5px;color:var(--muted);line-height:1.4">Reservas com horário de chegada após ${cfg.reservationCutoffTime||'19:59'} disparam advertência e exigem justificativa de exceção.</div>
+      <div class="cfg-rule-val">${cfg.reservationCutoffTime || '19:59'}</div>
+      <div style="font-size:11.5px;color:var(--muted);line-height:1.4">Reservas após ${cfg.reservationCutoffTime || '19:59'} no ${houseLabel(key)} disparam advertência e exigem justificativa de exceção.</div>
     </div>
     <div class="cfg-rule-card">
       <div style="display:flex;justify-content:space-between;align-items:center">
         <span style="font-size:12px;font-weight:700;color:var(--muted)">👥 MÁXIMO DE PESSOAS / RESERVA</span>
         <span class="badge-status-active">Ativo</span>
       </div>
-      <div class="cfg-rule-val">${cfg.maxPeoplePerRes||8} pessoas</div>
-      <div style="font-size:11.5px;color:var(--muted);line-height:1.4">Reservas individuais com mais de ${cfg.maxPeoplePerRes||8} pessoas precisam de justificativa de exceção.</div>
+      <div class="cfg-rule-val">${cfg.maxPeoplePerRes || 8} pessoas</div>
+      <div style="font-size:11.5px;color:var(--muted);line-height:1.4">Reservas com mais de ${cfg.maxPeoplePerRes || 8} pessoas no ${houseLabel(key)} precisam de autorização de exceção.</div>
     </div>
     <div class="cfg-rule-card">
       <div style="display:flex;justify-content:space-between;align-items:center">
         <span style="font-size:12px;font-weight:700;color:var(--muted)">📅 LIMITE DE RESERVAS / DIA</span>
         <span class="badge-status-active">Ativo</span>
       </div>
-      <div class="cfg-rule-val">${cfg.maxReservationsPerDay||20} reservas</div>
-      <div style="font-size:11.5px;color:var(--muted);line-height:1.4">Teto máximo de reservas para a mesma casa e data sem necessidade de autorização excepcional.</div>
+      <div class="cfg-rule-val">${cfg.maxReservationsPerDay || 20} reservas</div>
+      <div style="font-size:11.5px;color:var(--muted);line-height:1.4">Teto de reservas ativas para o ${houseLabel(key)} na mesma data sem necessidade de exceção.</div>
     </div>
     <div class="cfg-rule-card">
       <div style="display:flex;justify-content:space-between;align-items:center">
         <span style="font-size:12px;font-weight:700;color:var(--muted)">🪑 CAPACIDADE TOTAL / DIA (SOMA)</span>
         <span class="badge-status-active">Ativo</span>
       </div>
-      <div class="cfg-rule-val">${cfg.maxDailyPeople||60} pessoas somadas</div>
-      <div style="font-size:11.5px;color:var(--muted);line-height:1.4">Soma total de pessoas de todas as reservas da casa no dia. Ultrapassar este teto exigirá exceção.</div>
+      <div class="cfg-rule-val">${cfg.maxDailyPeople || 60} pessoas somadas</div>
+      <div style="font-size:11.5px;color:var(--muted);line-height:1.4">Soma máxima de pessoas de todas as reservas do ${houseLabel(key)} no mesmo dia.</div>
     </div>
     <div class="cfg-rule-card">
       <div style="display:flex;justify-content:space-between;align-items:center">
         <span style="font-size:12px;font-weight:700;color:var(--muted)">⚠️ BLOQUEIO SEXTA E SÁBADO</span>
-        <span class="${cfg.restrictWeekends!==false?'badge-status-active':'badge-status-inactive'}">${cfg.restrictWeekends!==false?'Ativo':'Desativado'}</span>
+        <span class="${cfg.restrictWeekends !== false ? 'badge-status-active' : 'badge-status-inactive'}">${cfg.restrictWeekends !== false ? 'Ativo' : 'Desativado'}</span>
       </div>
-      <div class="cfg-rule-val" style="font-size:14px;font-weight:700">Leña Casa Italiana & Iconiko</div>
-      <div style="font-size:11.5px;color:var(--muted);line-height:1.4">Exige popup obrigatório de motivo de exceção para reservas às sextas e sábados.</div>
+      <div class="cfg-rule-val" style="font-size:14px;font-weight:700">${houseLabel(key)}</div>
+      <div style="font-size:11.5px;color:var(--muted);line-height:1.4">${cfg.restrictWeekends !== false ? 'Exige advertência obrigatória para reservas às sextas e sábados nesta unidade.' : 'Reservas liberadas normalmente para sextas e sábados nesta unidade.'}</div>
     </div>
   `;
 }
 
-function saveSettingsForm(){
-  if(!state.settings)state.settings=structuredClone(DEFAULT_SETTINGS);
-  state.settings.reservationCutoffTime=(el('cfgCutoffTime')?.value||'19:59').trim();
-  state.settings.maxPeoplePerRes=Math.max(1,parseInt(el('cfgMaxPeoplePerRes')?.value||8,10));
-  state.settings.maxReservationsPerDay=Math.max(1,parseInt(el('cfgMaxReservationsPerDay')?.value||20,10));
-  state.settings.maxDailyPeople=Math.max(1,parseInt(el('cfgMaxDailyPeople')?.value||60,10));
-  state.settings.restrictWeekends=el('cfgRestrictWeekends')?.checked??true;
+async function saveSettingsForm(){
+  const key = currentSettingsHouse || 'Leña';
+  if (!state.settingsByHouse) state.settingsByHouse = structuredClone(DEFAULT_HOUSE_SETTINGS);
+
+  const cutoff = (el('cfgCutoffTime')?.value || '19:59').trim();
+  const maxPeople = Math.max(1, parseInt(el('cfgMaxPeoplePerRes')?.value || 8, 10));
+  const maxResDay = Math.max(1, parseInt(el('cfgMaxReservationsPerDay')?.value || 20, 10));
+  const maxDailyPpl = Math.max(1, parseInt(el('cfgMaxDailyPeople')?.value || 60, 10));
+  const restrictWknd = el('cfgRestrictWeekends')?.checked ?? true;
+
+  state.settingsByHouse[key] = {
+    reservationCutoffTime: cutoff,
+    maxPeoplePerRes: maxPeople,
+    maxReservationsPerDay: maxResDay,
+    maxDailyPeople: maxDailyPpl,
+    restrictWeekends: restrictWknd
+  };
+  state.settings = Object.assign({}, state.settingsByHouse[key]);
+
   save();
   renderSettings();
-  toast('Configurações de reservas salvas com sucesso!');
+  toast(`Configurações de ${houseLabel(key)} salvas com sucesso!`);
+
+  // Sync to Supabase in background
+  const sb = getSupabase();
+  if (sb) {
+    try {
+      await sb.from('app_settings').upsert({
+        id: key,
+        reservation_cutoff_time: cutoff,
+        max_people_per_res: maxPeople,
+        max_reservations_per_day: maxResDay,
+        max_daily_people: maxDailyPpl,
+        restrict_weekends: restrictWknd,
+        updated_at: new Date().toISOString()
+      });
+    } catch(err){
+      console.warn('Supabase settings sync:', err);
+    }
+  }
 }
 
-function restoreDefaultSettings(){
-  if(!confirm('Deseja restaurar as configurações padrão de reservas do sistema?'))return;
-  state.settings=structuredClone(DEFAULT_SETTINGS);
-  save();
-  renderSettings();
-  toast('Configurações restauradas para o padrão.');
-}
 
 /* ==========================================================================
    GESTÃO DE USUÁRIOS (MASTER)
@@ -1007,10 +1172,10 @@ function toggleUserStatus(userId){
 
 function checkReservationViolations(pending){
   const violations=[];
-  const cfg=state.settings||DEFAULT_SETTINGS;
+  const cfg=getHouseSettings(pending.house);
 
-  // 1. Sexta e Sábado (Leña e Iconiko)
-  if(cfg.restrictWeekends!==false&&isRestrictedHouse(pending.house)&&isWeekendReservation(pending.date)){
+  // 1. Sexta e Sábado (Configuração por Casa)
+  if(cfg.restrictWeekends!==false&&isWeekendReservation(pending.date)){
     let dayName='fim de semana';
     const sep=pending.date.includes('/')?'/':(pending.date.includes('-')?'-':null);
     if(sep){
