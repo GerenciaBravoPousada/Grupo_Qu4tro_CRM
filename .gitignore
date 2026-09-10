@@ -1,0 +1,11 @@
+# Environment Variables
+.env
+.env.local
+.env.production
+.env.development
+
+# Node / Scratch
+node_modules/
+npm-debug.log*
+.DS_Store
+Thumbs.db
