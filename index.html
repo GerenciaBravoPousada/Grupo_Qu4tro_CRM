@@ -43,6 +43,13 @@ body[data-house] .sidebar{background:linear-gradient(180deg,var(--nav),color-mix
 .session-house-options{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:14px 0}.session-house-option{border:2px solid var(--line);border-radius:13px;padding:10px;background:#fff;text-align:center;cursor:pointer}.session-house-option:hover,.session-house-option.selected{border-color:var(--house-accent);box-shadow:0 6px 18px rgba(0,0,0,.08)}.session-house-option img{width:100%;height:54px;object-fit:contain}.session-house-option[data-house="Leña"] img{background:#2f2b1d;border-radius:8px;padding:7px}.session-house-option[data-house="Íconico"] img{background:#0d1830;border-radius:8px;padding:7px}.session-house-option[data-house="Bravo Café"] img{height:68px}.session-house-option b{display:block;font-size:11px;margin-top:7px}
 @media(max-width:1100px){.qr-grid{grid-template-columns:1fr 1fr}}@media(max-width:820px){.qr-grid{grid-template-columns:1fr}.brand-house{display:none}.house-context-banner .switch-note{display:none}.session-house-options{grid-template-columns:1fr}.session-house-option{display:grid;grid-template-columns:100px 1fr;align-items:center;text-align:left;gap:12px}.session-house-option b{margin:0}}
 
+/* PRIORIDADES - ATENDIMENTO PREFERENCIAL */
+.priority-checkbox-group{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+.priority-pill-toggle{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border:1.5px solid var(--line);border-radius:20px;background:#fff;cursor:pointer;font-size:12px;font-weight:600;color:var(--ink);transition:all .15s;user-select:none}
+.priority-pill-toggle input{margin:0;accent-color:var(--accent);width:15px;height:15px;cursor:pointer}
+.priority-pill-toggle:has(input:checked){background:#f8f0e4;border-color:var(--accent);color:#8d642f;font-weight:700}
+.badge-priority-pill{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:12px;font-size:10.5px;font-weight:700}
+
 /* SISTEMA - USUARIOS E CONFIGURACOES */
 .user-session-chip{display:flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--line);border-radius:10px;padding:4px 10px 4px 6px;cursor:pointer;transition:all .15s}
 .user-session-chip:hover{border-color:var(--accent);background:#fbfbfb;box-shadow:0 2px 6px rgba(0,0,0,0.05)}
@@ -132,7 +139,7 @@ body[data-house] .sidebar{background:linear-gradient(180deg,var(--nav),color-mix
   </div>
 </div>
 
-<div class="public-reg" id="publicRegistration"><div class="public-wrap"><div class="public-brand"><img id="publicHouseLogo" class="public-brand-logo" alt="Logo da casa" onerror="this.style.display='none'" onload="this.style.display=''"><strong>GRUPO QU4TRO</strong><div style="font-size:12px;opacity:.75;margin-top:3px" id="publicHouseTop"></div></div><div class="public-card" id="publicCard"><div class="house-pill" id="publicHousePill"></div><h1>Faça seu cadastro</h1><p class="lead">Enquanto nossa equipe verifica sua mesa, preencha seus dados. É rápido e evita que você precise informar tudo na recepção.</p><form id="publicForm"><div class="field" id="pubNameField"><label>Nome e sobrenome *</label><input id="pubName" autocomplete="name" placeholder="Ex.: Gabriel Sá" required><div class="field-help">Informe pelo menos nome + segundo nome, usando somente letras.</div><div class="field-error" id="pubNameError"></div></div><div class="field" id="pubPhoneField" style="margin-top:13px"><label>Telefone completo *</label><input id="pubPhone" inputmode="tel" autocomplete="tel" placeholder="(22) 99999-9999" required><div class="field-help">Inclua DDD. Números brasileiros são salvos com código do país +55.</div><div class="field-error" id="pubPhoneError"></div></div><div class="field" style="margin-top:13px"><label>Como conheceu a casa?</label><select id="pubSource"><option value="">Selecione</option><option>Instagram</option><option>Google</option><option>Indicação</option><option>Passagem/Passante</option><option>TikTok</option><option>Já conhecia a casa</option><option>Outro</option></select></div><div class="privacy-note">Os dados são utilizados para identificação do cadastro e histórico de relacionamento com a casa. Este protótipo armazena as informações somente neste navegador.</div><button class="btn gold" style="width:100%;justify-content:center;margin-top:16px;padding:13px" type="submit">Concluir cadastro</button></form></div></div></div>
+<div class="public-reg" id="publicRegistration"><div class="public-wrap"><div class="public-brand"><img id="publicHouseLogo" class="public-brand-logo" alt="Logo da casa" onerror="this.style.display='none'" onload="this.style.display=''"><strong>GRUPO QU4TRO</strong><div style="font-size:12px;opacity:.75;margin-top:3px" id="publicHouseTop"></div></div><div class="public-card" id="publicCard"><div class="house-pill" id="publicHousePill"></div><h1>Faça seu cadastro</h1><p class="lead">Enquanto nossa equipe verifica sua mesa, preencha seus dados. É rápido e evita que você precise informar tudo na recepção.</p><form id="publicForm"><div class="field" id="pubNameField"><label>Nome e sobrenome *</label><input id="pubName" autocomplete="name" placeholder="Ex.: Gabriel Sá" required><div class="field-help">Informe pelo menos nome + segundo nome, usando somente letras.</div><div class="field-error" id="pubNameError"></div></div><div class="field" id="pubPhoneField" style="margin-top:13px"><label>Telefone completo *</label><input id="pubPhone" inputmode="tel" autocomplete="tel" placeholder="(22) 99999-9999" required><div class="field-help">Inclua DDD. Números brasileiros são salvos com código do país +55.</div><div class="field-error" id="pubPhoneError"></div></div><div class="field" style="margin-top:13px"><label>Como conheceu a casa?</label><select id="pubSource"><option value="">Selecione</option><option>Instagram</option><option>Google</option><option>Indicação</option><option>Passagem/Passante</option><option>TikTok</option><option>Já conhecia a casa</option><option>Outro</option></select></div><div class="field" style="margin-top:13px"><label>Prioridade de atendimento (opcional)</label><div class="priority-checkbox-group"><label class="priority-pill-toggle"><input type="checkbox" name="pubPriority" value="Gestante"> <span>🤰 Gestante</span></label><label class="priority-pill-toggle"><input type="checkbox" name="pubPriority" value="Idoso"> <span>🧓 Idoso</span></label><label class="priority-pill-toggle"><input type="checkbox" name="pubPriority" value="PCD"> <span>♿ PCD</span></label><label class="priority-pill-toggle"><input type="checkbox" name="pubPriority" value='Com Criança "no colo"'> <span>👶 Com Criança "no colo"</span></label></div><div class="field-help">Selecione se necessita de atendimento preferencial na recepção.</div></div><div class="privacy-note">Os dados são utilizados para identificação do cadastro e histórico de relacionamento com a casa. Este protótipo armazena as informações somente neste navegador.</div><button class="btn gold" style="width:100%;justify-content:center;margin-top:16px;padding:13px" type="submit">Concluir cadastro</button></form></div></div></div>
 <div class="app">
 <aside class="sidebar" id="sidebar">
  <div class="brand group-brand"><img class="group-logo" src="data:image/png;base64,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" alt="Grupo Qu4tro"><div class="group-brand-copy"><strong>GRUPO QU4TRO</strong><small>Gestão de Clientes</small></div></div>
@@ -166,7 +173,7 @@ body[data-house] .sidebar{background:linear-gradient(180deg,var(--nav),color-mix
   </section>
 
   <section class="view" id="view-clients">
-   <div class="hero"><div><h2>Clientes</h2><p>Cadastro único, recorrência e histórico por pessoa.</p></div><div class="filters"><select id="clientHouse" class="control"><option value="all">Todas as casas</option><option value="iconico">Visitou Íconico</option><option value="lena">Visitou Leña</option><option value="both">Visitou as duas</option></select><select id="clientSegment" class="control"><option value="all">Todos</option><option value="new">1 visita</option><option value="recurring">2+ visitas</option><option value="vip">5+ visitas</option></select></div></div>
+   <div class="hero"><div><h2>Clientes</h2><p>Cadastro único, recorrência e histórico por pessoa.</p></div><div class="filters"><select id="clientHouse" class="control"><option value="all">Todas as casas</option><option value="iconico">Visitou Íconico</option><option value="lena">Visitou Leña</option><option value="both">Visitou as duas</option></select><select id="clientSegment" class="control"><option value="all">Todos os segmentos</option><option value="new">1 visita</option><option value="recurring">2+ visitas</option><option value="vip">5+ visitas</option></select><select id="clientPriority" class="control"><option value="all">Todas as prioridades</option><option value="any">⭐ Com prioridade (qualquer)</option><option value="Gestante">🤰 Gestante</option><option value="Idoso">🧓 Idoso</option><option value="PCD">♿ PCD</option><option value='Com Criança "no colo"'>👶 Com Criança "no colo"</option></select></div></div>
    <div class="table-card"><div class="table-head"><div class="search"><span>⌕</span><input id="clientSearch" placeholder="Buscar por nome ou telefone..."></div><div class="actions-row"><button class="btn" onclick="openNewClient()">＋ Cliente</button><button class="btn" onclick="exportCSV('clients')">⇩ CSV</button></div></div><div class="table-wrap"><table class="data-table"><thead><tr><th>Cliente</th><th>Telefone</th><th>Última visita</th><th>Íconico</th><th>Leña</th><th>Total</th><th>Segmento</th><th></th></tr></thead><tbody id="clientsBody"></tbody></table></div><div class="pager"><span id="clientCount"></span><div><button class="iconbtn" id="prevClients">←</button> <span id="clientPageLabel"></span> <button class="iconbtn" id="nextClients">→</button></div></div></div>
   </section>
 
@@ -176,7 +183,7 @@ body[data-house] .sidebar{background:linear-gradient(180deg,var(--nav),color-mix
 
   <section class="view" id="view-checkin">
    <div class="hero"><div><h2>Novo Check-in</h2><p>Localize primeiro quem já é cliente. Busque por nome, sobrenome, telefone completo ou últimos dígitos.</p></div><div class="kpi-strip"><div class="kpi-chip"><span>Check-ins hoje</span><strong id="todayCheckins">0</strong></div><div class="kpi-chip"><span>Pessoas hoje</span><strong id="todayPeople">0</strong></div></div></div>
-   <div class="card form-shell checkin-shell"><div class="checkin-brand-banner" id="checkinBrandBanner"><img id="checkinHouseLogo" alt="Casa do check-in" onerror="this.style.display='none'" onload="this.style.display=''"><div class="checkin-brand-copy"><strong id="checkinHouseName">Check-in</strong><span id="checkinHouseSubtitle">Recepção selecionada para este atendimento</span><div class="house-badge">Check-in presencial</div></div><div class="checkin-brand-side">A casa acompanha a seleção abaixo<br>e pode ser alterada antes da confirmação.</div></div><form id="checkinForm"><div class="form-grid"><div class="field span2 client-lookup"><label>Localizar cliente existente</label><input id="ciLookup" autocomplete="off" placeholder="Ex.: Jean Balan, Balan, 3106 ou telefone completo"><div class="lookup-help">Nome/sobrenome: digite pelo menos 2 caracteres. Telefone parcial: digite pelo menos os 4 últimos números.</div><div class="lookup-results" id="ciLookupResults"></div></div><div class="span2 selected-client-card" id="selectedClientCard"></div><div class="checkin-status span2" id="clientFound"></div><div class="field"><label>Nome do cliente *</label><input id="ciName" required placeholder="Nome e sobrenome"></div><div class="field"><label>Telefone *</label><input id="ciPhone" inputmode="tel" placeholder="(22) 99999-9999" required></div><div class="field"><label>Casa *</label><select id="ciHouse" required><option value="Bravo Café">Bravo Café</option><option value="Café da Bravo Pousada">Café da Bravo Pousada</option><option value="Íconico">Iconiko Cozinha Japonesa</option><option value="Leña">Leña Casa Italiana</option></select><div class="reception-note">Preenchida automaticamente pela recepção escolhida no início do turno. Pode ser alterada antes da confirmação.</div></div><div class="field"><label>Nº de pessoas *</label><input id="ciPeople" type="number" min="1" value="2" required></div><div class="field"><label>Mesa</label><input id="ciTable" inputmode="numeric"></div><div class="field"><label>Como nos conheceu?</label><select id="ciSource"><option>Da casa</option><option>Instagram</option><option>Google</option><option>Indicação</option><option>Passagem/Passante</option><option>TikTok</option><option>Outro</option></select></div><div class="field"><label>Horário de check-in</label><input id="ciArrival" type="time"><div class="reception-note">Se ficar em branco, será gravado o horário exato do clique em “Confirmar check-in”.</div></div><div class="field span2"><label>Observações</label><textarea id="ciNotes" placeholder="Preferências, restrições, observações operacionais..."></textarea></div></div><div class="form-actions"><button type="reset" class="btn">Limpar</button><button type="submit" class="btn gold">✓ Confirmar check-in</button></div></form></div>
+   <div class="card form-shell checkin-shell"><div class="checkin-brand-banner" id="checkinBrandBanner"><img id="checkinHouseLogo" alt="Casa do check-in" onerror="this.style.display='none'" onload="this.style.display=''"><div class="checkin-brand-copy"><strong id="checkinHouseName">Check-in</strong><span id="checkinHouseSubtitle">Recepção selecionada para este atendimento</span><div class="house-badge">Check-in presencial</div></div><div class="checkin-brand-side">A casa acompanha a seleção abaixo<br>e pode ser alterada antes da confirmação.</div></div><form id="checkinForm"><div class="form-grid"><div class="field span2 client-lookup"><label>Localizar cliente existente</label><input id="ciLookup" autocomplete="off" placeholder="Ex.: Jean Balan, Balan, 3106 ou telefone completo"><div class="lookup-help">Nome/sobrenome: digite pelo menos 2 caracteres. Telefone parcial: digite pelo menos os 4 últimos números.</div><div class="lookup-results" id="ciLookupResults"></div></div><div class="span2 selected-client-card" id="selectedClientCard"></div><div class="checkin-status span2" id="clientFound"></div><div class="field"><label>Nome do cliente *</label><input id="ciName" required placeholder="Nome e sobrenome"></div><div class="field"><label>Telefone *</label><input id="ciPhone" inputmode="tel" placeholder="(22) 99999-9999" required></div><div class="field"><label>Casa *</label><select id="ciHouse" required><option value="Bravo Café">Bravo Café</option><option value="Café da Bravo Pousada">Café da Bravo Pousada</option><option value="Íconico">Iconiko Cozinha Japonesa</option><option value="Leña">Leña Casa Italiana</option></select><div class="reception-note">Preenchida automaticamente pela recepção escolhida no início do turno. Pode ser alterada antes da confirmação.</div></div><div class="field"><label>Nº de pessoas *</label><input id="ciPeople" type="number" min="1" value="2" required></div><div class="field"><label>Mesa</label><input id="ciTable" inputmode="numeric"></div><div class="field"><label>Como nos conheceu?</label><select id="ciSource"><option>Da casa</option><option>Instagram</option><option>Google</option><option>Indicação</option><option>Passagem/Passante</option><option>TikTok</option><option>Outro</option></select></div><div class="field"><label>Horário de check-in</label><input id="ciArrival" type="time"><div class="reception-note">Se ficar em branco, será gravado o horário exato do clique em “Confirmar check-in”.</div></div><div class="field span2"><label>Prioridade (Atendimento Preferencial)</label><div class="priority-checkbox-group" id="ciPriorityGroup"><label class="priority-pill-toggle"><input type="checkbox" name="ciPriority" value="Gestante"> <span>🤰 Gestante</span></label><label class="priority-pill-toggle"><input type="checkbox" name="ciPriority" value="Idoso"> <span>🧓 Idoso</span></label><label class="priority-pill-toggle"><input type="checkbox" name="ciPriority" value="PCD"> <span>♿ PCD</span></label><label class="priority-pill-toggle"><input type="checkbox" name="ciPriority" value='Com Criança "no colo"'> <span>👶 Com Criança "no colo"</span></label></div><div class="field-help" style="margin-top:4px">Múltipla escolha. Sinaliza atendimento prioritário no salão e no cadastro do cliente.</div></div><div class="field span2"><label>Observações</label><textarea id="ciNotes" placeholder="Preferências, restrições, observações operacionais..."></textarea></div></div><div class="form-actions"><button type="reset" class="btn">Limpar</button><button type="submit" class="btn gold">✓ Confirmar check-in</button></div></form></div>
   </section>
 
   <section class="view" id="view-reservations">
@@ -410,7 +417,7 @@ async function dbSyncCustomer(c){
   const sb = getSupabase();
   if(!sb || !c) return;
   try {
-    await sb.from('customers').upsert({
+    const payload = {
       id: c.id,
       name: c.name,
       phone: digits(c.phone),
@@ -418,8 +425,10 @@ async function dbSyncCustomer(c){
       last_visit: c.lastVisit || null,
       total_visits: c.totalVisits || 1,
       source: c.source || '',
-      first_house: c.firstHouse || ''
-    });
+      first_house: c.firstHouse || '',
+      preferences: JSON.stringify({ priorities: c.priorities || [] })
+    };
+    await sb.from('customers').upsert(payload);
   } catch(err){
     console.warn('dbSyncCustomer error:', err);
   }
@@ -523,6 +532,29 @@ async function pullAllFromSupabase(){
       }));
       save();
       renderReservations();
+    }
+
+    // 4. PULL CUSTOMERS (prioridades do preferences)
+    const { data: rCust, error: cErr } = await sb.from('customers').select('id, phone, preferences').limit(1000);
+    if(!cErr && rCust && rCust.length > 0){
+      let changed = false;
+      rCust.forEach(rc => {
+        if(!rc.preferences) return;
+        try {
+          const parsed = JSON.parse(rc.preferences);
+          if(parsed && Array.isArray(parsed.priorities)){
+            const local = state.clients.find(c => c.id === rc.id || (rc.phone && digits(c.phone) === digits(rc.phone)));
+            if(local && (!local.priorities || local.priorities.length === 0)){
+              local.priorities = parsed.priorities;
+              changed = true;
+            }
+          }
+        } catch(e){}
+      });
+      if(changed){
+        save();
+        renderClients();
+      }
     }
   } catch(err){
     console.warn('pullAllFromSupabase error:', err);
@@ -849,18 +881,153 @@ function renderDashboard(){const vv=filteredVisits();const phones=new Set(vv.map
  el('recentVisits').innerHTML=vv.slice(0,5).map(v=>`<div class="visit-item"><div class="date">${fmtDate(v.date)}<br>${esc(v.arrival||'')}</div><div><strong>${esc(v.name)}</strong><p>${esc(v.house)} • ${v.people} pessoa(s) • Mesa ${esc(v.table||'—')}</p></div><span class="badge ${v.status?.toLowerCase().includes('recorr')?'gold':'blue'}">${esc(v.status||'—')}</span></div>`).join('')||'<div class="empty">Sem visitas</div>';renderQuickInsights()}
 function renderQuickInsights(){const cc=state.clients.map(calcClient);const risk=cc.filter(c=>c.totalVisits>=2&&daysSince(c.lastVisit)>90).length;const crossI=cc.filter(c=>c.iconico>0&&c.lena===0).length;const crossL=cc.filter(c=>c.lena>0&&c.iconico===0).length;el('quickInsights').innerHTML=`<div class="insight"><strong>${risk.toLocaleString('pt-BR')} clientes em risco</strong><p>2+ visitas e mais de 90 dias sem retornar.</p></div><div class="insight"><strong>${crossI.toLocaleString('pt-BR')} só no Íconico</strong><p>Potencial de convite para conhecer o Leña.</p></div><div class="insight"><strong>${crossL.toLocaleString('pt-BR')} só no Leña</strong><p>Potencial de convite para conhecer o Íconico.</p></div>`}
 el('dashHouse').onchange=renderDashboard;el('dashPeriod').onchange=renderDashboard;
-function getFilteredClients(){const q=el('clientSearch').value.trim().toLowerCase(),hf=el('clientHouse').value,sf=el('clientSegment').value;return state.clients.map(calcClient).filter(c=>!q||c.name.toLowerCase().includes(q)||digits(c.phone).includes(digits(q))).filter(c=>hf==='all'||(hf==='iconico'&&c.iconico>0)||(hf==='lena'&&c.lena>0)||(hf==='both'&&c.iconico>0&&c.lena>0)).filter(c=>sf==='all'||(sf==='new'&&c.totalVisits<=1)||(sf==='recurring'&&c.totalVisits>=2)||(sf==='vip'&&c.totalVisits>=5)).sort((a,b)=>(b.lastVisit||'').localeCompare(a.lastVisit||''))}
-function renderClients(){const a=getFilteredClients(),pages=Math.max(1,Math.ceil(a.length/pageSize));clientPage=Math.min(clientPage,pages);const slice=a.slice((clientPage-1)*pageSize,clientPage*pageSize);el('clientsBody').innerHTML=slice.map(c=>`<tr><td><div class="person"><div class="avatar">${initials(c.name)}</div><div><b>${esc(c.name)}</b><br><span style="color:var(--muted);font-size:10px">${esc(c.source||'')}</span></div></div></td><td>${fmtPhone(c.phone)}</td><td>${fmtDate(c.lastVisit)}</td><td>${c.iconico}</td><td>${c.lena}</td><td><b>${c.totalVisits}</b></td><td><span class="badge ${c.totalVisits>=5?'gold':c.totalVisits>=2?'good':'blue'}">${segmentOf(c)}</span></td><td><button class="iconbtn" onclick="openProfile('${esc(c.id)}')">Ver →</button></td></tr>`).join('')||'<tr><td colspan="8"><div class="empty">Nenhum cliente encontrado.</div></td></tr>';el('clientCount').textContent=`${a.length.toLocaleString('pt-BR')} clientes`;el('clientPageLabel').textContent=`${clientPage}/${pages}`;el('prevClients').disabled=clientPage<=1;el('nextClients').disabled=clientPage>=pages}
-el('clientSearch').oninput=()=>{clientPage=1;renderClients()};el('clientHouse').onchange=()=>{clientPage=1;renderClients()};el('clientSegment').onchange=()=>{clientPage=1;renderClients()};el('prevClients').onclick=()=>{clientPage--;renderClients()};el('nextClients').onclick=()=>{clientPage++;renderClients()};
-function openProfile(id){currentClient=state.clients.find(c=>c.id===id);if(!currentClient)return;const c=calcClient(currentClient),vv=clientVisits(c);el('profileName').textContent=c.name;el('profileSubtitle').textContent=`${segmentOf(c)} • Cliente desde ${fmtDate(c.firstVisit)}`;el('profileSide').innerHTML=`<div class="avatar profile-big">${initials(c.name)}</div><h3>${esc(c.name)}</h3><div class="phone">${fmtPhone(c.phone)}</div><div class="quickstats"><div><span>Total visitas</span><strong>${c.totalVisits}</strong></div><div><span>Última visita</span><strong>${fmtDate(c.lastVisit)}</strong></div><div><span>Íconico</span><strong>${c.iconico}</strong></div><div><span>Leña</span><strong>${c.lena}</strong></div><div><span>Origem</span><strong>${esc(c.source||'—')}</strong></div><div><span>Primeira casa</span><strong>${esc(c.firstHouse||'—')}</strong></div></div><div class="actions-row" style="margin-top:14px;justify-content:center"><button class="btn" onclick="copyPhone()">Copiar telefone</button></div>`;el('profileVisitCount').textContent=`${vv.length} registros detalhados`;el('profileTimeline').innerHTML=vv.length?vv.map(v=>`<div class="visit-item"><div class="date">${fmtDate(v.date)}<br>${esc(v.arrival||'')}</div><div><strong>${esc(v.house)} • Mesa ${esc(v.table||'—')}</strong><p>${v.people} pessoa(s) • ${esc(v.source)}${v.notes?' • '+esc(v.notes):''}</p></div><span class="badge ${v.status?.toLowerCase().includes('recorr')?'gold':'blue'}">${esc(v.status||'—')}</span></div>`).join(''):'<div class="empty">O resumo histórico existe, mas não há visita detalhada dentro da amostra carregada nesta V2.</div>';go('profile')}
+
+const PRIORITY_OPTIONS = [
+  { id: 'Gestante', label: 'Gestante', icon: '🤰', color: '#be185d', bg: '#fdf2f8', border: '#fbcfe8' },
+  { id: 'Idoso', label: 'Idoso', icon: '🧓', color: '#1e40af', bg: '#eff6ff', border: '#bfdbfe' },
+  { id: 'PCD', label: 'PCD', icon: '♿', color: '#6d28d9', bg: '#f5f3ff', border: '#ddd6fe' },
+  { id: 'Com Criança "no colo"', label: 'Com Criança "no colo"', icon: '👶', color: '#b45309', bg: '#fffbeb', border: '#fde68a' }
+];
+
+function priorityIcon(p){
+  if(p==='Gestante') return '🤰';
+  if(p==='Idoso') return '🧓';
+  if(p==='PCD') return '♿';
+  if(String(p).includes('Criança') || String(p).includes('Crianca')) return '👶';
+  return '⭐';
+}
+
+function renderPriorityBadges(priorities){
+  if(!priorities || !priorities.length) return '';
+  return priorities.map(p => {
+    const opt = PRIORITY_OPTIONS.find(o => o.id === p) || { label: p, icon: priorityIcon(p), color: '#854d0e', bg: '#fef9c3', border: '#fef08a' };
+    return `<span class="badge-priority-pill" style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:12px;font-size:10.5px;font-weight:700;color:${opt.color};background:${opt.bg};border:1px solid ${opt.border};white-space:nowrap;" title="Atendimento Preferencial: ${esc(opt.label)}">${opt.icon} ${esc(opt.label)}</span>`;
+  }).join(' ');
+}
+
+function openEditClientPrioritiesModal(id){
+  const c = state.clients.find(x => x.id === id);
+  if(!c) return;
+  el('modalTitle').textContent = 'Prioridade: ' + c.name;
+  const prio = c.priorities || [];
+  el('modalBody').innerHTML = `
+    <form id="editPrioritiesForm">
+      <p style="margin-top:0;font-size:13px;color:var(--muted)">Selecione as condições de atendimento preferencial/prioritário para <strong>${esc(c.name)}</strong>:</p>
+      <div class="priority-checkbox-group" style="margin:16px 0">
+        <label class="priority-pill-toggle"><input type="checkbox" name="editPrio" value="Gestante" ${prio.includes('Gestante')?'checked':''}> <span>🤰 Gestante</span></label>
+        <label class="priority-pill-toggle"><input type="checkbox" name="editPrio" value="Idoso" ${prio.includes('Idoso')?'checked':''}> <span>🧓 Idoso</span></label>
+        <label class="priority-pill-toggle"><input type="checkbox" name="editPrio" value="PCD" ${prio.includes('PCD')?'checked':''}> <span>♿ PCD</span></label>
+        <label class="priority-pill-toggle"><input type="checkbox" name="editPrio" value='Com Criança "no colo"' ${prio.includes('Com Criança "no colo"')?'checked':''}> <span>👶 Com Criança "no colo"</span></label>
+      </div>
+      <div class="field-help" style="margin-bottom:16px">Múltipla escolha. Sinaliza atendimento prioritário no salão e no histórico do cliente.</div>
+      <div class="form-actions">
+        <button type="button" class="btn" onclick="closeModal()">Cancelar</button>
+        <button type="submit" class="btn primary">Salvar prioridades</button>
+      </div>
+    </form>
+  `;
+  el('modal').classList.add('show');
+  el('editPrioritiesForm').onsubmit = e => {
+    e.preventDefault();
+    const sel = Array.from(document.querySelectorAll('input[name="editPrio"]:checked')).map(cb => cb.value);
+    c.priorities = sel;
+    save();
+    dbSyncCustomer(c);
+    closeModal();
+    openProfile(c.id);
+    renderClients();
+    toast('Prioridades atualizadas com sucesso.');
+  };
+}
+
+function getFilteredClients(){
+  const q=el('clientSearch').value.trim().toLowerCase(),
+        hf=el('clientHouse').value,
+        sf=el('clientSegment').value,
+        pf=el('clientPriority')?.value||'all';
+  return state.clients.map(calcClient)
+    .filter(c=>!q||c.name.toLowerCase().includes(q)||digits(c.phone).includes(digits(q)))
+    .filter(c=>hf==='all'||(hf==='iconico'&&c.iconico>0)||(hf==='lena'&&c.lena>0)||(hf==='both'&&c.iconico>0&&c.lena>0))
+    .filter(c=>sf==='all'||(sf==='new'&&c.totalVisits<=1)||(sf==='recurring'&&c.totalVisits>=2)||(sf==='vip'&&c.totalVisits>=5))
+    .filter(c=>{
+      if(pf==='all') return true;
+      const prio = c.priorities || [];
+      if(pf==='any') return prio.length > 0;
+      return prio.includes(pf);
+    })
+    .sort((a,b)=>(b.lastVisit||'').localeCompare(a.lastVisit||''));
+}
+
+function renderClients(){
+  const a=getFilteredClients(),pages=Math.max(1,Math.ceil(a.length/pageSize));
+  clientPage=Math.min(clientPage,pages);
+  const slice=a.slice((clientPage-1)*pageSize,clientPage*pageSize);
+  el('clientsBody').innerHTML=slice.map(c=>{
+    const prioBadges = renderPriorityBadges(c.priorities);
+    return `<tr><td><div class="person"><div class="avatar">${initials(c.name)}</div><div><b>${esc(c.name)}</b>${prioBadges?`<div style="margin-top:3px">${prioBadges}</div>`:''}<br><span style="color:var(--muted);font-size:10px">${esc(c.source||'')}</span></div></div></td><td>${fmtPhone(c.phone)}</td><td>${fmtDate(c.lastVisit)}</td><td>${c.iconico}</td><td>${c.lena}</td><td><b>${c.totalVisits}</b></td><td><span class="badge ${c.totalVisits>=5?'gold':c.totalVisits>=2?'good':'blue'}">${segmentOf(c)}</span></td><td><button class="iconbtn" onclick="openProfile('${esc(c.id)}')">Ver →</button></td></tr>`;
+  }).join('')||'<tr><td colspan="8"><div class="empty">Nenhum cliente encontrado.</div></td></tr>';
+  el('clientCount').textContent=`${a.length.toLocaleString('pt-BR')} clientes`;
+  el('clientPageLabel').textContent=`${clientPage}/${pages}`;
+  el('prevClients').disabled=clientPage<=1;
+  el('nextClients').disabled=clientPage>=pages;
+}
+
+el('clientSearch').oninput=()=>{clientPage=1;renderClients()};
+el('clientHouse').onchange=()=>{clientPage=1;renderClients()};
+el('clientSegment').onchange=()=>{clientPage=1;renderClients()};
+if(el('clientPriority')) el('clientPriority').onchange=()=>{clientPage=1;renderClients()};
+el('prevClients').onclick=()=>{clientPage--;renderClients()};
+el('nextClients').onclick=()=>{clientPage++;renderClients()};
+
+function openProfile(id){
+  currentClient=state.clients.find(c=>c.id===id);
+  if(!currentClient)return;
+  const c=calcClient(currentClient),vv=clientVisits(c);
+  el('profileName').textContent=c.name;
+  el('profileSubtitle').textContent=`${segmentOf(c)} • Cliente desde ${fmtDate(c.firstVisit)}`;
+  
+  const prioBadgesHtml = (c.priorities && c.priorities.length)
+    ? `<div style="margin:10px 0 12px;display:flex;flex-wrap:wrap;gap:6px;justify-content:center">${renderPriorityBadges(c.priorities)}</div>`
+    : `<div style="margin:6px 0 10px;font-size:11px;color:var(--muted)">Sem atendimento prioritário registrado</div>`;
+
+  el('profileSide').innerHTML=`
+    <div class="avatar profile-big">${initials(c.name)}</div>
+    <h3>${esc(c.name)}</h3>
+    <div class="phone">${fmtPhone(c.phone)}</div>
+    ${prioBadgesHtml}
+    <div class="actions-row" style="margin-bottom:14px;justify-content:center">
+      <button class="btn" style="font-size:11px;padding:6px 10px" onclick="openEditClientPrioritiesModal('${esc(c.id)}')">⭐ Alterar Prioridades</button>
+    </div>
+    <div class="quickstats">
+      <div><span>Total visitas</span><strong>${c.totalVisits}</strong></div>
+      <div><span>Última visita</span><strong>${fmtDate(c.lastVisit)}</strong></div>
+      <div><span>Íconico</span><strong>${c.iconico}</strong></div>
+      <div><span>Leña</span><strong>${c.lena}</strong></div>
+      <div><span>Origem</span><strong>${esc(c.source||'—')}</strong></div>
+      <div><span>Primeira casa</span><strong>${esc(c.firstHouse||'—')}</strong></div>
+    </div>
+    <div class="actions-row" style="margin-top:14px;justify-content:center">
+      <button class="btn" onclick="copyPhone()">Copiar telefone</button>
+    </div>
+  `;
+  el('profileVisitCount').textContent=`${vv.length} registros detalhados`;
+  el('profileTimeline').innerHTML=vv.length?vv.map(v=>`<div class="visit-item"><div class="date">${fmtDate(v.date)}<br>${esc(v.arrival||'')}</div><div><strong>${esc(v.house)} • Mesa ${esc(v.table||'—')}</strong><p>${v.people} pessoa(s) • ${esc(v.source)}${v.notes?' • '+esc(v.notes):''}</p></div><span class="badge ${v.status?.toLowerCase().includes('recorr')?'gold':'blue'}">${esc(v.status||'—')}</span></div>`).join(''):'<div class="empty">O resumo histórico existe, mas não há visita detalhada dentro da amostra carregada nesta V2.</div>';
+  go('profile');
+}
 function copyPhone(){if(!currentClient)return;navigator.clipboard?.writeText(currentClient.phone);toast('Telefone copiado.')}
 let selectedCheckinClientId=null;
 function foldText(v){return String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim()}
 function clientSearchScore(c,q){const fq=foldText(q),qd=digits(q),name=foldText(c.name),phone=digits(c.phone);let score=0;if(fq&&name===fq)score+=100;if(fq&&name.startsWith(fq))score+=65;if(fq&&name.includes(fq))score+=40;if(fq&&name.split(/\s+/).some(t=>t===fq))score+=55;if(qd.length>=4&&phone.endsWith(qd))score+=90;if(qd.length>=8&&phone.includes(qd))score+=50;if(qd&&phone===normalizePhone(q))score+=110;return score}
 function searchCheckinClients(q){const fq=foldText(q),qd=digits(q);const validName=fq.length>=2&&!/^\d+$/.test(fq),validDigits=qd.length>=4;if(!validName&&!validDigits)return[];return state.clients.map(c=>({c,score:clientSearchScore(c,q)})).filter(x=>x.score>0).sort((a,b)=>b.score-a.score||String(b.c.lastVisit||'').localeCompare(String(a.c.lastVisit||''))).slice(0,10).map(x=>calcClient(x.c))}
 function renderCheckinLookup(){const q=el('ciLookup').value.trim(),box=el('ciLookupResults'),a=searchCheckinClients(q);if((foldText(q).length<2&&digits(q).length<4)||!q){box.className='lookup-results';box.innerHTML='';return}box.className='lookup-results show';if(!a.length){box.innerHTML='<div class="lookup-noresult"><b>Nenhum cadastro encontrado.</b><br>Confira a informação ou preencha nome e telefone abaixo para criar um novo cliente.</div>';return}box.innerHTML=a.map(c=>`<button type="button" class="lookup-item" onclick="selectCheckinClient('${esc(c.id)}')"><div><div class="lookup-name">${esc(c.name)}</div><div class="lookup-meta">${esc(c.source||'Origem não informada')}</div></div><div><div class="lookup-label">Telefone</div><div class="lookup-value">${fmtPhone(c.phone)}</div></div><div><div class="lookup-label">Última visita</div><div class="lookup-value">${fmtDate(c.lastVisit)}</div></div><div><div class="lookup-label">Visitas</div><div class="lookup-value">${c.totalVisits}</div></div></button>`).join('')}
-function selectCheckinClient(id){const c=state.clients.find(x=>x.id===id);if(!c)return;const cc=calcClient(c);selectedCheckinClientId=c.id;el('ciLookup').value=c.name;el('ciLookupResults').className='lookup-results';el('ciLookupResults').innerHTML='';el('ciName').value=c.name;el('ciPhone').value=fmtPhone(c.phone);const card=el('selectedClientCard');card.className='span2 selected-client-card show';card.innerHTML=`<div style="display:flex;justify-content:space-between;gap:10px;align-items:center"><div><strong>✓ ${esc(cc.name)}</strong><div style="font-size:10px;color:var(--muted);margin-top:2px">Cliente existente selecionado</div></div><button type="button" class="iconbtn" onclick="clearSelectedCheckinClient()">Trocar</button></div><div class="selected-grid"><div><span>Telefone</span><b>${fmtPhone(cc.phone)}</b></div><div><span>CPF</span><b>${esc(cc.cpf||'Não informado')}</b></div><div><span>Última visita</span><b>${fmtDate(cc.lastVisit)}</b></div><div><span>Total de visitas</span><b>${cc.totalVisits}</b></div></div>`;const info=el('clientFound');info.className='checkin-status show found';info.innerHTML=`<strong>${segmentOf(cc)}</strong><div style="font-size:11px;color:var(--muted);margin-top:4px">Íconico: ${cc.iconico} • Leña: ${cc.lena} • Bravo Café: ${cc.cafe||0} • Primeira casa: ${esc(houseLabel(cc.firstHouse||'—'))}</div>`}
-function clearSelectedCheckinClient(){selectedCheckinClientId=null;el('ciLookup').value='';el('ciName').value='';el('ciPhone').value='';el('selectedClientCard').className='span2 selected-client-card';el('selectedClientCard').innerHTML='';el('clientFound').className='checkin-status';el('clientFound').innerHTML='';el('ciLookup').focus()}
+function selectCheckinClient(id){const c=state.clients.find(x=>x.id===id);if(!c)return;const cc=calcClient(c);selectedCheckinClientId=c.id;el('ciLookup').value=c.name;el('ciLookupResults').className='lookup-results';el('ciLookupResults').innerHTML='';el('ciName').value=c.name;el('ciPhone').value=fmtPhone(c.phone);
+document.querySelectorAll('input[name="ciPriority"]').forEach(cb => {
+  cb.checked = (c.priorities || []).includes(cb.value);
+});
+const card=el('selectedClientCard');card.className='span2 selected-client-card show';
+const selPrioHtml = (c.priorities && c.priorities.length) ? `<div style="margin-top:6px">${renderPriorityBadges(c.priorities)}</div>` : '';
+card.innerHTML=`<div style="display:flex;justify-content:space-between;gap:10px;align-items:center"><div><strong>✓ ${esc(cc.name)}</strong>${selPrioHtml}<div style="font-size:10px;color:var(--muted);margin-top:2px">Cliente existente selecionado</div></div><button type="button" class="iconbtn" onclick="clearSelectedCheckinClient()">Trocar</button></div><div class="selected-grid"><div><span>Telefone</span><b>${fmtPhone(cc.phone)}</b></div><div><span>CPF</span><b>${esc(cc.cpf||'Não informado')}</b></div><div><span>Última visita</span><b>${fmtDate(cc.lastVisit)}</b></div><div><span>Total de visitas</span><b>${cc.totalVisits}</b></div></div>`;const info=el('clientFound');info.className='checkin-status show found';info.innerHTML=`<strong>${segmentOf(cc)}</strong><div style="font-size:11px;color:var(--muted);margin-top:4px">Íconico: ${cc.iconico} • Leña: ${cc.lena} • Bravo Café: ${cc.cafe||0} • Primeira casa: ${esc(houseLabel(cc.firstHouse||'—'))}</div>`}
+function clearSelectedCheckinClient(){selectedCheckinClientId=null;el('ciLookup').value='';el('ciName').value='';el('ciPhone').value='';document.querySelectorAll('input[name="ciPriority"]').forEach(cb=>cb.checked=false);el('selectedClientCard').className='span2 selected-client-card';el('selectedClientCard').innerHTML='';el('clientFound').className='checkin-status';el('clientFound').innerHTML='';el('ciLookup').focus()}
 function startCheckinForProfile(){if(!currentClient)return;go('checkin');selectCheckinClient(currentClient.id)}
 
 function houseLabel(h){return h==='Leña'?'Leña Casa Italiana':h==='Íconico'?'Iconiko Cozinha Japonesa':h==='Bravo Café'?'Bravo Café':h||'—'}
@@ -970,7 +1137,40 @@ function duplicateCandidates(name,phone,selectedId){const nn=foldText(name), p=n
 function clientSnapshot(c){const cc=calcClient(c);return {name:cc.name||'',phone:cc.phone||'',cpf:cc.cpf||'',lastVisit:cc.lastVisit||'',totalVisits:cc.totalVisits||0}}
 function showDuplicateConfirmation(pending,matches){const strongest=matches[0], old=clientSnapshot(strongest.c);const reasons=[];if(strongest.phoneMatch)reasons.push('mesmo telefone');if(strongest.nameMatch)reasons.push('mesmo nome');el('modalTitle').textContent='Possível cadastro duplicado';el('modalBody').innerHTML=`<div class="dup-reason">O sistema encontrou um cadastro existente por <strong>${reasons.join(' e ')}</strong>. Confirme se é a mesma pessoa antes de concluir.</div><div class="duplicate-grid"><div class="duplicate-box"><h4>ENTRADA QUE ESTÁ SENDO FEITA</h4><dl><dt>Nome</dt><dd>${esc(pending.name)}</dd><dt>Telefone</dt><dd>${fmtPhone(pending.phone)}</dd><dt>Casa</dt><dd>${esc(houseLabel(pending.house))}</dd><dt>Horário</dt><dd>${esc(pending.arrival)}</dd></dl></div><div class="duplicate-box"><h4>CADASTRO JÁ EXISTENTE</h4><dl><dt>Nome</dt><dd>${esc(old.name)}</dd><dt>Telefone</dt><dd>${fmtPhone(old.phone)}</dd><dt>CPF</dt><dd>${esc(old.cpf||'Não informado')}</dd><dt>Última visita</dt><dd>${fmtDate(old.lastVisit)}</dd><dt>Total de visitas</dt><dd>${old.totalVisits}</dd></dl></div></div>${matches.length>1?`<div class="validation-note" style="margin-top:12px">Existem ${matches.length} cadastros potencialmente relacionados. A confirmação abaixo vinculará ao cadastro exibido; se não for a mesma pessoa, será criado um registro separado e marcado para revisão.</div>`:''}<div class="form-actions"><button class="btn" onclick="resolveDuplicate(false)">Não, é outra pessoa</button><button class="btn primary" onclick="resolveDuplicate(true)">Sim, é a mesma pessoa</button></div>`;window.__pendingCheckin={pending,matches};el('modal').classList.add('show')}
 function resolveDuplicate(isSame){const bag=window.__pendingCheckin;if(!bag)return;closeModal();const {pending,matches}=bag;window.__pendingCheckin=null;if(isSame){const target=matches[0].c;pending.forceClientId=target.id;pending.samePersonConfirmed=true;if(normalizePhone(target.phone)!==normalizePhone(pending.phone)){target.previousPhones=Array.from(new Set([...(target.previousPhones||[]),target.phone].filter(Boolean)));target.phone=pending.phone}if(foldText(target.name)!==foldText(pending.name)&&pending.name)target.name=pending.name;finalizeCheckin(pending)}else{pending.allowDuplicate=true;pending.duplicateReview=true;finalizeCheckin(pending)}}
-function finalizeCheckin(pending){let c=pending.forceClientId?state.clients.find(x=>x.id===pending.forceClientId):(pending.selectedId?state.clients.find(x=>x.id===pending.selectedId):null);let isNew=!c;const d=today(),house=pending.house,p=pending.phone,name=pending.name;if(!c){c={id:'C-'+Date.now(),name,phone:p,firstVisit:d,lastVisit:d,iconico:0,lena:0,cafe:0,firstHouse:house,visitedIconico:'Não',visitedLena:'Não',visitedCafe:'Não',source:pending.source,totalVisits:0,registrationChannel:'Equipe',registeredAt:new Date().toISOString(),duplicateReview:!!pending.duplicateReview};state.clients.unshift(c);dbSyncCustomer(c);}
+function finalizeCheckin(pending){
+  let c=pending.forceClientId?state.clients.find(x=>x.id===pending.forceClientId):(pending.selectedId?state.clients.find(x=>x.id===pending.selectedId):null);
+  let isNew=!c;
+  const d=today(),house=pending.house,p=pending.phone,name=pending.name;
+  const selectedPriorities = Array.from(document.querySelectorAll('input[name="ciPriority"]:checked')).map(cb => cb.value);
+  if(!c){
+    c={
+      id:'C-'+Date.now(),
+      name,
+      phone:p,
+      firstVisit:d,
+      lastVisit:d,
+      iconico:0,
+      lena:0,
+      cafe:0,
+      cafePousada:0,
+      firstHouse:house,
+      visitedIconico:'Não',
+      visitedLena:'Não',
+      visitedCafe:'Não',
+      visitedCafePousada:'Não',
+      source:pending.source,
+      totalVisits:0,
+      priorities:selectedPriorities,
+      registrationChannel:'Equipe',
+      registeredAt:new Date().toISOString(),
+      duplicateReview:!!pending.duplicateReview
+    };
+    state.clients.unshift(c);
+    dbSyncCustomer(c);
+  } else {
+    c.priorities = selectedPriorities;
+    dbSyncCustomer(c);
+  }
  const prior=calcClient(c).totalVisits;c.name=name||c.name;c.lastVisit=d;if(prior===0&&!c.firstHouse)c.firstHouse=house;c.totalVisits=Math.max(c.totalVisits||0,prior)+1;if(house==='Íconico'){c.iconico=(c.iconico||0)+1;c.visitedIconico='Sim'}else if(house==='Leña'){c.lena=(c.lena||0)+1;c.visitedLena='Sim'}else if(house==='Bravo Café'){c.cafe=(c.cafe||0)+1;c.visitedCafe='Sim'}else if(house==='Café da Bravo Pousada'){c.cafePousada=(c.cafePousada||0)+1;c.visitedCafePousada='Sim'};state.visits.unshift({id:'V-'+Date.now(),date:d,house,name:c.name,people:pending.people,phone:p,arrival:pending.arrival,departure:'',source:pending.source,status:isNew||prior===0?'Novo':'Recorrente',houseStatus:isNew||prior===0?'Novo':'Recorrente',table:pending.table,notes:pending.notes,amount:0,operatorReception:getSessionHouse(),duplicateReview:!!pending.duplicateReview});save();selectedCheckinClientId=null;el('checkinForm').reset();applySessionHouse();el('clientFound').className='checkin-status';toast(`Check-in confirmado • ${c.name} • ${pending.arrival}`);renderCheckinStats()}
 function lookupCheckinClient(){const p=normalizePhone(el('ciPhone').value);if(selectedCheckinClientId)return;const c=state.clients.find(x=>normalizePhone(x.phone)===p);const box=el('clientFound');if(p.length<10){box.className='checkin-status';box.innerHTML='';return}if(c){selectCheckinClient(c.id)}else{box.className='checkin-status show';box.innerHTML='<strong>Novo cliente</strong><div style="font-size:11px;color:var(--muted);margin-top:4px">Telefone não encontrado. O cadastro será criado ao confirmar o check-in.</div>'}}
 el('ciHouse').addEventListener('change',()=>{const h=el('ciHouse').value;applyHouseBranding(h);updateCheckinBranding(h)});
@@ -2140,7 +2340,64 @@ function cycleReservation(id){const r=state.reservations.find(x=>x.id===id);if(!
 function convertReservation(id){const r=state.reservations.find(x=>x.id===id);if(!r)return;r.status='Convertida';save();go('checkin');el('ciPeople').value=r.people;el('ciHouse').value=r.house;if(r.notes)el('ciNotes').value=r.notes;const c=state.clients.find(x=>normalizePhone(x.phone)===normalizePhone(r.phone));if(c)selectCheckinClient(c.id);else{selectedCheckinClientId=null;el('ciLookup').value=r.name;el('ciPhone').value=fmtPhone(r.phone);el('ciName').value=r.name;lookupCheckinClient()}toast('Reserva carregada no check-in.')}
 function closeModal(){el('modal').classList.remove('show')}
 el('modal').onclick=e=>{if(e.target===el('modal'))closeModal()}
-function openNewClient(){el('modalTitle').textContent='Novo cliente';el('modalBody').innerHTML=`<form id="newClientForm"><div class="form-grid"><div class="field span2"><label>Nome e sobrenome *</label><input id="ncName" required placeholder="Ex.: Gabriel Sá"><div class="field-help">Mínimo: nome + segundo nome, ambos com pelo menos 2 letras.</div></div><div class="field"><label>Telefone completo *</label><input id="ncPhone" inputmode="tel" required placeholder="(22) 99999-9999"></div><div class="field"><label>Origem</label><select id="ncSource"><option>Instagram</option><option>Google</option><option>Indicação</option><option>Passagem/Passante</option><option>Da casa</option><option>Outro</option></select></div></div><div class="form-actions"><button type="button" class="btn" onclick="closeModal()">Cancelar</button><button class="btn primary">Salvar cliente</button></div></form>`;el('modal').classList.add('show');el('newClientForm').onsubmit=e=>{e.preventDefault();const nv=validateClientName(el('ncName').value),pv=validatePhone(el('ncPhone').value);if(!nv.ok){toast(nv.msg);el('ncName').focus();return}if(!pv.ok){toast(pv.msg);el('ncPhone').focus();return}const p=pv.value;if(state.clients.some(c=>normalizePhone(c.phone)===p)){toast('Já existe cliente com este telefone.');return}state.clients.unshift({id:'C-'+Date.now(),name:nv.value,phone:p,firstVisit:'',lastVisit:'',iconico:0,lena:0,firstHouse:'',visitedIconico:'Não',visitedLena:'Não',source:el('ncSource').value,totalVisits:0,registrationChannel:'Equipe',registeredAt:new Date().toISOString()});save();closeModal();renderClients();toast('Cliente cadastrado.')}}
+function openNewClient(){
+  el('modalTitle').textContent='Novo cliente';
+  el('modalBody').innerHTML=`<form id="newClientForm">
+    <div class="form-grid">
+      <div class="field span2"><label>Nome e sobrenome *</label><input id="ncName" required placeholder="Ex.: Gabriel Sá"><div class="field-help">Mínimo: nome + segundo nome, ambos com pelo menos 2 letras.</div></div>
+      <div class="field"><label>Telefone completo *</label><input id="ncPhone" inputmode="tel" required placeholder="(22) 99999-9999"></div>
+      <div class="field"><label>Origem</label><select id="ncSource"><option>Instagram</option><option>Google</option><option>Indicação</option><option>Passagem/Passante</option><option>Da casa</option><option>Outro</option></select></div>
+      <div class="field span2">
+        <label>Prioridade (Atendimento Preferencial)</label>
+        <div class="priority-checkbox-group">
+          <label class="priority-pill-toggle"><input type="checkbox" name="ncPriority" value="Gestante"> <span>🤰 Gestante</span></label>
+          <label class="priority-pill-toggle"><input type="checkbox" name="ncPriority" value="Idoso"> <span>🧓 Idoso</span></label>
+          <label class="priority-pill-toggle"><input type="checkbox" name="ncPriority" value="PCD"> <span>♿ PCD</span></label>
+          <label class="priority-pill-toggle"><input type="checkbox" name="ncPriority" value='Com Criança "no colo"'> <span>👶 Com Criança "no colo"</span></label>
+        </div>
+        <div class="field-help" style="margin-top:4px">Múltipla escolha. Sinaliza atendimento prioritário no salão e no cadastro do cliente.</div>
+      </div>
+    </div>
+    <div class="form-actions"><button type="button" class="btn" onclick="closeModal()">Cancelar</button><button class="btn primary">Salvar cliente</button></div>
+  </form>`;
+  el('modal').classList.add('show');
+  el('newClientForm').onsubmit=e=>{
+    e.preventDefault();
+    const nv=validateClientName(el('ncName').value),pv=validatePhone(el('ncPhone').value);
+    if(!nv.ok){toast(nv.msg);el('ncName').focus();return}
+    if(!pv.ok){toast(pv.msg);el('ncPhone').focus();return}
+    const p=pv.value;
+    if(state.clients.some(c=>normalizePhone(c.phone)===p)){toast('Já existe cliente com este telefone.');return}
+    const selectedPriorities = Array.from(document.querySelectorAll('input[name="ncPriority"]:checked')).map(cb => cb.value);
+    const newCust = {
+      id:'C-'+Date.now(),
+      name:nv.value,
+      phone:p,
+      firstVisit:'',
+      lastVisit:'',
+      iconico:0,
+      lena:0,
+      cafe:0,
+      cafePousada:0,
+      firstHouse:'',
+      visitedIconico:'Não',
+      visitedLena:'Não',
+      visitedCafe:'Não',
+      visitedCafePousada:'Não',
+      source:el('ncSource').value,
+      totalVisits:0,
+      priorities:selectedPriorities,
+      registrationChannel:'Equipe',
+      registeredAt:new Date().toISOString()
+    };
+    state.clients.unshift(newCust);
+    save();
+    dbSyncCustomer(newCust);
+    closeModal();
+    renderClients();
+    toast('Cliente cadastrado com sucesso.');
+  };
+}
 
 function segData(){const cc=state.clients.map(calcClient);return {'VIP ativo':cc.filter(c=>segmentOf(c)==='VIP ativo'),'Recorrentes':cc.filter(c=>c.totalVisits>=2),'Novos':cc.filter(c=>segmentOf(c)==='Novo'),'Em risco':cc.filter(c=>['Em risco','VIP em risco'].includes(segmentOf(c))),'Só Íconico':cc.filter(c=>c.iconico>0&&c.lena===0),'Só Leña':cc.filter(c=>c.lena>0&&c.iconico===0)}}
 function renderSegments(){const s=segData(),desc={'VIP ativo':'5+ visitas e retorno nos últimos 60 dias.','Recorrentes':'Clientes com duas ou mais visitas.','Novos':'Uma visita recente; janela ideal para estimular o segundo retorno.','Em risco':'Recorrentes afastados por mais de 90 dias.','Só Íconico':'Conhecem Íconico, mas ainda não registraram visita ao Leña.','Só Leña':'Conhecem Leña, mas ainda não registraram visita ao Íconico.'};el('segmentGrid').innerHTML=Object.entries(s).map(([k,a])=>`<button class="card seg-card" style="text-align:left;border:1px solid var(--line)" onclick="showSegment('${k}')"><h3>${k}</h3><div class="big">${a.length.toLocaleString('pt-BR')}</div><p>${desc[k]}</p></button>`).join('');if(selectedSegment)showSegment(selectedSegment)}
@@ -2172,16 +2429,61 @@ function initPublicMode(house){
   house=(house||'').toLowerCase();
   if(house==='bravocafe'||house==='cafedabravopousada'||house==='bravo'||house.includes('cafe'))house='cafe';
   if(house==='leña')house='lena';
-  if(house.includes('pousada')||house==='cafedabravopousada')house='cafedabravopousada'; if(!['lena','iconiko','cafe','cafedabravopousada'].includes(house))return;document.querySelector('.app').style.display='none';const pr=el('publicRegistration');pr.className='public-reg show house-'+(house==='cafedabravopousada'?'cafepousada':house);const key=house==='cafedabravopousada'?'Café da Bravo Pousada':(house==='lena'?'Leña':(house==='iconiko'?'Íconico':'Bravo Café')),b=getHouseBranding(key);el('publicHouseLogo').src=b.logo;el('publicHouseTop').textContent='Cadastro • '+b.label;el('publicHousePill').textContent=b.label.toUpperCase();el('publicForm').dataset.house=key;el('pubName').value='';el('pubPhone').value='';el('pubSource').value='';el('publicCard').querySelector('h1').textContent='Faça seu cadastro';el('publicForm').style.display='block'}
+  if(house.includes('pousada')||house==='cafedabravopousada')house='cafedabravopousada'; if(!['lena','iconiko','cafe','cafedabravopousada'].includes(house))return;document.querySelector('.app').style.display='none';const pr=el('publicRegistration');pr.className='public-reg show house-'+(house==='cafedabravopousada'?'cafepousada':house);const key=house==='cafedabravopousada'?'Café da Bravo Pousada':(house==='lena'?'Leña':(house==='iconiko'?'Íconico':'Bravo Café')),b=getHouseBranding(key);el('publicHouseLogo').src=b.logo;el('publicHouseTop').textContent='Cadastro • '+b.label;el('publicHousePill').textContent=b.label.toUpperCase();el('publicForm').dataset.house=key;el('pubName').value='';el('pubPhone').value='';el('pubSource').value='';document.querySelectorAll('input[name="pubPriority"]').forEach(cb=>cb.checked=false);el('publicCard').querySelector('h1').textContent='Faça seu cadastro';el('publicForm').style.display='block'}
 function leavePublicMode(){el('publicRegistration').classList.remove('show');document.querySelector('.app').style.display='grid';history.replaceState(null,'',location.pathname);go('qrcodes')}
 function markField(fieldId,errorId,msg){const f=el(fieldId),err=el(errorId);f.classList.toggle('invalid',!!msg);if(err)err.textContent=msg||''}
-function submitPublicRegistration(e){e.preventDefault();const house=el('publicForm').dataset.house,nv=validateClientName(el('pubName').value),pv=validatePhone(el('pubPhone').value);markField('pubNameField','pubNameError',nv.ok?'':nv.msg);markField('pubPhoneField','pubPhoneError',pv.ok?'':pv.msg);if(!nv.ok){el('pubName').focus();return}if(!pv.ok){el('pubPhone').focus();return}const existing=state.clients.find(c=>normalizePhone(c.phone)===pv.value);if(existing){el('publicCard').innerHTML=`<div class="success-box"><div style="font-size:34px">✓</div><h2 style="margin:8px 0">Cadastro localizado</h2><p>Seu telefone já consta em nossa base como <strong>${esc(existing.name)}</strong>.</p><p style="font-size:12px;color:var(--muted)">Pode avisar nossa equipe na recepção que o cadastro já foi localizado.</p><button class="btn" onclick="location.reload()" style="margin-top:8px">Concluir</button></div>`;return}const d=today(),source=el('pubSource').value||'QR Code';state.clients.unshift({id:'C-'+Date.now(),name:nv.value,phone:pv.value,firstVisit:'',lastVisit:'',iconico:0,lena:0,firstHouse:'',visitedIconico:'Não',visitedLena:'Não',source,totalVisits:0,registrationHouse:house,registrationChannel:'QR Code',registeredAt:new Date().toISOString()});save();el('publicCard').innerHTML=`<div class="success-box"><div style="font-size:34px">✓</div><h2 style="margin:8px 0">Cadastro concluído</h2><p>Obrigado, <strong>${esc(nv.value.split(' ')[0])}</strong>. Seu cadastro no ${esc(house)} foi registrado.</p><p style="font-size:12px;color:var(--muted)">Agora é só aguardar a orientação da nossa equipe.</p></div>`}
+function submitPublicRegistration(e){
+  e.preventDefault();
+  const house=el('publicForm').dataset.house,nv=validateClientName(el('pubName').value),pv=validatePhone(el('pubPhone').value);
+  markField('pubNameField','pubNameError',nv.ok?'':nv.msg);
+  markField('pubPhoneField','pubPhoneError',pv.ok?'':pv.msg);
+  if(!nv.ok){el('pubName').focus();return}
+  if(!pv.ok){el('pubPhone').focus();return}
+  const selectedPriorities = Array.from(document.querySelectorAll('input[name="pubPriority"]:checked')).map(cb => cb.value);
+  const existing=state.clients.find(c=>normalizePhone(c.phone)===pv.value);
+  if(existing){
+    if(selectedPriorities.length){
+      existing.priorities = Array.from(new Set([...(existing.priorities||[]), ...selectedPriorities]));
+      save();
+      dbSyncCustomer(existing);
+    }
+    el('publicCard').innerHTML=`<div class="success-box"><div style="font-size:34px">✓</div><h2 style="margin:8px 0">Cadastro localizado</h2><p>Seu telefone já consta em nossa base como <strong>${esc(existing.name)}</strong>.</p><p style="font-size:12px;color:var(--muted)">Pode avisar nossa equipe na recepção que o cadastro já foi localizado.</p><button class="btn" onclick="location.reload()" style="margin-top:8px">Concluir</button></div>`;
+    return;
+  }
+  const d=today(),source=el('pubSource').value||'QR Code';
+  const newCust = {
+    id:'C-'+Date.now(),
+    name:nv.value,
+    phone:pv.value,
+    firstVisit:'',
+    lastVisit:'',
+    iconico:0,
+    lena:0,
+    cafe:0,
+    cafePousada:0,
+    firstHouse:'',
+    visitedIconico:'Não',
+    visitedLena:'Não',
+    visitedCafe:'Não',
+    visitedCafePousada:'Não',
+    source,
+    totalVisits:0,
+    priorities:selectedPriorities,
+    registrationHouse:house,
+    registrationChannel:'QR Code',
+    registeredAt:new Date().toISOString()
+  };
+  state.clients.unshift(newCust);
+  save();
+  dbSyncCustomer(newCust);
+  el('publicCard').innerHTML=`<div class="success-box"><div style="font-size:34px">✓</div><h2 style="margin:8px 0">Cadastro concluído</h2><p>Obrigado, <strong>${esc(nv.value.split(' ')[0])}</strong>. Seu cadastro no ${esc(house)} foi registrado.</p><p style="font-size:12px;color:var(--muted)">Agora é só aguardar a orientação da nossa equipe.</p></div>`;
+}
 el('publicForm').onsubmit=submitPublicRegistration;el('pubName').oninput=()=>markField('pubNameField','pubNameError','');el('pubPhone').oninput=()=>markField('pubPhoneField','pubPhoneError','');
 function renderData(){el('dataStats').textContent=`Base local atual: ${state.clients.length.toLocaleString('pt-BR')} clientes • ${state.visits.length.toLocaleString('pt-BR')} visitas • ${state.reservations.length} reservas.`}
 function exportBackup(){const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='grupo_qu4tro_backup.json';a.click();URL.revokeObjectURL(a.href)}
 el('backupInput').onchange=e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{try{const d=JSON.parse(rd.result);if(!d.clients||!d.visits)throw Error();state=d;save();toast('Backup importado com sucesso.')}catch{toast('Arquivo de backup inválido.')}};rd.readAsText(f)}
 function resetData(){if(!confirm('Restaurar a base inicial deste protótipo? Alterações locais serão apagadas.'))return;state=structuredClone(SEED_DATA);save();toast('Base inicial restaurada.')}
-function exportCSV(type){const rows=type==='clients'?getFilteredClients():state.visits;let headers,body;if(type==='clients'){headers=['Nome','Telefone','Primeira visita','Última visita','Visitas Iconico','Visitas Lena','Visitas Bravo Cafe','Total','Origem','Segmento'];body=rows.map(c=>[c.name,c.phone,c.firstVisit,c.lastVisit,c.iconico,c.lena,c.cafe||0,c.totalVisits,c.source,segmentOf(c)])}const csv=[headers,...body].map(r=>r.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(';')).join('\n');const blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='grupo_qu4tro_clientes.csv';a.click();URL.revokeObjectURL(a.href)}
+function exportCSV(type){const rows=type==='clients'?getFilteredClients():state.visits;let headers,body;if(type==='clients'){headers=['Nome','Telefone','Prioridades','Primeira visita','Última visita','Visitas Iconico','Visitas Lena','Visitas Bravo Cafe','Total','Origem','Segmento'];body=rows.map(c=>[c.name,c.phone,(c.priorities||[]).join(', '),c.firstVisit,c.lastVisit,c.iconico,c.lena,c.cafe||0,c.totalVisits,c.source,segmentOf(c)])}const csv=[headers,...body].map(r=>r.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(';')).join('\n');const blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='grupo_qu4tro_clientes.csv';a.click();URL.revokeObjectURL(a.href)}
 function refreshAll(){renderDashboard();renderClients();renderReservations();renderSegments();renderIntelligence();renderData();renderCheckinStats();renderQRCodes();renderSettings();renderUsers();renderUserSessionBadge()}
 refreshAll();
 ensureSession();
