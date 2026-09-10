@@ -104,7 +104,10 @@ body[data-house] .sidebar{background:linear-gradient(180deg,var(--nav),color-mix
       </div>
       <div class="field" style="margin-bottom:16px">
         <label style="font-size:12px;font-weight:700;margin-bottom:4px;display:block">Senha *</label>
-        <input id="authOverlayPassword" type="password" class="control" required placeholder="••••••••" style="width:100%;padding:10px 12px" autocomplete="current-password">
+        <div style="position:relative;display:flex;align-items:center">
+          <input id="authOverlayPassword" type="password" class="control" required placeholder="••••••••" style="width:100%;padding:10px 42px 10px 12px" autocomplete="current-password">
+          <button type="button" onclick="toggleAuthPassword()" style="position:absolute;right:10px;background:none;border:none;cursor:pointer;font-size:16px;padding:4px;color:#64748b" title="Mostrar / Ocultar Senha">👁️</button>
+        </div>
       </div>
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;font-size:12px;color:#64748b">
         <label style="display:flex;align-items:center;gap:6px;cursor:pointer">
@@ -663,6 +666,12 @@ function checkAppAuthentication(){
     setTimeout(() => el('authOverlayIdentifier')?.focus(), 100);
     return false;
   }
+}
+
+function toggleAuthPassword(){
+  const inp = el('authOverlayPassword');
+  if(!inp) return;
+  inp.type = inp.type === 'password' ? 'text' : 'password';
 }
 
 function handleOverlayLogin(e){
