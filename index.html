@@ -320,12 +320,20 @@ body[data-house] .sidebar{background:linear-gradient(180deg,var(--nav),color-mix
         <p>Disposição física, praças de atendimento e status de ocupação em tempo real.</p>
       </div>
       <div class="actions-row" style="flex-wrap:wrap;gap:8px;align-items:center">
-        <!-- Zoom controls -->
+        <!-- Zoom & Rotation controls (apenas o mapa das mesas) -->
         <div style="display:inline-flex;align-items:center;background:#fff;border:1px solid var(--line);border-radius:8px;padding:2px 6px;gap:4px">
           <button type="button" class="iconbtn" onclick="adjustFloorplanZoom(-0.15)" title="Diminuir Zoom" style="width:26px;height:26px;font-size:14px">－</button>
           <span id="fpZoomLevel" style="font-size:11.5px;font-weight:700;color:var(--ink);min-width:38px;text-align:center">100%</span>
           <button type="button" class="iconbtn" onclick="adjustFloorplanZoom(0.15)" title="Aumentar Zoom" style="width:26px;height:26px;font-size:14px">＋</button>
-          <button type="button" class="btn ghost" onclick="resetFloorplanZoom()" title="Redefinir Zoom" style="padding:4px 6px;font-size:11px">Reset</button>
+          <button type="button" class="btn ghost" onclick="resetFloorplanZoom()" title="Redefinir Zoom (100%)" style="padding:4px 6px;font-size:11px">Reset</button>
+        </div>
+
+        <div style="display:inline-flex;align-items:center;background:#fff;border:1px solid var(--line);border-radius:8px;padding:2px 6px;gap:4px">
+          <button type="button" class="iconbtn" onclick="rotateFloorplan90(-1)" title="Girar 90° anti-horário" style="width:26px;height:26px;font-size:13px">↺</button>
+          <button type="button" class="btn ghost" onclick="rotateFloorplan90(1)" title="Girar mapa das mesas em 90°" style="padding:4px 8px;font-size:12px;font-weight:700;color:var(--ink);display:inline-flex;align-items:center;gap:5px">
+            <span>↻ Girar 90º</span> <span id="fpRotationAngle" style="background:#f1f5f9;padding:1px 5px;border-radius:4px;font-size:11px;color:var(--ink)">0°</span>
+          </button>
+          <button type="button" class="btn ghost" onclick="resetFloorplanRotation()" title="Redefinir Orientação (0°)" style="padding:4px 6px;font-size:11px">0°</button>
         </div>
 
         <!-- Mode Toggle: Reception (default) vs Edit -->
@@ -372,17 +380,25 @@ body[data-house] .sidebar{background:linear-gradient(180deg,var(--nav),color-mix
       <div class="card" style="padding:14px;display:flex;flex-direction:column;gap:10px;min-height:640px;background:#fff">
         <!-- Canvas Status & Legend Bar -->
         <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;padding-bottom:10px;border-bottom:1px solid var(--line)">
-          <div style="display:flex;align-items:center;gap:12px;font-size:12px">
-            <span style="display:inline-flex;align-items:center;gap:5px;font-weight:600;color:#334155"><span style="width:13px;height:13px;border-radius:3px;background:#f8fafc;border:1.5px solid #64748b;display:inline-block"></span> Livre</span>
-            <span style="display:inline-flex;align-items:center;gap:5px;font-weight:600;color:#0284c7"><span style="width:13px;height:13px;border-radius:3px;background:#bae6fd;border:1.5px solid #0284c7;display:inline-block"></span> Ocupada</span>
-            <span style="display:inline-flex;align-items:center;gap:5px;font-weight:600;color:#2563eb"><span style="width:13px;height:13px;border-radius:3px;background:#fff;border:2.5px solid #2563eb;display:inline-block"></span> Selecionada</span>
+          <div style="display:flex;align-items:center;gap:14px;font-size:12px">
+            <span style="display:inline-flex;align-items:center;gap:6px;font-weight:700;color:#15803d">
+              <span style="width:14px;height:14px;border-radius:4px;background:#dcfce7;border:1.5px solid #16a34a;display:inline-block"></span> Livre
+            </span>
+            <span style="display:inline-flex;align-items:center;gap:6px;font-weight:700;color:#b91c1c">
+              <span style="width:14px;height:14px;border-radius:4px;background:#fee2e2;border:1.5px solid #dc2626;display:inline-block"></span> Ocupada
+            </span>
+            <span style="display:inline-flex;align-items:center;gap:6px;font-weight:600;color:#2563eb">
+              <span style="width:14px;height:14px;border-radius:4px;background:#fff;border:2.5px solid #2563eb;display:inline-block"></span> Selecionada
+            </span>
           </div>
           <span id="fpModeHint" style="font-size:11.5px;color:var(--muted)">💡 Clique na mesa para ver ocupação ou alocar cliente da fila.</span>
         </div>
 
         <!-- SVG Viewport with pan/scroll -->
-        <div id="fpViewport" style="background:#f8fafc;border:1px solid var(--line);border-radius:10px;overflow:auto;display:flex;align-items:flex-start;justify-content:center;position:relative;min-height:560px;max-height:78vh;padding:16px">
-          <svg id="fpSvg" xmlns="http://www.w3.org/2000/svg" style="transition:transform 0.15s ease-out;transform-origin:top center;user-select:none"></svg>
+        <div id="fpViewport" style="background:#f8fafc;border:1px solid var(--line);border-radius:10px;overflow:auto;display:flex;align-items:center;justify-content:center;position:relative;min-height:560px;max-height:78vh;padding:16px">
+          <div id="fpCanvasWrapper" style="transition:width 0.2s ease-out, height 0.2s ease-out;display:flex;align-items:center;justify-content:center;margin:auto">
+            <svg id="fpSvg" xmlns="http://www.w3.org/2000/svg" style="transition:transform 0.2s ease-out;transform-origin:center center;user-select:none"></svg>
+          </div>
         </div>
       </div>
 
@@ -403,22 +419,22 @@ body[data-house] .sidebar{background:linear-gradient(180deg,var(--nav),color-mix
               <span style="font-size:11px;color:var(--muted);display:block">Total Lugares</span>
               <strong id="fpKpiTotalSeats" style="font-size:17px;color:var(--ink)">0</strong>
             </div>
-            <div style="background:#ecfdf5;border:1px solid #a7f3d0;border-radius:8px;padding:8px 10px">
-              <span style="font-size:11px;color:#065f46;display:block">Mesas Livres</span>
+            <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:8px 10px">
+              <span style="font-size:11px;color:#15803d;display:block;font-weight:600">Mesas Livres</span>
               <strong id="fpKpiFreeTables" style="font-size:17px;color:#16a34a">0</strong>
             </div>
-            <div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:8px 10px">
-              <span style="font-size:11px;color:#0369a1;display:block">Ocupadas</span>
-              <strong id="fpKpiOccupiedTables" style="font-size:17px;color:#0284c7">0</strong>
+            <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:8px 10px">
+              <span style="font-size:11px;color:#b91c1c;display:block;font-weight:600">Ocupadas</span>
+              <strong id="fpKpiOccupiedTables" style="font-size:17px;color:#dc2626">0</strong>
             </div>
           </div>
           <!-- Occupancy bar -->
           <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:4px">
             <span>Taxa de Ocupação</span>
-            <strong id="fpKpiOccupancyPct">0%</strong>
+            <strong id="fpKpiOccupancyPct" style="color:#b91c1c">0%</strong>
           </div>
           <div style="height:7px;background:#e2e8f0;border-radius:4px;overflow:hidden">
-            <div id="fpOccupancyProgress" style="height:100%;width:0%;background:#0284c7;transition:width .3s ease"></div>
+            <div id="fpOccupancyProgress" style="height:100%;width:0%;background:#dc2626;transition:width .3s ease"></div>
           </div>
         </div>
 
@@ -3620,6 +3636,7 @@ el('waitlistStatusFilter')?.addEventListener('change', () => renderWaitlist());
 var activeFloorplanId = 'lena';
 var selectedFloorplanTableId = null;
 var floorplanZoom = 1.0;
+var floorplanRotation = 0;
 var floorplanEditMode = false;
 var floorplanHistory = [];
 var floorplanDrag = null;
@@ -3767,6 +3784,21 @@ function resetFloorplanZoom(){
   floorplanZoom = 1.0;
   if(el('fpZoomLevel')) el('fpZoomLevel').textContent = '100%';
   renderFloorplan();
+}
+
+function rotateFloorplan90(dir = 1){
+  floorplanRotation = (floorplanRotation + (dir * 90)) % 360;
+  if(floorplanRotation < 0) floorplanRotation += 360;
+  if(el('fpRotationAngle')) el('fpRotationAngle').textContent = floorplanRotation + '°';
+  renderFloorplan();
+  toast(`Orientação do mapa das mesas: ${floorplanRotation}°`);
+}
+
+function resetFloorplanRotation(){
+  floorplanRotation = 0;
+  if(el('fpRotationAngle')) el('fpRotationAngle').textContent = '0°';
+  renderFloorplan();
+  toast('Orientação do mapa redefinida para 0°.');
 }
 
 function floorplanCheckpoint(){
@@ -3946,8 +3978,8 @@ function tableSvgNode(t, isOccupied, occupant){
   const seats = t.seats || 2;
   const isRound = t.shape === 'round';
 
-  // Render chairs
-  const chairColor = isOccupied ? '#0369a1' : '#64748b';
+  // Render chairs: Verde escuro para livre, Vermelho para ocupada
+  const chairColor = isOccupied ? '#b91c1c' : '#15803d';
   for(let i = 0; i < seats; i++){
     let cx, cy, angle = 0;
     if(isRound){
@@ -3980,14 +4012,14 @@ function tableSvgNode(t, isOccupied, occupant){
     }));
   }
 
-  // Table top
-  let topFill = '#f8fafc';
-  let topStroke = '#64748b';
+  // Table top: Verde claro para livre (#dcfce7), Vermelho claro para ocupada (#fee2e2)
+  let topFill = '#dcfce7';
+  let topStroke = '#16a34a';
   let strokeWidth = 2;
 
   if(isOccupied){
-    topFill = '#bae6fd';
-    topStroke = '#0284c7';
+    topFill = '#fee2e2';
+    topStroke = '#dc2626';
     strokeWidth = 2.5;
   }
   if(isHighlighted){
@@ -4023,9 +4055,9 @@ function tableSvgNode(t, isOccupied, occupant){
   body.append(createSvgElement(isRound ? 'ellipse' : 'rect', topAttrs));
   g.append(body);
 
-  // Table number label
+  // Table number label: contraste escuro sobre fundo claro
   const labelText = t.number || '?';
-  const textFill = isOccupied ? '#0369a1' : '#0f172a';
+  const textFill = isOccupied ? '#7f1d1d' : '#14532d';
   const fontSize = labelText.length > 2 ? 12 : 14;
 
   const labelNode = createSvgElement('text', {
@@ -4052,13 +4084,28 @@ function renderFloorplan(){
   svg.replaceChildren();
   svg.setAttribute('viewBox', `0 0 ${m.width} ${m.height}`);
 
-  // Zoom sizing
+  // Zoom sizing and Rotation containment (apenas o mapa das mesas)
   const displayW = Math.round(m.width * floorplanZoom);
   const displayH = Math.round(m.height * floorplanZoom);
+  const isRotated90 = (floorplanRotation === 90 || floorplanRotation === 270);
+  const boundW = isRotated90 ? displayH : displayW;
+  const boundH = isRotated90 ? displayW : displayH;
+
+  const wrapper = el('fpCanvasWrapper');
+  if(wrapper){
+    wrapper.style.width = boundW + 'px';
+    wrapper.style.height = boundH + 'px';
+    wrapper.style.minWidth = boundW + 'px';
+    wrapper.style.minHeight = boundH + 'px';
+  }
+
   svg.style.width = displayW + 'px';
   svg.style.height = displayH + 'px';
   svg.style.minWidth = displayW + 'px';
   svg.style.minHeight = displayH + 'px';
+  svg.style.transform = `rotate(${floorplanRotation}deg)`;
+  svg.style.transformOrigin = 'center center';
+  if(el('fpRotationAngle')) el('fpRotationAngle').textContent = floorplanRotation + '°';
 
   // Structures
   m.structures.forEach(s => svg.append(structureSvgNode(s)));
@@ -4134,7 +4181,7 @@ function selectionFloorplan(){
           <span style="font-size:11.5px;color:var(--muted)">${t.seats} lugares • ${t.shape === 'round' ? 'Redonda' : 'Retangular'} • ${esc(t.section || 'Salão')}</span>
         </div>
       </div>
-      <span style="padding:4px 9px;border-radius:12px;font-size:11px;font-weight:700;${isOccupied ? 'background:#bae6fd;color:#0369a1' : 'background:#ecfdf5;color:#16a34a'}">
+      <span style="padding:4px 10px;border-radius:12px;font-size:11.5px;font-weight:700;${isOccupied ? 'background:#fee2e2;color:#b91c1c;border:1px solid #fca5a5' : 'background:#dcfce7;color:#15803d;border:1px solid #86efac'}">
         ${isOccupied ? '● Ocupada' : '● Livre'}
       </span>
     </div>
@@ -4142,14 +4189,14 @@ function selectionFloorplan(){
 
   if(isOccupied && occupant){
     html += `
-      <div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:10px;padding:12px;margin-bottom:12px">
-        <div style="font-size:12px;color:#0369a1;font-weight:700;margin-bottom:6px">👤 Cliente em Atendimento:</div>
+      <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:12px;margin-bottom:12px">
+        <div style="font-size:12px;color:#b91c1c;font-weight:700;margin-bottom:6px">👤 Cliente em Atendimento:</div>
         <div style="font-size:14px;font-weight:700;color:#0f172a;margin-bottom:4px">${esc(occupant.name)}</div>
         <div style="font-size:12px;color:#334155;display:flex;gap:12px;flex-wrap:wrap">
           <span>👥 <strong>${occupant.people}</strong> pessoas</span>
           <span>⏱ Chegada: <strong>${occupant.arrival || '--:--'}</strong></span>
         </div>
-        ${occupant.notes ? `<div style="margin-top:6px;font-size:11.5px;color:#475569;background:#fff;padding:6px 8px;border-radius:6px;border:1px solid #e0f2fe"><em>${esc(occupant.notes)}</em></div>` : ''}
+        ${occupant.notes ? `<div style="margin-top:6px;font-size:11.5px;color:#475569;background:#fff;padding:6px 8px;border-radius:6px;border:1px solid #fecaca"><em>${esc(occupant.notes)}</em></div>` : ''}
       </div>
       <button class="btn" style="width:100%;justify-content:center;font-size:12px" onclick="go('clients');el('clientSearch').value='${esc(occupant.name)}';renderClients()">
         Ver Perfil do Cliente
@@ -4157,7 +4204,7 @@ function selectionFloorplan(){
     `;
   } else {
     html += `
-      <div style="background:#ecfdf5;border:1px solid #a7f3d0;border-radius:10px;padding:12px;margin-bottom:12px;font-size:12px;color:#065f46">
+      <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:12px;margin-bottom:12px;font-size:12px;color:#15803d">
         ✓ Mesa totalmente livre e pronta para acomodar clientes.
       </div>
       <button class="btn gold" style="width:100%;justify-content:center;font-weight:700;padding:10px;margin-bottom:8px" onclick="openAllocateWaitlistToTableModal('${esc(t.number)}')">
@@ -4580,6 +4627,17 @@ function bindFloorplanEvents(){
       openFloorplanTableModal(g.dataset.id);
     }
   });
+
+  const vp = el('fpViewport');
+  if(vp && !vp.dataset.wheelBound){
+    vp.dataset.wheelBound = 'true';
+    vp.addEventListener('wheel', e => {
+      if(e.ctrlKey){
+        e.preventDefault();
+        adjustFloorplanZoom(e.deltaY < 0 ? 0.15 : -0.15);
+      }
+    }, {passive: false});
+  }
 }
 
 </script>
