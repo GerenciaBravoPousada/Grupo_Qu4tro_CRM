@@ -4341,20 +4341,39 @@ function selectionFloorplan(){
     `;
   }
 
-  if(floorplanEditMode){
-    html += `
-      <div style="margin-top:14px;padding-top:12px;border-top:1.5px dashed var(--line);display:flex;flex-direction:column;gap:6px">
-        <span style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase">Operações de Edição</span>
-        <button class="btn" style="width:100%;justify-content:center;font-size:12px" onclick="openFloorplanTableModal('${t.id}')">
-          ✏ Editar Número / Lugares / Formato
+  html += `
+    <div style="margin-top:14px;padding-top:12px;border-top:1.5px dashed var(--line);display:flex;flex-direction:column;gap:6px">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <span style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase">Gestão da Mesa</span>
+        <span id="fpCardPosCoord" style="font-size:10.5px;color:var(--muted);font-weight:600">X: ${t.x} • Y: ${t.y}</span>
+      </div>
+      <button class="btn" style="width:100%;justify-content:center;font-size:12px;font-weight:600" onclick="openFloorplanTableModal('${t.id}')">
+        ⚙ Configurar Mesa
+      </button>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+        <button class="btn ghost" style="justify-content:center;font-size:11.5px;font-weight:600" onclick="duplicateFloorplanTable('${t.id}')" title="Duplicar mesa com a mesma configuração">
+          ⧉ Duplicar
         </button>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
-          <button class="btn ghost" style="justify-content:center;font-size:11.5px" onclick="duplicateFloorplanTable('${t.id}')">⧉ Duplicar</button>
-          <button class="btn ghost" style="justify-content:center;font-size:11.5px;color:#b91c1c" onclick="deleteFloorplanTable('${t.id}')">🗑 Excluir</button>
+        <button class="btn ghost" style="justify-content:center;font-size:11.5px;color:#b91c1c;font-weight:600" onclick="deleteFloorplanTable('${t.id}')" title="Excluir mesa">
+          🗑 Excluir
+        </button>
+      </div>
+      <div style="background:#f8fafc;padding:8px 10px;border-radius:8px;border:1px solid var(--line);margin-top:2px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+          <span style="font-size:11px;font-weight:700;color:var(--ink)">Mover Mesa:</span>
+          <span style="font-size:10px;color:var(--muted)">ou use setas ← ↑ → ↓</span>
+        </div>
+        <div style="display:flex;justify-content:center;align-items:center;gap:4px">
+          <button type="button" class="btn" style="width:32px;height:30px;padding:0;display:inline-flex;align-items:center;justify-content:center;font-weight:bold;font-size:11px" onclick="nudgeFloorplanTable('${t.id}', -10, 0)" title="Mover para Esquerda (←)">◀</button>
+          <div style="display:flex;flex-direction:column;gap:3px">
+            <button type="button" class="btn" style="width:32px;height:30px;padding:0;display:inline-flex;align-items:center;justify-content:center;font-weight:bold;font-size:11px" onclick="nudgeFloorplanTable('${t.id}', 0, -10)" title="Mover Acima (↑)">▲</button>
+            <button type="button" class="btn" style="width:32px;height:30px;padding:0;display:inline-flex;align-items:center;justify-content:center;font-weight:bold;font-size:11px" onclick="nudgeFloorplanTable('${t.id}', 0, 10)" title="Mover Abaixo (↓)">▼</button>
+          </div>
+          <button type="button" class="btn" style="width:32px;height:30px;padding:0;display:inline-flex;align-items:center;justify-content:center;font-weight:bold;font-size:11px" onclick="nudgeFloorplanTable('${t.id}', 10, 0)" title="Mover para Direita (→)">▶</button>
         </div>
       </div>
-    `;
-  }
+    </div>
+  `;
 
   box.innerHTML = html;
 }
@@ -4575,10 +4594,44 @@ function openFloorplanTableModal(tableId){
             ${[...new Set(m.tables.map(x => x.section || 'Salão'))].map(s => `<option value="${esc(s)}"></option>`).join('')}
           </datalist>
         </div>
+        <div class="field span2" style="background:#f8fafc;border:1px solid var(--line);border-radius:10px;padding:12px;margin-top:2px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+            <div>
+              <label style="margin:0;font-weight:700;font-size:12.5px;color:var(--ink)">Mover Mesa no Mapa</label>
+              <div style="font-size:11px;color:var(--muted)">Desloque a mesa com as setas direcionais abaixo ou pelas setas do teclado</div>
+            </div>
+            <div style="font-size:11.5px;font-weight:600;color:var(--muted);background:#fff;padding:4px 9px;border-radius:6px;border:1px solid var(--line)">
+              Posição: X <strong id="fpTableCoordX" style="color:var(--ink)">${t.x}</strong>, Y <strong id="fpTableCoordY" style="color:var(--ink)">${t.y}</strong>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:center;gap:14px;padding:4px 0">
+            <div class="nudge-dpad" style="display:inline-grid;grid-template-columns:38px 38px 38px;grid-template-rows:36px 36px;gap:5px;align-items:center;justify-items:center">
+              <button type="button" class="btn" style="grid-column:2;grid-row:1;width:38px;height:36px;padding:0;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:13px" onclick="nudgeFloorplanTable('${t.id}', 0, -10)" title="Mover Acima (↑)">▲</button>
+              <button type="button" class="btn" style="grid-column:1;grid-row:2;width:38px;height:36px;padding:0;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:13px" onclick="nudgeFloorplanTable('${t.id}', -10, 0)" title="Mover para Esquerda (←)">◀</button>
+              <button type="button" class="btn" style="grid-column:2;grid-row:2;width:38px;height:36px;padding:0;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:13px" onclick="nudgeFloorplanTable('${t.id}', 0, 10)" title="Mover Abaixo (↓)">▼</button>
+              <button type="button" class="btn" style="grid-column:3;grid-row:2;width:38px;height:36px;padding:0;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:13px" onclick="nudgeFloorplanTable('${t.id}', 10, 0)" title="Mover para Direita (→)">▶</button>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:5px;font-size:11px;color:var(--muted)">
+              <span>• Clique nas setas para mover de 10 em 10px</span>
+              <span>• Ajuste rápido: segure <strong>Shift + setas</strong> (20px)</span>
+              <span>• Ajuste fino: segure <strong>Alt + setas</strong> (1px)</span>
+            </div>
+          </div>
+        </div>
       </div>
-      <div class="form-actions">
-        <button type="button" class="btn" onclick="closeModal()">Cancelar</button>
-        <button type="submit" class="btn primary">Salvar Mesa</button>
+      <div class="form-actions" style="display:flex;justify-content:space-between;align-items:center;margin-top:16px;gap:8px;flex-wrap:wrap">
+        <div style="display:flex;gap:6px">
+          <button type="button" class="btn" style="background:#fee2e2;color:#b91c1c;border:1px solid #fecaca;font-weight:600" onclick="closeModal();deleteFloorplanTable('${t.id}')" title="Excluir esta mesa permanentemente">
+            🗑 Excluir Mesa
+          </button>
+          <button type="button" class="btn" style="border:1px solid var(--line);font-weight:600" onclick="closeModal();duplicateFloorplanTable('${t.id}', true)" title="Duplicar esta mesa com a mesma configuração">
+            ⧉ Duplicar Mesa
+          </button>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button type="button" class="btn" onclick="closeModal()">Cancelar</button>
+          <button type="submit" class="btn primary" style="font-weight:700">Salvar Mesa</button>
+        </div>
       </div>
     </form>
   `;
@@ -4630,36 +4683,101 @@ function openFloorplanAddTableModal(){
   openFloorplanTableModal(newId);
 }
 
-function duplicateFloorplanTable(tableId){
+function duplicateFloorplanTable(tableId, openModalAfter = false){
   const m = getActiveFloorplan();
+  if(!m) return;
   const t = m.tables.find(x => x.id === tableId);
   if(!t) return;
 
   floorplanCheckpoint();
   const copy = JSON.parse(JSON.stringify(t));
   copy.id = m.id + '-table-' + Date.now().toString(36);
-  copy.number = (t.number ? t.number + 'B' : String(m.tables.length + 1));
+
+  // Geração de próximo número inteligente
+  let newNumber = '';
+  const parsed = parseInt(t.number, 10);
+  if(!isNaN(parsed) && String(parsed) === String(t.number).trim()){
+    let candidate = parsed + 1;
+    const existingNums = new Set(m.tables.map(tbl => String(tbl.number || '').trim()));
+    while(existingNums.has(String(candidate))){
+      candidate++;
+    }
+    newNumber = String(candidate);
+  } else if(t.number) {
+    let suffix = 'B';
+    newNumber = t.number + suffix;
+    const existingNums = new Set(m.tables.map(tbl => String(tbl.number || '').trim()));
+    while(existingNums.has(newNumber)){
+      suffix = String.fromCharCode(suffix.charCodeAt(0) + 1);
+      newNumber = t.number + suffix;
+    }
+  } else {
+    newNumber = String(m.tables.length + 1);
+  }
+
+  copy.number = newNumber;
   copy.x = Math.min(m.width - 30, t.x + 35);
   copy.y = Math.min(m.height - 30, t.y + 25);
   m.tables.push(copy);
   selectedFloorplanTableId = copy.id;
   save();
   renderFloorplan();
-  toast(`✓ Mesa ${copy.number} duplicada!`);
+  toast(`✓ Mesa ${copy.number} duplicada com a mesma configuração!`);
+  if(openModalAfter){
+    setTimeout(() => openFloorplanTableModal(copy.id), 80);
+  }
 }
 
 function deleteFloorplanTable(tableId){
   const m = getActiveFloorplan();
+  if(!m) return;
   const t = m.tables.find(x => x.id === tableId);
   if(!t) return;
   if(!confirm(`Tem certeza que deseja excluir a Mesa ${t.number || ''}?`)) return;
 
   floorplanCheckpoint();
+  const num = t.number || '';
   m.tables = m.tables.filter(x => x.id !== tableId);
-  selectedFloorplanTableId = null;
+  if(selectedFloorplanTableId === tableId) selectedFloorplanTableId = null;
   save();
   renderFloorplan();
-  toast('Mesa excluída. Use "Desfazer" para reverter se necessário.');
+  toast(`Mesa ${num} excluída com sucesso. Use "Desfazer" para reverter se necessário.`);
+}
+
+function nudgeFloorplanTable(tableId, screenDx, screenDy){
+  const m = getActiveFloorplan();
+  if(!m) return;
+  const t = m.tables.find(x => x.id === tableId);
+  if(!t) return;
+
+  floorplanCheckpoint();
+
+  // Converter deslocamento visual da tela para coordenadas do SVG levando em conta a rotação
+  const rad = (floorplanRotation || 0) * Math.PI / 180;
+  const cos = Math.cos(rad);
+  const sin = Math.sin(rad);
+  const cDx = Math.round(screenDx * cos + screenDy * sin);
+  const cDy = Math.round(-screenDx * sin + screenDy * cos);
+
+  const mx = ((t.rotation === 90 || t.rotation === 270) ? t.h : t.w) / 2 + 10;
+  const my = ((t.rotation === 90 || t.rotation === 270) ? t.w : t.h) / 2 + 10;
+  t.x = Math.max(mx, Math.min(m.width - mx, Math.round(t.x + cDx)));
+  t.y = Math.max(my, Math.min(m.height - my, Math.round(t.y + cDy)));
+
+  // Atualizar SVG em tempo real
+  const svg = el('fpSvg');
+  if(svg){
+    const node = svg.querySelector(`.table[data-id="${t.id}"]`);
+    if(node) node.setAttribute('transform', `translate(${t.x} ${t.y})`);
+  }
+
+  // Atualizar indicadores de coordenadas se existirem
+  if(el('fpTableCoordX')) el('fpTableCoordX').textContent = t.x;
+  if(el('fpTableCoordY')) el('fpTableCoordY').textContent = t.y;
+  const cardPos = el('fpCardPosCoord');
+  if(cardPos) cardPos.textContent = `X: ${t.x} • Y: ${t.y}`;
+
+  save();
 }
 
 // Drag & Drop Pointer Events
@@ -4762,6 +4880,29 @@ function bindFloorplanEvents(){
         adjustFloorplanZoom(e.deltaY < 0 ? 0.15 : -0.15);
       }
     }, {passive: false});
+  }
+
+  if(!window._floorplanKeydownBound){
+    window._floorplanKeydownBound = true;
+    window.addEventListener('keydown', e => {
+      if(!el('view-tables')?.classList.contains('active')) return;
+      if(!selectedFloorplanTableId) return;
+
+      const tag = document.activeElement ? document.activeElement.tagName.toLowerCase() : '';
+      if(tag === 'input' || tag === 'textarea' || tag === 'select') return;
+
+      if(['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)){
+        e.preventDefault();
+        const step = e.shiftKey ? 20 : (e.altKey ? 1 : 10);
+        let sx = 0, sy = 0;
+        if(e.key === 'ArrowUp') sy = -step;
+        if(e.key === 'ArrowDown') sy = step;
+        if(e.key === 'ArrowLeft') sx = -step;
+        if(e.key === 'ArrowRight') sx = step;
+
+        nudgeFloorplanTable(selectedFloorplanTableId, sx, sy);
+      }
+    });
   }
 }
 
