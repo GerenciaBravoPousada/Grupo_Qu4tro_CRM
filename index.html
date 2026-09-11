@@ -431,7 +431,7 @@ body[data-house] .sidebar{background:linear-gradient(180deg,var(--nav),color-mix
         <div class="card" style="padding:16px">
           <div class="section-title" style="margin-bottom:10px">
             <h3 style="font-size:13.5px">Setores / Praças</h3>
-            <small>orientação da recepção</small>
+            <small>duplo clique ou ✏️ para renomear</small>
           </div>
           <div id="fpPracasGuide" style="display:flex;flex-direction:column;gap:8px;font-size:12px">
             <!-- Rendered dynamically depending on Lena vs Iconiko -->
@@ -4201,12 +4201,94 @@ function renderFloorplanPracas(){
     const count = m.tables.filter(t => (t.section || 'Salão') === sec).length;
     const isAct = floorplanHighlightedSection === sec;
     return `
-      <button type="button" class="praca-btn ${isAct ? 'active' : ''}" onclick="toggleHighlightFloorplanSection('${esc(sec)}')">
-        <span>${esc(sec)}</span>
-        <span style="font-size:11px;opacity:0.75">${count} mesas</span>
-      </button>
+      <div style="display:flex;align-items:center;gap:6px;width:100%">
+        <button type="button" class="praca-btn ${isAct ? 'active' : ''}" 
+          onclick="toggleHighlightFloorplanSection('${esc(sec)}')"
+          ondblclick="openRenameSectionModal('${esc(sec)}', event)"
+          title="Clique para destacar no mapa • Duplo clique ou toque no ✏️ para renomear"
+          style="flex:1">
+          <span style="display:inline-flex;align-items:center;gap:6px">
+            <span>${esc(sec)}</span>
+            <span style="font-size:11px;opacity:0.65;cursor:pointer;padding:1px 4px;border-radius:4px" 
+                  title="Renomear este setor" 
+                  onclick="event.stopPropagation();openRenameSectionModal('${esc(sec)}', event)">✏️</span>
+          </span>
+          <span style="font-size:11px;opacity:0.75">${count} ${count === 1 ? 'mesa' : 'mesas'}</span>
+        </button>
+      </div>
     `;
   }).join('');
+}
+
+function openRenameSectionModal(oldName, e){
+  if(e) e.stopPropagation();
+  const m = getActiveFloorplan();
+  if(!m) return;
+
+  const current = String(oldName || '').trim();
+  const count = m.tables.filter(t => (t.section || 'Salão') === current).length;
+
+  el('modalTitle').textContent = 'Renomear Setor / Praça';
+  el('modalBody').innerHTML = `
+    <form id="fpRenameSectionForm" onsubmit="handleRenameSectionSubmit(event, '${esc(current)}')">
+      <div style="margin-bottom:14px;font-size:13px;color:var(--muted)">
+        Alterar o nome do setor no <strong>${esc(m.name)}</strong>.<br>
+        Todas as <strong>${count}</strong> mesas associadas a este setor serão atualizadas automaticamente.
+      </div>
+      <div class="field" style="margin-bottom:16px">
+        <label style="font-size:12px;font-weight:700;display:block;margin-bottom:4px">Nome do Setor / Praça *</label>
+        <input id="fpNewSectionName" class="control" required value="${esc(current)}" style="width:100%;padding:10px 12px;font-size:14px;font-weight:600">
+      </div>
+      <div class="form-actions" style="display:flex;justify-content:flex-end;gap:8px">
+        <button type="button" class="btn" onclick="closeModal()">Cancelar</button>
+        <button type="submit" class="btn primary" style="font-weight:700">Salvar Nome</button>
+      </div>
+    </form>
+  `;
+  el('modal').classList.add('show');
+  setTimeout(() => {
+    const inp = el('fpNewSectionName');
+    if(inp){
+      inp.focus();
+      inp.select();
+    }
+  }, 50);
+}
+
+function handleRenameSectionSubmit(e, oldName){
+  e.preventDefault();
+  const inp = el('fpNewSectionName');
+  if(!inp) return;
+  const newName = inp.value.trim();
+  if(!newName){
+    toast('Informe um nome válido para o setor.');
+    return;
+  }
+  if(newName === oldName){
+    closeModal();
+    return;
+  }
+
+  const m = getActiveFloorplan();
+  if(!m) return;
+
+  floorplanCheckpoint();
+  let affected = 0;
+  m.tables.forEach(t => {
+    if((t.section || 'Salão') === oldName){
+      t.section = newName;
+      affected++;
+    }
+  });
+
+  if(floorplanHighlightedSection === oldName){
+    floorplanHighlightedSection = newName;
+  }
+
+  save();
+  closeModal();
+  renderFloorplan();
+  toast(`✓ Setor renomeado para "${newName}" (${affected} mesas atualizadas)!`);
 }
 
 function toggleHighlightFloorplanSection(sec){
@@ -4316,7 +4398,10 @@ function openFloorplanTableModal(tableId){
         </div>
         <div class="field span2">
           <label>Setor / Praça de Atendimento</label>
-          <input id="fpTableSection" value="${esc(t.section || 'Salão Principal')}" placeholder="Ex.: Salão Principal, Varanda, Sushi Bar">
+          <input id="fpTableSection" list="fpSectionsList" value="${esc(t.section || 'Salão Principal')}" placeholder="Ex.: Salão Principal, Varanda, Sushi Bar">
+          <datalist id="fpSectionsList">
+            ${[...new Set(m.tables.map(x => x.section || 'Salão'))].map(s => `<option value="${esc(s)}"></option>`).join('')}
+          </datalist>
         </div>
       </div>
       <div class="form-actions">
