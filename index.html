@@ -2503,7 +2503,180 @@ function confirmReservationWithException(){
   window.__pendingViolations=null;
 }
 
-function openReservation(prefill=null){el('modalTitle').textContent='Nova reserva';el('modalBody').innerHTML=`<form id="reservationForm"><div class="form-grid"><div class="field span2"><label>Cliente *</label><input id="rName" required value="${esc(prefill?.name||'')}"></div><div class="field"><label>Telefone *</label><input id="rPhone" required value="${esc(prefill?.phone||'')}"></div><div class="field"><label>Pessoas *</label><input id="rPeople" type="number" min="1" value="${prefill?.people||2}" required></div><div class="field"><label>Data *</label><input id="rDate" type="date" required value="${esc(prefill?.date||'')}"><div id="rDateWarning" style="display:none;font-size:11px;font-weight:700;color:#b45309;margin-top:4px">⚠️ Sexta/Sábado: requer justificativa de exceção para esta casa.</div></div><div class="field"><label>Hora</label><input id="rTime" type="time" value="${esc(prefill?.time||'')}"></div><div class="field"><label>Casa</label><select id="rHouse"><option value="Bravo Café">Bravo Café</option><option value="Café da Bravo Pousada">Café da Bravo Pousada</option><option value="Íconico">Iconiko Cozinha Japonesa</option><option value="Leña">Leña Casa Italiana</option></select><div class="reception-note">Preenchida inicialmente com a recepção desta sessão. Pode ser alterada antes de salvar.</div></div><div class="field"><label>Status</label><select id="rStatus"><option>Pendente</option><option>Confirmada</option></select></div><div class="field span2"><label>Observações</label><textarea id="rNotes">${esc(prefill?.notes||'')}</textarea></div></div><div class="form-actions"><button type="button" class="btn" onclick="closeModal()">Cancelar</button><button class="btn primary">Salvar reserva</button></div></form>`;el('modal').classList.add('show');if(prefill?.house)el('rHouse').value=prefill.house;else if(getSessionHouse())el('rHouse').value=normalizeHouseKey(getSessionHouse());if(prefill?.status)el('rStatus').value=prefill.status;function checkDateAlert(){const d=el('rDate')?.value,h=el('rHouse')?.value,w=el('rDateWarning');if(w){w.style.display=(isRestrictedHouse(h)&&isWeekendReservation(d))?'block':'none'}}el('rDate').addEventListener('input',checkDateAlert);el('rDate').addEventListener('change',checkDateAlert);el('rHouse').addEventListener('change',checkDateAlert);checkDateAlert();el('reservationForm').onsubmit=e=>{e.preventDefault();const dVal=el('rDate').value,hVal=el('rHouse').value;const pending={name:el('rName').value.trim(),phone:digits(el('rPhone').value),people:+el('rPeople').value||1,date:dVal,time:el('rTime').value,house:hVal,status:el('rStatus').value,notes:el('rNotes').value.trim()};const violations=checkReservationViolations(pending);if(violations.length>0){showReservationExceptionModal(pending,violations);return}saveReservationDirectly(pending)}}
+let selectedReservationClientId = null;
+
+function renderReservationLookup(){
+  const q = (el('rLookup')?.value || '').trim();
+  const box = el('rLookupResults');
+  if(!box) return;
+  const a = searchCheckinClients(q);
+  if((foldText(q).length < 2 && digits(q).length < 4) || !q){
+    box.className = 'lookup-results';
+    box.innerHTML = '';
+    return;
+  }
+  box.className = 'lookup-results show';
+  if(!a.length){
+    box.innerHTML = '<div class="lookup-noresult"><b>Nenhum cadastro encontrado.</b><br>Confira a informação ou preencha nome e telefone abaixo para cadastrar a reserva.</div>';
+    return;
+  }
+  box.innerHTML = a.map(c => `<button type="button" class="lookup-item" onclick="selectReservationClient('${esc(c.id)}')"><div><div class="lookup-name">${esc(c.name)}</div><div class="lookup-meta">${esc(c.source||'Origem não informada')}</div></div><div><div class="lookup-label">Telefone</div><div class="lookup-value">${fmtPhone(c.phone)}</div></div><div><div class="lookup-label">Última visita</div><div class="lookup-value">${fmtDate(c.lastVisit)}</div></div><div><div class="lookup-label">Visitas</div><div class="lookup-value">${c.totalVisits}</div></div></button>`).join('');
+}
+
+function selectReservationClient(id){
+  const c = state.clients.find(x => x.id === id);
+  if(!c) return;
+  const cc = calcClient(c);
+  selectedReservationClientId = c.id;
+  if(el('rLookup')) el('rLookup').value = c.name;
+  const box = el('rLookupResults');
+  if(box){ box.className = 'lookup-results'; box.innerHTML = ''; }
+  if(el('rName')) el('rName').value = c.name;
+  if(el('rPhone')) el('rPhone').value = fmtPhone(c.phone);
+
+  const card = el('rSelectedClientCard');
+  if(card){
+    card.className = 'span2 selected-client-card show';
+    const selPrioHtml = (c.priorities && c.priorities.length) ? `<div style="margin-top:6px">${renderPriorityBadges(c.priorities)}</div>` : '';
+    card.innerHTML = `<div style="display:flex;justify-content:space-between;gap:10px;align-items:center"><div><strong>✓ ${esc(cc.name)}</strong>${selPrioHtml}<div style="font-size:10px;color:var(--muted);margin-top:2px">Cliente existente selecionado</div></div><button type="button" class="iconbtn" onclick="clearSelectedReservationClient()">Trocar</button></div><div class="selected-grid"><div><span>Telefone</span><b>${fmtPhone(cc.phone)}</b></div><div><span>CPF</span><b>${esc(cc.cpf||'Não informado')}</b></div><div><span>Última visita</span><b>${fmtDate(cc.lastVisit)}</b></div><div><span>Total de visitas</span><b>${cc.totalVisits}</b></div></div>`;
+  }
+}
+
+function clearSelectedReservationClient(){
+  selectedReservationClientId = null;
+  if(el('rLookup')) el('rLookup').value = '';
+  if(el('rName')) el('rName').value = '';
+  if(el('rPhone')) el('rPhone').value = '';
+  const card = el('rSelectedClientCard');
+  if(card){ card.className = 'span2 selected-client-card'; card.innerHTML = ''; }
+  el('rLookup')?.focus();
+}
+
+function openReservation(prefill=null){
+  selectedReservationClientId = null;
+  el('modalTitle').textContent = 'Nova reserva';
+  el('modalBody').innerHTML = `
+    <form id="reservationForm">
+      <div class="form-grid">
+        <!-- Localizar cliente existente -->
+        <div class="field span2 client-lookup">
+          <label>Localizar cliente existente (opcional)</label>
+          <input id="rLookup" autocomplete="off" placeholder="Ex.: Jean Balan, Balan, 3106 ou telefone completo">
+          <div class="lookup-help">Nome/sobrenome: digite pelo menos 2 caracteres. Telefone parcial: digite pelo menos os 4 últimos números.</div>
+          <div class="lookup-results" id="rLookupResults"></div>
+        </div>
+
+        <div class="span2 selected-client-card" id="rSelectedClientCard"></div>
+
+        <div class="field span2">
+          <label>Cliente *</label>
+          <input id="rName" required value="${esc(prefill?.name||'')}">
+        </div>
+
+        <div class="field">
+          <label>Telefone *</label>
+          <input id="rPhone" required value="${esc(prefill?.phone||'')}">
+        </div>
+
+        <div class="field">
+          <label>Pessoas *</label>
+          <input id="rPeople" type="number" min="1" value="${prefill?.people||2}" required>
+        </div>
+
+        <div class="field">
+          <label>Data *</label>
+          <input id="rDate" type="date" required value="${esc(prefill?.date||'')}">
+          <div id="rDateWarning" style="display:none;font-size:11px;font-weight:700;color:#b45309;margin-top:4px">⚠️ Sexta/Sábado: requer justificativa de exceção para esta casa.</div>
+        </div>
+
+        <div class="field">
+          <label>Hora</label>
+          <input id="rTime" type="time" value="${esc(prefill?.time||'')}">
+        </div>
+
+        <div class="field">
+          <label>Casa</label>
+          <select id="rHouse">
+            <option value="Bravo Café">Bravo Café</option>
+            <option value="Café da Bravo Pousada">Café da Bravo Pousada</option>
+            <option value="Íconico">Iconiko Cozinha Japonesa</option>
+            <option value="Leña">Leña Casa Italiana</option>
+          </select>
+          <div class="reception-note">Preenchida inicialmente com a recepção desta sessão. Pode ser alterada antes de salvar.</div>
+        </div>
+
+        <div class="field">
+          <label>Status</label>
+          <select id="rStatus">
+            <option>Pendente</option>
+            <option>Confirmada</option>
+          </select>
+        </div>
+
+        <div class="field span2">
+          <label>Observações</label>
+          <textarea id="rNotes">${esc(prefill?.notes||'')}</textarea>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button type="button" class="btn" onclick="closeModal()">Cancelar</button>
+        <button class="btn primary">Salvar reserva</button>
+      </div>
+    </form>
+  `;
+
+  // Attach search listener
+  const rLookupInput = el('rLookup');
+  if(rLookupInput){
+    rLookupInput.addEventListener('input', () => renderReservationLookup());
+  }
+
+  el('modal').classList.add('show');
+  if(prefill?.house) el('rHouse').value = prefill.house;
+  else if(getSessionHouse()) el('rHouse').value = normalizeHouseKey(getSessionHouse());
+  if(prefill?.status) el('rStatus').value = prefill.status;
+
+  if(prefill?.phone || prefill?.name){
+    const normP = normalizePhone(prefill.phone || '');
+    const normN = foldText(prefill.name || '');
+    const found = state.clients.find(c => (normP && normalizePhone(c.phone) === normP) || (normN && foldText(c.name) === normN));
+    if(found) selectReservationClient(found.id);
+  }
+
+  function checkDateAlert(){
+    const d = el('rDate')?.value, h = el('rHouse')?.value, w = el('rDateWarning');
+    if(w){
+      w.style.display = (isRestrictedHouse(h) && isWeekendReservation(d)) ? 'block' : 'none';
+    }
+  }
+  el('rDate').addEventListener('input', checkDateAlert);
+  el('rDate').addEventListener('change', checkDateAlert);
+  el('rHouse').addEventListener('change', checkDateAlert);
+  checkDateAlert();
+
+  el('reservationForm').onsubmit = e => {
+    e.preventDefault();
+    const dVal = el('rDate').value, hVal = el('rHouse').value;
+    const pending = {
+      clientId: selectedReservationClientId || null,
+      name: el('rName').value.trim(),
+      phone: digits(el('rPhone').value),
+      people: +el('rPeople').value || 1,
+      date: dVal,
+      time: el('rTime').value,
+      house: hVal,
+      status: el('rStatus').value,
+      notes: el('rNotes').value.trim()
+    };
+    const violations = checkReservationViolations(pending);
+    if(violations.length > 0){
+      showReservationExceptionModal(pending, violations);
+      return;
+    }
+    saveReservationDirectly(pending);
+  };
+}
 function cycleReservation(id){const r=state.reservations.find(x=>x.id===id);if(!r)return;const a=['Pendente','Confirmada','Cancelada'];r.status=a[(a.indexOf(r.status)+1)%a.length];save();renderReservations()}
 function convertReservation(id){const r=state.reservations.find(x=>x.id===id);if(!r)return;r.status='Convertida';save();go('checkin');el('ciPeople').value=r.people;el('ciHouse').value=r.house;if(r.notes)el('ciNotes').value=r.notes;const c=state.clients.find(x=>normalizePhone(x.phone)===normalizePhone(r.phone));if(c)selectCheckinClient(c.id);else{selectedCheckinClientId=null;el('ciLookup').value=r.name;el('ciPhone').value=fmtPhone(r.phone);el('ciName').value=r.name;lookupCheckinClient()}toast('Reserva carregada no check-in.')}
 function closeModal(){el('modal').classList.remove('show')}
@@ -2901,12 +3074,12 @@ function openAddToWaitlistModal(prefill = null){
         <!-- Busca preditiva de cliente existente -->
         <div class="field span2 client-lookup">
           <label>Localizar cliente existente (opcional)</label>
-          <input id="wlLookup" autocomplete="off" placeholder="Digite nome, sobrenome ou últimos dígitos do telefone">
-          <div class="lookup-help">Ao localizar o cliente, os dados e prioridades são preenchidos automaticamente.</div>
+          <input id="wlLookup" autocomplete="off" placeholder="Ex.: Jean Balan, Balan, 3106 ou telefone completo">
+          <div class="lookup-help">Nome/sobrenome: digite pelo menos 2 caracteres. Telefone parcial: digite pelo menos os 4 últimos números.</div>
           <div class="lookup-results" id="wlLookupResults"></div>
         </div>
 
-        <div class="span2 selected-client-card" id="wlSelectedClientCard" style="display:none"></div>
+        <div class="span2 selected-client-card" id="wlSelectedClientCard"></div>
 
         <div class="field span2">
           <label>Nome do cliente *</label>
@@ -2978,36 +3151,35 @@ function openAddToWaitlistModal(prefill = null){
 }
 
 function renderWaitlistLookup(){
-  const q = el('wlLookup').value.trim();
+  const q = (el('wlLookup')?.value || '').trim();
   const box = el('wlLookupResults');
   if(!box) return;
-  const results = searchCheckinClients(q);
+  const a = searchCheckinClients(q);
   if((foldText(q).length < 2 && digits(q).length < 4) || !q){
     box.className = 'lookup-results';
     box.innerHTML = '';
     return;
   }
-  if(!results.length){
-    box.className = 'lookup-results show';
-    box.innerHTML = `<div class="lookup-item"><div><strong>Nenhum cadastro encontrado</strong><br><small style="color:var(--muted)">Continue digitando os dados abaixo para cadastrar.</small></div></div>`;
+  box.className = 'lookup-results show';
+  if(!a.length){
+    box.innerHTML = '<div class="lookup-noresult"><b>Nenhum cadastro encontrado.</b><br>Confira a informação ou preencha nome e telefone abaixo para cadastrar na fila.</div>';
     return;
   }
-  box.className = 'lookup-results show';
-  box.innerHTML = results.slice(0, 5).map(({c}) => `
-    <div class="lookup-item" onclick="selectWaitlistClient('${c.id}')">
-      <div class="avatar">${initials(c.name)}</div>
-      <div>
-        <strong>${esc(c.name)}</strong>
-        <br><small>${fmtPhone(c.phone)} • ${c.totalVisits || 0} visitas (${esc(houseLabel(c.firstHouse || ''))})</small>
-      </div>
-    </div>
-  `).join('');
+  box.innerHTML = a.map(c => `<button type="button" class="lookup-item" onclick="selectWaitlistClient('${esc(c.id)}')"><div><div class="lookup-name">${esc(c.name)}</div><div class="lookup-meta">${esc(c.source||'Origem não informada')}</div></div><div><div class="lookup-label">Telefone</div><div class="lookup-value">${fmtPhone(c.phone)}</div></div><div><div class="lookup-label">Última visita</div><div class="lookup-value">${fmtDate(c.lastVisit)}</div></div><div><div class="lookup-label">Visitas</div><div class="lookup-value">${c.totalVisits}</div></div></button>`).join('');
 }
 
 function selectWaitlistClient(clientId){
   const c = state.clients.find(x => x.id === clientId);
   if(!c) return;
+  const cc = calcClient(c);
   selectedWaitlistClientId = c.id;
+
+  if(el('wlLookup')) el('wlLookup').value = c.name;
+  const box = el('wlLookupResults');
+  if(box){
+    box.className = 'lookup-results';
+    box.innerHTML = '';
+  }
 
   if(el('wlName')) el('wlName').value = c.name;
   if(el('wlPhone')) el('wlPhone').value = fmtPhone(c.phone);
@@ -3019,42 +3191,26 @@ function selectWaitlistClient(clientId){
     });
   }
 
-  const box = el('wlLookupResults');
-  if(box){
-    box.className = 'lookup-results';
-    box.innerHTML = '';
-  }
-
   const card = el('wlSelectedClientCard');
   if(card){
-    card.style.display = 'block';
     card.className = 'span2 selected-client-card show';
-    card.innerHTML = `
-      <div style="display:flex;align-items:center;justify-content:space-between">
-        <div style="display:flex;align-items:center;gap:10px">
-          <div class="avatar" style="width:36px;height:36px">${initials(c.name)}</div>
-          <div>
-            <strong>${esc(c.name)}</strong> <span class="badge ${c.totalVisits >= 5 ? 'gold' : 'good'}">${segmentOf(c)}</span>
-            <br><small style="color:var(--muted)">Telefone: ${fmtPhone(c.phone)} • ${c.totalVisits || 0} visitas no Grupo Qu4tro</small>
-          </div>
-        </div>
-        <button type="button" class="btn ghost" style="padding:4px 8px;font-size:11px" onclick="clearSelectedWaitlistClient()">Trocar</button>
-      </div>
-    `;
+    const selPrioHtml = (c.priorities && c.priorities.length) ? `<div style="margin-top:6px">${renderPriorityBadges(c.priorities)}</div>` : '';
+    card.innerHTML = `<div style="display:flex;justify-content:space-between;gap:10px;align-items:center"><div><strong>✓ ${esc(cc.name)}</strong>${selPrioHtml}<div style="font-size:10px;color:var(--muted);margin-top:2px">Cliente existente selecionado</div></div><button type="button" class="iconbtn" onclick="clearSelectedWaitlistClient()">Trocar</button></div><div class="selected-grid"><div><span>Telefone</span><b>${fmtPhone(cc.phone)}</b></div><div><span>CPF</span><b>${esc(cc.cpf||'Não informado')}</b></div><div><span>Última visita</span><b>${fmtDate(cc.lastVisit)}</b></div><div><span>Total de visitas</span><b>${cc.totalVisits}</b></div></div>`;
   }
 }
 
 function clearSelectedWaitlistClient(){
   selectedWaitlistClientId = null;
+  if(el('wlLookup')) el('wlLookup').value = '';
+  if(el('wlName')) el('wlName').value = '';
+  if(el('wlPhone')) el('wlPhone').value = '';
+  document.querySelectorAll('input[name="wlPriority"]').forEach(cb => cb.checked = false);
   const card = el('wlSelectedClientCard');
   if(card){
-    card.style.display = 'none';
+    card.className = 'span2 selected-client-card';
     card.innerHTML = '';
   }
-  if(el('wlLookup')){
-    el('wlLookup').value = '';
-    el('wlLookup').focus();
-  }
+  el('wlLookup')?.focus();
 }
 
 function handleSaveWaitlistEntry(e){
