@@ -80,3 +80,14 @@ Quando desejar colocar o sistema no ar para as equipes usarem em celulares, tabl
 - Nenhum dado, credencial ou configuração do Bravo Analytics foi misturado a este projeto.
 - O sistema possui identificadores e chaves próprias de armazenamento (`qu4tro_reception_house`, `grupo_qu4tro_clientes.csv`, etc.).
 - Caso tenha qualquer dúvida ou precise de novos ajustes, estamos à disposição!
+
+---
+
+## 🏆 Marco do Projeto: Versão 1.0.0 — 100% Funcional
+- **Status:** Homologado e 100% funcional em produção (`crm-grupo-qu4tro.iconiko.com.br`).
+- **Data do marco:** 11/09/2026.
+- **Destaques:**
+  - **Identidade visual por empresa:** Logos oficiais de cada restaurante (Iconiko Cozinha Japonesa, Bravo Café, Leña Casa Italiana, Café da Bravo Pousada e Grupo Qu4tro) vinculadas nativamente.
+  - **Sincronização global do Seletor de Empresa:** A seleção da empresa no topo atualiza em tempo real a logo, o banner de contexto e todos os módulos (Visão Geral/Dashboard com KPIs e gráficos, Clientes, Check-in presencial com estatísticas de hoje, Reservas, Configurações, Fila de Espera, Mapa de Mesas, Segmentos e Inteligência).
+  - **Controle de acesso por perfil:** Master, Gerente e Atendimento com permissões e navegações segmentadas.
+
