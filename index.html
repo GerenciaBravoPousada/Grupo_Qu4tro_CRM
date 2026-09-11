@@ -101,6 +101,17 @@ body[data-house] .sidebar{background:linear-gradient(180deg,var(--nav),color-mix
 .btn-logout-sidebar{margin-top:10px;width:100%;padding:8px 12px;background:transparent;border:1px solid #334155;border-radius:8px;color:#94a3b8;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .15s}
 .btn-logout-sidebar:hover{background:#1e293b;color:#f8fafc;border-color:#475569}
 
+
+/* Fila de Espera Styles */
+.timer-badge{display:inline-flex;align-items:center;gap:5px;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:11.5px;font-weight:700;padding:4px 8px;border-radius:6px;letter-spacing:0.3px}
+.timer-good{background:#ecfdf5;color:#065f46;border:1px solid #a7f3d0}
+.timer-warn{background:#fef3c7;color:#92400e;border:1px solid #fde68a}
+.timer-danger{background:#fef2f2;color:#b91c1c;border:1px solid #fecaca;animation:pulseTimer 2s infinite}
+@keyframes pulseTimer{0%,100%{opacity:1}50%{opacity:0.65}}
+.waitlist-pref-tag{display:inline-block;padding:3px 7px;border-radius:6px;font-size:10.5px;font-weight:600;background:#f1f5f9;color:#475569;border:1px solid #e2e8f0;margin-right:4px}
+.wl-pos-badge{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:#f1f5f9;color:#334155;font-weight:700;font-size:11px}
+.wl-pos-badge.top{background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe}
+
 </style>
 </head>
 <body>
@@ -194,22 +205,52 @@ body[data-house] .sidebar{background:linear-gradient(180deg,var(--nav),color-mix
     <div class="hero">
       <div>
         <h2>Fila de Espera</h2>
-        <p>Gestão de clientes aguardando mesa, tempo de espera estimado e chamadas por WhatsApp.</p>
+        <p>Gestão em tempo real de clientes aguardando mesa, tempo de espera e chamada.</p>
       </div>
       <div class="actions-row">
-        <button class="btn" onclick="toast('Módulo operacional em desenvolvimento.')">＋ Adicionar à Fila</button>
+        <button class="btn primary" onclick="openAddToWaitlistModal()">＋ Adicionar à Fila</button>
       </div>
     </div>
-    <div class="card" style="padding:32px 24px;text-align:center;background:#fff;border:1px solid var(--line);border-radius:14px">
-      <div style="width:64px;height:64px;border-radius:50%;background:#eff6ff;color:#2563eb;font-size:28px;display:flex;align-items:center;justify-content:center;margin:0 auto 16px">
-        ⏳
+
+    <div class="kpi-strip" style="margin-bottom:14px">
+      <div class="kpi-chip"><span>Aguardando agora</span><strong id="wlKpiWaiting" style="color:var(--accent)">0</strong></div>
+      <div class="kpi-chip"><span>Pessoas na fila</span><strong id="wlKpiPeople">0</strong></div>
+      <div class="kpi-chip"><span>Tempo médio hoje</span><strong id="wlKpiAvgTime">0 min</strong></div>
+      <div class="kpi-chip"><span>Chamados no momento</span><strong id="wlKpiCalled" style="color:#d97706">0</strong></div>
+      <div class="kpi-chip"><span>Atendidos hoje</span><strong id="wlKpiSeated" style="color:#16a34a">0</strong></div>
+    </div>
+
+    <div class="table-card">
+      <div class="table-head">
+        <div class="search"><span>⌕</span><input id="waitlistSearch" placeholder="Buscar por cliente, telefone ou observação..."></div>
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+          <select id="waitlistHouseFilter" class="control" title="Filtrar fila por casa" style="min-width:240px"></select>
+          <select id="waitlistStatusFilter" class="control">
+            <option value="active">Em espera ativa (Aguardando / Chamados)</option>
+            <option value="Aguardando">Apenas Aguardando</option>
+            <option value="Chamado">Apenas Chamados</option>
+            <option value="Atendido">Atendidos hoje</option>
+            <option value="Desistiu">Desistências</option>
+            <option value="all">Todos os registros</option>
+          </select>
+        </div>
       </div>
-      <h3 style="font-size:18px;margin:0 0 8px;color:var(--ink)">Módulo Fila de Espera em Implementação</h3>
-      <p style="color:var(--muted);max-width:540px;margin:0 auto 20px;font-size:13.5px;line-height:1.5">
-        Este módulo permitirá o controle de clientes aguardando mesa na recepção, tempo médio de espera, aviso por WhatsApp e ordenação por ordem de chegada ou prioridade.
-      </p>
-      <div style="display:inline-flex;align-items:center;gap:8px;background:#f1f5f9;padding:8px 14px;border-radius:20px;font-size:12px;font-weight:600;color:#475569">
-        <span>📍 Operação vinculada:</span> <strong id="waitlistCurrentHouse">Recepção Ativa</strong>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th style="width:36px;text-align:center">#</th>
+              <th>Cliente</th>
+              <th>Pessoas</th>
+              <th>Chegada</th>
+              <th>Tempo de Espera</th>
+              <th>Preferência / Prioridade</th>
+              <th>Status</th>
+              <th style="text-align:right">Ações</th>
+            </tr>
+          </thead>
+          <tbody id="waitlistBody"></tbody>
+        </table>
       </div>
     </div>
   </section>
@@ -753,6 +794,9 @@ const STORE='grupo_qu4tro_gestao_clientes_v1';
 let state=loadState(), currentClient=null, clientPage=1, selectedSegment=null;
 const pageSize=40;
 function loadState(){let s;try{const raw=localStorage.getItem(STORE);s=raw?JSON.parse(raw):structuredClone(SEED_DATA)}catch(e){s=structuredClone(SEED_DATA)}if(!s.settings)s.settings=structuredClone(DEFAULT_SETTINGS);else s.settings=Object.assign({},DEFAULT_SETTINGS,s.settings);
+  if(!s.waitlist){
+    s.waitlist = [];
+  }
   if(!s.settingsByHouse){
     s.settingsByHouse=structuredClone(DEFAULT_HOUSE_SETTINGS);
     if(s.settings){s.settingsByHouse['Leña']=Object.assign({},DEFAULT_HOUSE_SETTINGS['Leña'],s.settings);}
@@ -889,6 +933,7 @@ function go(view){
   if(view==='intelligence')renderIntelligence();
   if(view==='data')renderData();
   if(view==='checkin')renderCheckinStats();
+  if(view==='waitlist'){ renderWaitlist(); startWaitlistTimer(); } else { stopWaitlistTimer(); }
   if(view==='settings')renderSettings();
   if(view==='users')renderUsers();
 }
@@ -1221,6 +1266,10 @@ function applySessionHouse(){
 
   // 5. Sincroniza Fila de Espera & Mapa de Mesas
   if(el('waitlistCurrentHouse')) el('waitlistCurrentHouse').textContent = houseLabel(h);
+  if(el('waitlistHouseFilter')){
+    setupWaitlistHouseFilter(true);
+    if(el('view-waitlist')?.classList.contains('active')) renderWaitlist();
+  }
   if(el('tablesCurrentHouse')) el('tablesCurrentHouse').textContent = houseLabel(h);
 
   // 6. Sincroniza Configurações
@@ -1297,7 +1346,7 @@ function renderCheckinStats(){
   if(el('todayPeople')) el('todayPeople').textContent = vv.reduce((s,v) => s + (+v.people || 0), 0);
 }
 
-function setupReservationHouseFilter(forceSession=false){const select=el('reservationHouse');if(!select)return;const session=normalizeHouseKey(getSessionHouse())||'Leña';const previous=select.value;const u=(typeof getCurrentUser==='function')?getCurrentUser():null;const userHouses=getUserHouses(u);const ordered=[session,...userHouses.filter(h=>h!==session)];select.innerHTML=ordered.map((h,i)=>`<option value="${esc(h)}">${i===0?'Esta recepção — ':''}${esc(houseLabel(h))}</option>`).join('')+'<option value="all">Todas as casas</option>';if(!forceSession&&previous&&[...select.options].some(o=>o.value===previous))select.value=previous;else select.value=session}
+function setupReservationHouseFilter(forceSession=false){const select=el('reservationHouse');if(!select)return;const session=normalizeHouseKey(getSessionHouse())||'Leña';const previous=select.value;const u=(typeof getCurrentUser==='function')?getCurrentUser():null;const userHouses=getUserHouses(u);const ordered=[session,...userHouses.filter(h=>h!==session)];select.innerHTML=ordered.map((h,i)=>`<option value="${esc(h)}">${i===0?'Esta recepção — ':''}${esc(houseLabel(h))}</option>`).join('')+'<option value="all">Todas as casas</option>';if(!forceSession&&previous&&select.options&&Array.from(select.options).some(o=>o.value===previous))select.value=previous;else select.value=session}
 function renderReservations(){setupReservationHouseFilter(false);const q=el('reservationSearch').value.toLowerCase().trim(),s=el('reservationStatus').value,h=el('reservationHouse')?.value||normalizeHouseKey(getSessionHouse())||'all';const a=state.reservations.filter(r=>(h==='all'||normalizeHouseKey(r.house)===h)&&(!q||r.name.toLowerCase().includes(q)||digits(r.phone).includes(digits(q)))&&(s==='all'||r.status===s));el('reservationsBody').innerHTML=a.map(r=>{const isExc=r.exceptionReason||(r.notes||'').includes('[EXCEÇÃO');return `<tr><td><div class="person"><div class="avatar">${initials(r.name)}</div><div><b>${esc(r.name)}</b><br><small>${fmtPhone(r.phone)}</small></div></div></td><td>${fmtDate(r.date)}</td><td>${esc(r.time||'—')}</td><td>${esc(houseLabel(normalizeHouseKey(r.house)))}</td><td>${r.people}</td><td><span class="badge ${r.status==='Confirmada'?'good':r.status==='Cancelada'?'warn':'blue'}">${esc(r.status)}</span>${isExc?`<span class="badge warn" style="background:#fef3c7;color:#92400e;border-color:#fde68a;font-size:10px;padding:2px 6px;margin-left:4px;cursor:pointer" title="${esc(r.exceptionReason||r.notes)}">Exceção</span>`:''}</td><td><div class="actions-row"><button class="iconbtn" onclick="convertReservation('${r.id}')">Check-in</button><button class="iconbtn" onclick="cycleReservation('${r.id}')">Status</button><button class="iconbtn danger" style="color:#b91c1c;background:#fef2f2;border:1px solid #fecaca" onclick="deleteReservation('${r.id}')" title="Excluir reserva">Excluir</button></div></td></tr>`}).join('')||'<tr><td colspan="7"><div class="empty">Nenhuma reserva encontrada para esta casa.</div></td></tr>'}
 el('reservationSearch').oninput=renderReservations;el('reservationStatus').onchange=renderReservations;el('reservationHouse').onchange=renderReservations;
 function deleteReservation(id){const r=state.reservations.find(x=>x.id===id);if(!r)return;if(!confirm(`Deseja realmente excluir a reserva de "${r.name}" (${fmtDate(r.date)})?`))return;state.reservations=state.reservations.filter(x=>x.id!==id);save();toast('Reserva excluída com sucesso.');renderReservations()}
@@ -2603,10 +2652,637 @@ function exportBackup(){const blob=new Blob([JSON.stringify(state,null,2)],{type
 el('backupInput').onchange=e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{try{const d=JSON.parse(rd.result);if(!d.clients||!d.visits)throw Error();state=d;save();toast('Backup importado com sucesso.')}catch{toast('Arquivo de backup inválido.')}};rd.readAsText(f)}
 function resetData(){if(!confirm('Restaurar a base inicial deste protótipo? Alterações locais serão apagadas.'))return;state=structuredClone(SEED_DATA);save();toast('Base inicial restaurada.')}
 function exportCSV(type){const rows=type==='clients'?getFilteredClients():state.visits;let headers,body;if(type==='clients'){headers=['Nome','Telefone','Prioridades','Primeira visita','Última visita','Visitas Iconico','Visitas Lena','Visitas Bravo Cafe','Total','Origem','Segmento'];body=rows.map(c=>[c.name,c.phone,(c.priorities||[]).join(', '),c.firstVisit,c.lastVisit,c.iconico,c.lena,c.cafe||0,c.totalVisits,c.source,segmentOf(c)])}const csv=[headers,...body].map(r=>r.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(';')).join('\n');const blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='grupo_qu4tro_clientes.csv';a.click();URL.revokeObjectURL(a.href)}
-function refreshAll(){renderDashboard();renderClients();renderReservations();renderSegments();renderIntelligence();renderData();renderCheckinStats();renderQRCodes();renderSettings();renderUsers();renderUserSessionBadge()}
+function refreshAll(){renderDashboard();renderClients();renderReservations();renderSegments();renderIntelligence();renderData();renderCheckinStats();renderQRCodes();renderSettings();renderUsers();renderUserSessionBadge();if(typeof renderWaitlist==='function')renderWaitlist();}
 refreshAll();
 ensureSession();
 checkAppAuthentication();
 setTimeout(pullAllFromSupabase,100);
+
+/* ==========================================================================
+   MÓDULO FILA DE ESPERA OPERACIONAL COM TIMER EM TEMPO REAL
+   ========================================================================== */
+
+let selectedWaitlistClientId = null;
+let waitlistTimerInterval = null;
+
+function setupWaitlistHouseFilter(forceSession = false){
+  const select = el('waitlistHouseFilter');
+  if(!select) return;
+  const session = normalizeHouseKey(getSessionHouse()) || 'all';
+  const previous = select.value;
+  const u = (typeof getCurrentUser === 'function') ? getCurrentUser() : null;
+  const userHouses = getUserHouses(u);
+  
+  select.innerHTML = userHouses.map(h => {
+    const isCurrent = normalizeHouseKey(h) === session;
+    return `<option value="${esc(h)}">${isCurrent ? '⭐ Esta empresa • ' : ''}${esc(houseLabel(h))}</option>`;
+  }).join('');
+  
+  if(!forceSession && previous && select.options && Array.from(select.options).some(o => o.value === previous)){
+    select.value = previous;
+  } else {
+    select.value = session;
+  }
+}
+
+function renderWaitlist(){
+  if(!state.waitlist) state.waitlist = [];
+  setupWaitlistHouseFilter(false);
+
+  const q = (el('waitlistSearch')?.value || '').trim().toLowerCase();
+  const houseFilter = el('waitlistHouseFilter')?.value || normalizeHouseKey(getSessionHouse()) || 'all';
+  const statusFilter = el('waitlistStatusFilter')?.value || 'active';
+  const normFilterHouse = normalizeHouseKey(houseFilter);
+
+  // Filtragem
+  let list = state.waitlist.filter(w => {
+    // Filtro por casa
+    if(normFilterHouse !== 'all' && normalizeHouseKey(w.house) !== normFilterHouse){
+      return false;
+    }
+    // Filtro por status
+    if(statusFilter === 'active'){
+      if(w.status !== 'Aguardando' && w.status !== 'Chamado') return false;
+    } else if(statusFilter !== 'all'){
+      if(w.status !== statusFilter) return false;
+    }
+    // Filtro por busca
+    if(q){
+      const nameMatch = (w.name || '').toLowerCase().includes(q);
+      const phoneMatch = digits(w.phone || '').includes(digits(q));
+      const noteMatch = (w.notes || '').toLowerCase().includes(q);
+      const prefMatch = (w.preference || '').toLowerCase().includes(q);
+      const tableMatch = (w.table || '').toLowerCase().includes(q);
+      if(!nameMatch && !phoneMatch && !noteMatch && !prefMatch && !tableMatch) return false;
+    }
+    return true;
+  });
+
+  // Ordenação: primeiro quem está aguardando/chamado (ordem de chegada), depois atendidos/desistências (mais recentes primeiro)
+  list.sort((a, b) => {
+    const aActive = (a.status === 'Aguardando' || a.status === 'Chamado');
+    const bActive = (b.status === 'Aguardando' || b.status === 'Chamado');
+    if(aActive && bActive) return (a.createdAt || 0) - (b.createdAt || 0);
+    if(aActive && !bActive) return -1;
+    if(!aActive && bActive) return 1;
+    return (b.createdAt || 0) - (a.createdAt || 0);
+  });
+
+  // Cálculo de KPIs
+  const allHouseEntries = state.waitlist.filter(w => normFilterHouse === 'all' || normalizeHouseKey(w.house) === normFilterHouse);
+  const activeEntries = allHouseEntries.filter(w => w.status === 'Aguardando' || w.status === 'Chamado');
+  const waitingCount = activeEntries.filter(w => w.status === 'Aguardando').length;
+  const calledCount = activeEntries.filter(w => w.status === 'Chamado').length;
+  const peopleCount = activeEntries.reduce((s, w) => s + (+w.people || 0), 0);
+
+  const todayStr = today();
+  const seatedTodayEntries = allHouseEntries.filter(w => w.status === 'Atendido' && (!w.date || w.date === todayStr));
+  const seatedCount = seatedTodayEntries.length;
+
+  const completedWithTime = seatedTodayEntries.filter(w => typeof w.waitDurationMinutes === 'number');
+  const avgMins = completedWithTime.length 
+    ? Math.round(completedWithTime.reduce((s, w) => s + w.waitDurationMinutes, 0) / completedWithTime.length)
+    : (activeEntries.length ? Math.round(activeEntries.reduce((s, w) => s + Math.max(0, Math.round((Date.now() - (w.createdAt || Date.now())) / 60000)), 0) / activeEntries.length) : 0);
+
+  if(el('wlKpiWaiting')) el('wlKpiWaiting').textContent = waitingCount;
+  if(el('wlKpiPeople')) el('wlKpiPeople').textContent = peopleCount;
+  if(el('wlKpiAvgTime')) el('wlKpiAvgTime').textContent = `${avgMins} min`;
+  if(el('wlKpiCalled')) el('wlKpiCalled').textContent = calledCount;
+  if(el('wlKpiSeated')) el('wlKpiSeated').textContent = seatedCount;
+
+  // Renderização da tabela
+  const tbody = el('waitlistBody');
+  if(!tbody) return;
+
+  if(!list.length){
+    tbody.innerHTML = `<tr><td colspan="8"><div class="empty">Nenhum cliente na fila de espera para os filtros selecionados.</div></td></tr>`;
+    return;
+  }
+
+  let activePos = 0;
+  tbody.innerHTML = list.map(w => {
+    const isActive = (w.status === 'Aguardando' || w.status === 'Chamado');
+    let posHtml = '';
+    if(isActive){
+      activePos++;
+      posHtml = `<span class="wl-pos-badge ${activePos <= 3 ? 'top' : ''}">${activePos}</span>`;
+    } else {
+      posHtml = `<span style="color:var(--muted);font-size:11px">—</span>`;
+    }
+
+    // Badges de prioridade
+    const prioHtml = renderPriorityBadges(w.priorities);
+    const prefHtml = w.preference ? `<span class="waitlist-pref-tag">🪑 ${esc(w.preference)}</span>` : '';
+
+    // Status Badge
+    let statusBadge = '';
+    if(w.status === 'Aguardando'){
+      statusBadge = `<span class="badge blue">⏳ Aguardando</span>`;
+    } else if(w.status === 'Chamado'){
+      statusBadge = `<span class="badge warn" style="background:#fef3c7;color:#92400e;border-color:#fde68a;animation:pulseTimer 2s infinite">📢 Chamado</span>`;
+    } else if(w.status === 'Atendido'){
+      statusBadge = `<span class="badge good" style="background:#ecfdf5;color:#065f46">✓ Na ${esc(w.table || 'Mesa')}</span>`;
+    } else {
+      statusBadge = `<span class="badge" style="background:#f1f5f9;color:#64748b">✕ Desistiu</span>`;
+    }
+
+    // Timer Column
+    let timerHtml = '';
+    if(isActive){
+      timerHtml = `<span class="timer-badge wl-live-timer" data-created="${w.createdAt || Date.now()}" id="timer-${w.id}">00:00</span>`;
+    } else if(w.status === 'Atendido'){
+      timerHtml = `<span class="timer-badge timer-good" title="Horário de direcionamento: ${esc(w.seatedAt||'')}">✓ ${w.waitDurationMinutes || 0} min total</span>`;
+    } else {
+      timerHtml = `<span style="color:var(--muted);font-size:11px">Encerrado (${esc(w.timeRegistered || '')})</span>`;
+    }
+
+    // Actions
+    let actionsHtml = '';
+    if(isActive){
+      actionsHtml = `
+        <div class="actions-row" style="justify-content:flex-end">
+          <button class="btn gold" style="padding:5px 11px;font-size:11.5px;font-weight:700" onclick="openWaitlistCheckinModal('${w.id}')" title="Direcionar mesa e confirmar check-in">✓ Mesa / Check-in</button>
+          <button class="iconbtn" onclick="callWaitlistClient('${w.id}')" title="Marcar como chamado na recepção">📢</button>
+          <button class="iconbtn" style="color:#15803d" onclick="notifyWaitlistWhatsApp('${w.id}')" title="Chamar cliente via WhatsApp">💬</button>
+          <button class="iconbtn danger" style="color:#b91c1c;background:#fef2f2;border:1px solid #fecaca" onclick="cancelWaitlistEntry('${w.id}')" title="Cliente desistiu / remover da fila">✕</button>
+        </div>
+      `;
+    } else {
+      actionsHtml = `
+        <div style="text-align:right;font-size:11px;color:var(--muted)">
+          ${w.status === 'Atendido' ? `Mesa: <strong style="color:var(--ink)">${esc(w.table || '—')}</strong> às ${esc(w.seatedAt || '')}` : 'Desistência registrada'}
+        </div>
+      `;
+    }
+
+    return `
+      <tr style="${w.status === 'Chamado' ? 'background:#fffbeb;' : ''}">
+        <td style="text-align:center">${posHtml}</td>
+        <td>
+          <div class="person">
+            <div class="avatar">${initials(w.name)}</div>
+            <div>
+              <b>${esc(w.name)}</b>
+              <br><small style="color:var(--muted)">${fmtPhone(w.phone)} • <span style="font-weight:600;color:var(--ink)">${esc(houseLabel(w.house))}</span></small>
+            </div>
+          </div>
+        </td>
+        <td>
+          <strong>${w.people}</strong> <span style="color:var(--muted);font-size:11px">pess.</span>
+        </td>
+        <td>
+          <span style="font-weight:600">${esc(w.timeRegistered || '—')}</span>
+        </td>
+        <td>
+          ${timerHtml}
+        </td>
+        <td>
+          <div>
+            ${prefHtml}
+            ${prioHtml ? `<div style="margin-top:3px">${prioHtml}</div>` : ''}
+            ${w.notes ? `<div style="font-size:11px;color:var(--muted);margin-top:3px" title="${esc(w.notes)}">📝 ${esc(w.notes.length > 30 ? w.notes.slice(0, 30) + '...' : w.notes)}</div>` : ''}
+          </div>
+        </td>
+        <td>
+          ${statusBadge}
+        </td>
+        <td>
+          ${actionsHtml}
+        </td>
+      </tr>
+    `;
+  }).join('');
+
+  updateWaitlistLiveTimers();
+}
+
+function updateWaitlistLiveTimers(){
+  const now = Date.now();
+  document.querySelectorAll('.wl-live-timer').forEach(el => {
+    const created = Number(el.dataset.created);
+    if(!created) return;
+    const diff = Math.max(0, now - created);
+    const totalSecs = Math.floor(diff / 1000);
+    const mins = Math.floor(totalSecs / 60);
+    const secs = totalSecs % 60;
+    const timeStr = (mins < 60)
+      ? `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`
+      : `${Math.floor(mins / 60)}h ${String(mins % 60).padStart(2, '0')}m`;
+    el.textContent = `⏱️ ${timeStr}`;
+    el.className = 'timer-badge wl-live-timer ' + (mins < 15 ? 'timer-good' : (mins < 30 ? 'timer-warn' : 'timer-danger'));
+  });
+}
+
+function startWaitlistTimer(){
+  stopWaitlistTimer();
+  updateWaitlistLiveTimers();
+  waitlistTimerInterval = setInterval(updateWaitlistLiveTimers, 1000);
+}
+
+function stopWaitlistTimer(){
+  if(waitlistTimerInterval){
+    clearInterval(waitlistTimerInterval);
+    waitlistTimerInterval = null;
+  }
+}
+
+// Modal: Adicionar à Fila de Espera
+function openAddToWaitlistModal(prefill = null){
+  selectedWaitlistClientId = null;
+  const currentH = normalizeHouseKey(getSessionHouse()) || 'Bravo Café';
+  const defaultHouse = (currentH === 'all') ? 'Bravo Café' : currentH;
+  const u = (typeof getCurrentUser === 'function') ? getCurrentUser() : null;
+  const houses = getUserHouses(u).filter(h => normalizeHouseKey(h) !== 'all');
+
+  el('modalTitle').textContent = 'Adicionar à Fila de Espera';
+  el('modalBody').innerHTML = `
+    <form id="addToWaitlistForm" onsubmit="handleSaveWaitlistEntry(event)">
+      <div class="form-grid">
+        <!-- Busca preditiva de cliente existente -->
+        <div class="field span2 client-lookup">
+          <label>Localizar cliente existente (opcional)</label>
+          <input id="wlLookup" autocomplete="off" placeholder="Digite nome, sobrenome ou últimos dígitos do telefone">
+          <div class="lookup-help">Ao localizar o cliente, os dados e prioridades são preenchidos automaticamente.</div>
+          <div class="lookup-results" id="wlLookupResults"></div>
+        </div>
+
+        <div class="span2 selected-client-card" id="wlSelectedClientCard" style="display:none"></div>
+
+        <div class="field span2">
+          <label>Nome do cliente *</label>
+          <input id="wlName" required placeholder="Nome e sobrenome" value="${esc(prefill?.name || '')}">
+        </div>
+
+        <div class="field">
+          <label>Telefone *</label>
+          <input id="wlPhone" inputmode="tel" required placeholder="(22) 99999-9999" value="${esc(prefill?.phone || '')}">
+        </div>
+
+        <div class="field">
+          <label>Nº de pessoas *</label>
+          <input id="wlPeople" type="number" min="1" max="50" required value="${prefill?.people || 2}">
+        </div>
+
+        <div class="field">
+          <label>Empresa / Restaurante *</label>
+          <select id="wlHouse" required>
+            ${houses.map(h => `<option value="${esc(h)}" ${h === defaultHouse ? 'selected' : ''}>${esc(houseLabel(h))}</option>`).join('')}
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Preferência de Mesa</label>
+          <select id="wlPreference">
+            <option value="">Sem preferência específica</option>
+            <option value="Salão Interno">Salão Interno</option>
+            <option value="Varanda / Área Externa">Varanda / Área Externa</option>
+            <option value="Perto do Sushi Bar / Balcão">Perto do Sushi Bar / Balcão</option>
+            <option value="Mesa Alta">Mesa Alta</option>
+            <option value="Espaço Tranquilo">Espaço Tranquilo / Reservado</option>
+          </select>
+        </div>
+
+        <div class="field span2">
+          <label>Prioridade de Atendimento</label>
+          <div class="priority-checkbox-group" id="wlPriorityGroup">
+            <label class="priority-pill-toggle"><input type="checkbox" name="wlPriority" value="Gestante"> <span>🤰 Gestante</span></label>
+            <label class="priority-pill-toggle"><input type="checkbox" name="wlPriority" value="Idoso"> <span>🧓 Idoso</span></label>
+            <label class="priority-pill-toggle"><input type="checkbox" name="wlPriority" value="PCD"> <span>♿ PCD</span></label>
+            <label class="priority-pill-toggle"><input type="checkbox" name="wlPriority" value='Com Criança "no colo"'> <span>👶 Com Criança "no colo"</span></label>
+          </div>
+        </div>
+
+        <div class="field span2">
+          <label>Observações</label>
+          <textarea id="wlNotes" placeholder="Restrições alimentares, comemoração de aniversário, carrinho de bebê...">${esc(prefill?.notes || '')}</textarea>
+        </div>
+      </div>
+
+      <div class="form-actions" style="margin-top:20px">
+        <button type="button" class="btn" onclick="closeModal()">Cancelar</button>
+        <button type="submit" class="btn gold">✓ Adicionar à Fila</button>
+      </div>
+    </form>
+  `;
+
+  // Attach search listeners
+  const lookupInput = el('wlLookup');
+  if(lookupInput){
+    lookupInput.addEventListener('input', () => {
+      renderWaitlistLookup();
+    });
+  }
+
+  el('modal').classList.add('show');
+  setTimeout(() => el('wlLookup')?.focus(), 100);
+}
+
+function renderWaitlistLookup(){
+  const q = el('wlLookup').value.trim();
+  const box = el('wlLookupResults');
+  if(!box) return;
+  const results = searchCheckinClients(q);
+  if((foldText(q).length < 2 && digits(q).length < 4) || !q){
+    box.className = 'lookup-results';
+    box.innerHTML = '';
+    return;
+  }
+  if(!results.length){
+    box.className = 'lookup-results show';
+    box.innerHTML = `<div class="lookup-item"><div><strong>Nenhum cadastro encontrado</strong><br><small style="color:var(--muted)">Continue digitando os dados abaixo para cadastrar.</small></div></div>`;
+    return;
+  }
+  box.className = 'lookup-results show';
+  box.innerHTML = results.slice(0, 5).map(({c}) => `
+    <div class="lookup-item" onclick="selectWaitlistClient('${c.id}')">
+      <div class="avatar">${initials(c.name)}</div>
+      <div>
+        <strong>${esc(c.name)}</strong>
+        <br><small>${fmtPhone(c.phone)} • ${c.totalVisits || 0} visitas (${esc(houseLabel(c.firstHouse || ''))})</small>
+      </div>
+    </div>
+  `).join('');
+}
+
+function selectWaitlistClient(clientId){
+  const c = state.clients.find(x => x.id === clientId);
+  if(!c) return;
+  selectedWaitlistClientId = c.id;
+
+  if(el('wlName')) el('wlName').value = c.name;
+  if(el('wlPhone')) el('wlPhone').value = fmtPhone(c.phone);
+
+  // Auto-check priorities if client had any
+  if(Array.isArray(c.priorities)){
+    document.querySelectorAll('input[name="wlPriority"]').forEach(cb => {
+      cb.checked = c.priorities.includes(cb.value);
+    });
+  }
+
+  const box = el('wlLookupResults');
+  if(box){
+    box.className = 'lookup-results';
+    box.innerHTML = '';
+  }
+
+  const card = el('wlSelectedClientCard');
+  if(card){
+    card.style.display = 'block';
+    card.className = 'span2 selected-client-card show';
+    card.innerHTML = `
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div class="avatar" style="width:36px;height:36px">${initials(c.name)}</div>
+          <div>
+            <strong>${esc(c.name)}</strong> <span class="badge ${c.totalVisits >= 5 ? 'gold' : 'good'}">${segmentOf(c)}</span>
+            <br><small style="color:var(--muted)">Telefone: ${fmtPhone(c.phone)} • ${c.totalVisits || 0} visitas no Grupo Qu4tro</small>
+          </div>
+        </div>
+        <button type="button" class="btn ghost" style="padding:4px 8px;font-size:11px" onclick="clearSelectedWaitlistClient()">Trocar</button>
+      </div>
+    `;
+  }
+}
+
+function clearSelectedWaitlistClient(){
+  selectedWaitlistClientId = null;
+  const card = el('wlSelectedClientCard');
+  if(card){
+    card.style.display = 'none';
+    card.innerHTML = '';
+  }
+  if(el('wlLookup')){
+    el('wlLookup').value = '';
+    el('wlLookup').focus();
+  }
+}
+
+function handleSaveWaitlistEntry(e){
+  e.preventDefault();
+  const name = (el('wlName')?.value || '').trim();
+  const phoneVal = validatePhone(el('wlPhone')?.value || '');
+  if(!phoneVal.ok){
+    toast(phoneVal.msg);
+    el('wlPhone')?.focus();
+    return;
+  }
+  const nameVal = validateClientName(name);
+  if(!nameVal.ok && !selectedWaitlistClientId){
+    toast(nameVal.msg);
+    el('wlName')?.focus();
+    return;
+  }
+
+  const people = Math.max(1, +el('wlPeople')?.value || 1);
+  const house = el('wlHouse')?.value || getSessionHouse() || 'Bravo Café';
+  const preference = el('wlPreference')?.value || '';
+  const priorities = Array.from(document.querySelectorAll('input[name="wlPriority"]:checked')).map(cb => cb.value);
+  const notes = (el('wlNotes')?.value || '').trim();
+
+  const now = Date.now();
+  const entry = {
+    id: 'W-' + now,
+    clientId: selectedWaitlistClientId || null,
+    name: nameVal.value || name,
+    phone: phoneVal.value,
+    people,
+    house,
+    preference,
+    priorities,
+    notes,
+    status: 'Aguardando',
+    createdAt: now,
+    timeRegistered: currentClock(),
+    calledAt: null,
+    seatedAt: null,
+    table: '',
+    waitDurationMinutes: null
+  };
+
+  if(!state.waitlist) state.waitlist = [];
+  state.waitlist.unshift(entry);
+  save();
+  closeModal();
+  toast(`✓ ${entry.name} (${people} pess.) adicionado(a) à fila!`);
+  renderWaitlist();
+}
+
+// Chamar cliente
+function callWaitlistClient(id){
+  const w = state.waitlist.find(x => x.id === id);
+  if(!w) return;
+  w.status = 'Chamado';
+  w.calledAt = currentClock();
+  save();
+  toast(`📢 Cliente ${w.name} marcado como CHAMADO!`);
+  renderWaitlist();
+}
+
+// Chamar via WhatsApp
+function notifyWaitlistWhatsApp(id){
+  const w = state.waitlist.find(x => x.id === id);
+  if(!w) return;
+  w.status = 'Chamado';
+  w.calledAt = currentClock();
+  save();
+
+  const p = digits(w.phone);
+  const fullPhone = p.startsWith('55') ? p : ('55' + p);
+  const msg = `Olá ${w.name}! Sua mesa no ${houseLabel(w.house)} (${w.people} pessoas) está quase pronta. Por favor, aproxime-se da recepção.`;
+  const url = `https://api.whatsapp.com/send?phone=${fullPhone}&text=${encodeURIComponent(msg)}`;
+  window.open(url, '_blank');
+  renderWaitlist();
+}
+
+// Desistência
+function cancelWaitlistEntry(id){
+  const w = state.waitlist.find(x => x.id === id);
+  if(!w) return;
+  if(!confirm(`Registrar desistência de "${w.name}" (${w.people} pessoas)?`)) return;
+  w.status = 'Desistiu';
+  w.waitDurationMinutes = Math.round((Date.now() - (w.createdAt || Date.now())) / 60000);
+  save();
+  toast(`Desistência de ${w.name} registrada.`);
+  renderWaitlist();
+}
+
+// Modal: Confirmar Check-in e Alocar Mesa
+function openWaitlistCheckinModal(id){
+  const w = state.waitlist.find(x => x.id === id);
+  if(!w) return;
+
+  const now = Date.now();
+  const waitMins = Math.max(1, Math.round((now - (w.createdAt || now)) / 60000));
+
+  el('modalTitle').textContent = 'Confirmar Check-in • Fila de Espera';
+  el('modalBody').innerHTML = `
+    <form id="waitlistCheckinForm" onsubmit="handleFinalizeWaitlistCheckin(event, '${w.id}')">
+      <div style="background:#f8fafc;border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:16px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+          <strong style="font-size:16px;color:var(--ink)">${esc(w.name)}</strong>
+          <span class="timer-badge timer-good">⏱️ Aguardou ${waitMins} min</span>
+        </div>
+        <div style="font-size:12.5px;color:var(--muted)">
+          👥 <strong>${w.people} pessoas</strong> • 📍 ${esc(houseLabel(w.house))} • Chegada: <strong>${esc(w.timeRegistered || '—')}</strong>
+        </div>
+        ${w.preference ? `<div style="margin-top:6px;font-size:12px;color:#334155">🪑 Preferência informada: <strong>${esc(w.preference)}</strong></div>` : ''}
+        ${w.notes ? `<div style="margin-top:4px;font-size:11.5px;color:var(--muted)">📝 ${esc(w.notes)}</div>` : ''}
+      </div>
+
+      <div class="field" style="margin-bottom:16px">
+        <label style="font-size:13px;font-weight:700;display:block;margin-bottom:6px;color:var(--ink)">
+          Para qual mesa o cliente foi direcionado? *
+        </label>
+        <input id="wlAssignedTable" required placeholder="Ex.: Mesa 12, Varanda 04, Balcão 02..." style="width:100%;padding:10px 12px;font-size:14px;font-weight:600">
+        <div class="field-help" style="margin-top:4px">
+          Obrigatório para concluir o atendimento e liberar o cliente da fila.
+        </div>
+      </div>
+
+      <div class="field" style="margin-bottom:20px">
+        <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px">Observações do Check-in (opcional)</label>
+        <input id="wlCheckinNotes" placeholder="Observações de atendimento..." value="${esc(w.notes || '')}">
+      </div>
+
+      <div class="form-actions">
+        <button type="button" class="btn" onclick="closeModal()">Voltar</button>
+        <button type="submit" class="btn gold" style="padding:10px 16px;font-size:13.5px;font-weight:700">✓ Confirmar Check-in na Mesa</button>
+      </div>
+    </form>
+  `;
+
+  el('modal').classList.add('show');
+  setTimeout(() => el('wlAssignedTable')?.focus(), 100);
+}
+
+function handleFinalizeWaitlistCheckin(e, id){
+  e.preventDefault();
+  const table = (el('wlAssignedTable')?.value || '').trim();
+  if(!table){
+    toast('Informe a mesa para concluir o check-in.');
+    el('wlAssignedTable')?.focus();
+    return;
+  }
+  const extraNotes = (el('wlCheckinNotes')?.value || '').trim();
+
+  const w = state.waitlist.find(x => x.id === id);
+  if(!w) return;
+
+  const now = Date.now();
+  const waitMins = Math.max(1, Math.round((now - (w.createdAt || now)) / 60000));
+
+  // 1. Atualiza registro na fila
+  w.status = 'Atendido';
+  w.table = table;
+  w.seatedAt = currentClock();
+  w.waitDurationMinutes = waitMins;
+  if(extraNotes) w.notes = extraNotes;
+
+  // 2. Gera o Check-in oficial em visits
+  let client = w.clientId ? state.clients.find(c => c.id === w.clientId) : state.clients.find(c => normalizePhone(c.phone) === normalizePhone(w.phone));
+  const isNew = !client;
+  const d = today();
+
+  if(!client){
+    client = {
+      id: 'C-' + Date.now(),
+      name: w.name,
+      phone: w.phone,
+      firstVisit: d,
+      lastVisit: d,
+      iconico: 0,
+      lena: 0,
+      cafe: 0,
+      cafePousada: 0,
+      firstHouse: w.house,
+      visitedIconico: 'Não',
+      visitedLena: 'Não',
+      visitedCafe: 'Não',
+      visitedCafePousada: 'Não',
+      source: 'Fila de Espera',
+      totalVisits: 0,
+      priorities: w.priorities || []
+    };
+    state.clients.unshift(client);
+  }
+
+  // Registra visita
+  const normH = normalizeHouseKey(w.house);
+  if(normH === 'Íconico') client.visitedIconico = 'Sim';
+  if(normH === 'Leña') client.visitedLena = 'Sim';
+  if(normH === 'Bravo Café') client.visitedCafe = 'Sim';
+  if(normH === 'Café da Bravo Pousada') client.visitedCafePousada = 'Sim';
+
+  const visitNotes = `[Fila: ${waitMins} min] ${extraNotes || w.notes || ''}`.trim();
+  const newVisit = {
+    id: 'V-' + Date.now(),
+    date: d,
+    house: w.house,
+    name: w.name,
+    people: w.people,
+    phone: w.phone,
+    arrival: w.timeRegistered || currentClock(),
+    departure: '',
+    source: 'Fila de Espera',
+    status: (client.totalVisits >= 1 ? 'Recorrente' : 'Novo'),
+    table: table,
+    notes: visitNotes,
+    amount: 0
+  };
+
+  state.visits.unshift(newVisit);
+  save();
+  closeModal();
+
+  toast(`✓ Check-in de ${w.name} confirmado na ${table}! (Espera: ${waitMins} min)`);
+  renderCheckinStats();
+  renderWaitlist();
+}
+
+
+el('waitlistSearch')?.addEventListener('input', () => renderWaitlist());
+el('waitlistHouseFilter')?.addEventListener('change', () => renderWaitlist());
+el('waitlistStatusFilter')?.addEventListener('change', () => renderWaitlist());
+
 </script>
 </body></html>
