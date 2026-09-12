@@ -2076,6 +2076,13 @@ function go(view){
   const targetView = el('view-'+view);
   if(targetView) targetView.classList.add('active');
 
+  // Ocultar barra operacional rápida nas visões de Inteligência e Sistema
+  const banner = el('houseContextBanner');
+  if(banner){
+    const hideBannerViews = ['segments', 'intelligence', 'settings', 'users', 'data'];
+    banner.style.display = hideBannerViews.includes(view) ? 'none' : 'flex';
+  }
+
   if(view === 'checkin-list'){
     setupCheckinListHouseFilter();
     renderCheckinList();
