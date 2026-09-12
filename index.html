@@ -224,6 +224,69 @@ body[data-house] .sidebar{background:linear-gradient(180deg,var(--nav),color-mix
 .btn-pwa-install{width:100%;border:1px solid rgba(255,255,255,.15);background:rgba(217,119,6,.15);color:#fbbf24;padding:9px 12px;border-radius:9px;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:8px;margin-top:8px;transition:all .15s ease}
 .btn-pwa-install:hover{background:rgba(217,119,6,.3);color:#fff;border-color:rgba(217,119,6,.4)}
 
+
+/* OTIMIZAÇÃO DO FORMULÁRIO DE CHECK-IN: FONTES 100% PRETAS E LINHA 02 COMPACTA (4 COLUNAS) */
+.checkin-row-4{grid-column:span 2;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:13px}
+@media(max-width:860px){.checkin-row-4{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:480px){.checkin-row-4{grid-template-columns:1fr}}
+
+#checkinForm label,
+#checkinForm .field label{
+  color:#000000!important;
+  font-weight:750!important;
+  font-size:12px;
+  margin-bottom:5px;
+  letter-spacing:0.1px;
+}
+#checkinForm input,
+#checkinForm select,
+#checkinForm textarea{
+  color:#000000!important;
+  font-weight:600!important;
+  border:1.5px solid #cbd5e1;
+  border-radius:10px;
+  background:#ffffff;
+}
+#checkinForm input:focus,
+#checkinForm select:focus,
+#checkinForm textarea:focus{
+  border-color:#000000!important;
+  outline:none;
+  box-shadow:0 0 0 2px rgba(0,0,0,.12);
+}
+#checkinForm input::placeholder,
+#checkinForm textarea::placeholder{
+  color:#475569!important;
+  font-weight:450!important;
+}
+#checkinForm .lookup-help,
+#checkinForm .field-help,
+#checkinForm .reception-note{
+  color:#000000!important;
+  font-weight:550!important;
+  font-size:11px;
+}
+#checkinForm .priority-pill-toggle{
+  border:1.5px solid #94a3b8;
+  background:#ffffff;
+}
+#checkinForm .priority-pill-toggle span{
+  color:#000000!important;
+  font-weight:750!important;
+  font-size:12px;
+}
+#checkinForm .priority-pill-toggle input:checked + span{
+  color:#ffffff!important;
+}
+#checkinForm .selected-client-card,
+#checkinForm .selected-client-card b,
+#checkinForm .selected-client-card span{
+  color:#000000!important;
+}
+#checkinForm .checkin-status{
+  color:#000000!important;
+}
+
 </style>
 </head>
 <body>
@@ -346,7 +409,17 @@ body[data-house] .sidebar{background:linear-gradient(180deg,var(--nav),color-mix
 
   <section class="view" id="view-checkin">
    <div class="hero"><div><h2>Novo Check-in</h2><p>Localize primeiro quem já é cliente. Busque por nome, sobrenome, telefone completo ou últimos dígitos.</p></div><div class="kpi-strip"><div class="kpi-chip"><span>Check-ins hoje</span><strong id="todayCheckins">0</strong></div><div class="kpi-chip"><span>Pessoas hoje</span><strong id="todayPeople">0</strong></div><button type="button" class="kpi-chip" id="btnViewCheckinsList" onclick="openCheckinListModal()" style="cursor:pointer;background:linear-gradient(135deg, #132c39, #0f202a);color:#fff;border-color:#1e3a4b;text-align:left;display:flex;flex-direction:column;justify-content:center;gap:3px;transition:all .15s ease" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='#1e3a4b'"><span style="color:#94a3b8;font-size:10px;text-transform:uppercase;letter-spacing:.5px">Registros do Salão</span><strong style="color:#e5bd7e;font-size:13.5px;display:flex;align-items:center;gap:6px">📋 Ver lista check-ins →</strong></button></div></div>
-   <div class="card form-shell checkin-shell"><div class="checkin-brand-banner" id="checkinBrandBanner"><img id="checkinHouseLogo" alt="Casa do check-in" onerror="this.style.display='none'" onload="this.style.display=''"><div class="checkin-brand-copy"><strong id="checkinHouseName">Check-in</strong><span id="checkinHouseSubtitle">Recepção selecionada para este atendimento</span><div class="house-badge">Check-in presencial</div></div><div class="checkin-brand-side">A casa acompanha a seleção abaixo<br>e pode ser alterada antes da confirmação.</div></div><form id="checkinForm"><div class="form-grid"><div class="field span2 client-lookup"><label>Localizar cliente existente</label><input id="ciLookup" autocomplete="off" placeholder="Ex.: Jean Balan, Balan, 3106 ou telefone completo"><div class="lookup-help">Nome/sobrenome: digite pelo menos 2 caracteres. Telefone parcial: digite pelo menos os 4 últimos números.</div><div class="lookup-results" id="ciLookupResults"></div></div><div class="span2 selected-client-card" id="selectedClientCard"></div><div class="checkin-status span2" id="clientFound"></div><div class="field"><label>Nome do cliente *</label><input id="ciName" required placeholder="Nome e sobrenome"></div><div class="field"><label>Telefone *</label><input id="ciPhone" inputmode="tel" placeholder="(22) 99999-9999" required></div><div class="field"><label>Casa *</label><select id="ciHouse" required><option value="Bravo Café">Bravo Café</option><option value="Café da Bravo Pousada">Café da Bravo Pousada</option><option value="Íconico">Iconiko Cozinha Japonesa</option><option value="Leña">Leña Casa Italiana</option></select><div class="reception-note">Preenchida automaticamente pela recepção escolhida no início do turno. Pode ser alterada antes da confirmação.</div></div><div class="field"><label>Nº de pessoas *</label><input id="ciPeople" type="number" min="1" value="2" required></div><div class="field"><label>Mesa</label><input id="ciTable" inputmode="numeric"></div><div class="field"><label>Como nos conheceu?</label><select id="ciSource"><option>Da casa</option><option>Instagram</option><option>Google</option><option>Indicação</option><option>Passagem/Passante</option><option>TikTok</option><option>Outro</option></select></div><div class="field"><label>Horário de check-in</label><input id="ciArrival" type="time"><div class="reception-note">Se ficar em branco, será gravado o horário exato do clique em “Confirmar check-in”.</div></div><div class="field span2"><label>Prioridade (Atendimento Preferencial)</label><div class="priority-checkbox-group" id="ciPriorityGroup"><label class="priority-pill-toggle"><input type="checkbox" name="ciPriority" value="Gestante"> <span>🤰 Gestante</span></label><label class="priority-pill-toggle"><input type="checkbox" name="ciPriority" value="Idoso"> <span>🧓 Idoso</span></label><label class="priority-pill-toggle"><input type="checkbox" name="ciPriority" value="PCD"> <span>♿ PCD</span></label><label class="priority-pill-toggle"><input type="checkbox" name="ciPriority" value='Com Criança "no colo"'> <span>👶 Com Criança "no colo"</span></label></div><div class="field-help" style="margin-top:4px">Múltipla escolha. Sinaliza atendimento prioritário no salão e no cadastro do cliente.</div></div><div class="field span2"><label>Observações</label><textarea id="ciNotes" placeholder="Preferências, restrições, observações operacionais..."></textarea></div></div><div class="form-actions"><button type="reset" class="btn">Limpar</button><button type="submit" class="btn gold">✓ Confirmar check-in</button></div></form></div>
+   <div class="card form-shell checkin-shell"><div class="checkin-brand-banner" id="checkinBrandBanner"><img id="checkinHouseLogo" alt="Casa do check-in" onerror="this.style.display='none'" onload="this.style.display=''"><div class="checkin-brand-copy"><strong id="checkinHouseName">Check-in</strong><span id="checkinHouseSubtitle">Recepção selecionada para este atendimento</span><div class="house-badge">Check-in presencial</div></div><div class="checkin-brand-side">A casa acompanha a seleção abaixo<br>e pode ser alterada antes da confirmação.</div></div><form id="checkinForm"><div class="form-grid"><div class="field span2 client-lookup"><label>Localizar cliente existente</label><input id="ciLookup" autocomplete="off" placeholder="Ex.: Jean Balan, Balan, 3106 ou telefone completo"><div class="lookup-help">Nome/sobrenome: digite pelo menos 2 caracteres. Telefone parcial: digite pelo menos os 4 últimos números.</div><div class="lookup-results" id="ciLookupResults"></div></div><div class="span2 selected-client-card" id="selectedClientCard"></div><div class="checkin-status span2" id="clientFound"></div><!-- Linha 01: Nome do cliente * (50%) + Telefone * (50%) -->
+<div class="field"><label>Nome do cliente *</label><input id="ciName" required placeholder="Nome e sobrenome"></div>
+<div class="field"><label>Telefone *</label><input id="ciPhone" inputmode="tel" placeholder="(22) 99999-9999" required></div>
+
+<!-- Nova Linha 02 Compacta: Casa * (25%) + Nº de pessoas * (25%) + Mesa (25%) + Como nos conheceu? (25%) -->
+<div class="checkin-row-4">
+  <div class="field"><label>Casa *</label><select id="ciHouse" required><option value="Bravo Café">Bravo Café</option><option value="Café da Bravo Pousada">Café da Bravo Pousada</option><option value="Íconico">Iconiko Cozinha Japonesa</option><option value="Leña">Leña Casa Italiana</option></select></div>
+  <div class="field"><label>Nº de pessoas *</label><input id="ciPeople" type="number" min="1" value="2" required></div>
+  <div class="field"><label>Mesa</label><input id="ciTable" inputmode="numeric" placeholder="Nº mesa"></div>
+  <div class="field"><label>Como nos conheceu?</label><select id="ciSource"><option>Da casa</option><option>Instagram</option><option>Google</option><option>Indicação</option><option>Passagem/Passante</option><option>TikTok</option><option>Outro</option></select></div>
+</div><div class="field span2"><label>Prioridade (Atendimento Preferencial)</label><div class="priority-checkbox-group" id="ciPriorityGroup"><label class="priority-pill-toggle"><input type="checkbox" name="ciPriority" value="Gestante"> <span>🤰 Gestante</span></label><label class="priority-pill-toggle"><input type="checkbox" name="ciPriority" value="Idoso"> <span>🧓 Idoso</span></label><label class="priority-pill-toggle"><input type="checkbox" name="ciPriority" value="PCD"> <span>♿ PCD</span></label><label class="priority-pill-toggle"><input type="checkbox" name="ciPriority" value='Com Criança "no colo"'> <span>👶 Com Criança "no colo"</span></label></div><div class="field-help" style="margin-top:4px">Múltipla escolha. Sinaliza atendimento prioritário no salão e no cadastro do cliente.</div></div><div class="field span2"><label>Observações</label><textarea id="ciNotes" placeholder="Preferências, restrições, observações operacionais..."></textarea></div></div><div class="form-actions"><button type="reset" class="btn">Limpar</button><button type="submit" class="btn gold">✓ Confirmar check-in</button></div></form></div>
   </section>
 
   <section class="view" id="view-reservations">
@@ -2823,7 +2896,7 @@ function finalizeCheckin(pending){
 function lookupCheckinClient(){const p=normalizePhone(el('ciPhone').value);if(selectedCheckinClientId)return;const c=state.clients.find(x=>normalizePhone(x.phone)===p);const box=el('clientFound');if(p.length<10){box.className='checkin-status';box.innerHTML='';return}if(c){selectCheckinClient(c.id)}else{box.className='checkin-status show';box.innerHTML='<strong>Novo cliente</strong><div style="font-size:11px;color:var(--muted);margin-top:4px">Telefone não encontrado. O cadastro será criado ao confirmar o check-in.</div>'}}
 el('ciHouse').addEventListener('change',()=>{const h=el('ciHouse').value;applyHouseBranding(h);updateCheckinBranding(h)});
 el('ciLookup').addEventListener('input',()=>{if(selectedCheckinClientId&&foldText(el('ciLookup').value)!==foldText((state.clients.find(c=>c.id===selectedCheckinClientId)||{}).name))clearSelectedCheckinClient();renderCheckinLookup()});el('ciPhone').addEventListener('input',lookupCheckinClient);el('checkinForm').addEventListener('reset',()=>setTimeout(()=>{selectedCheckinClientId=null;el('clientFound').className='checkin-status';el('clientFound').innerHTML='';el('selectedClientCard').className='span2 selected-client-card';el('selectedClientCard').innerHTML='';el('ciLookupResults').className='lookup-results';el('ciLookupResults').innerHTML='';applySessionHouse()},0));
-el('checkinForm').onsubmit=e=>{e.preventDefault();let selected=selectedCheckinClientId?state.clients.find(x=>x.id===selectedCheckinClientId):null;const pv=validatePhone(el('ciPhone').value);if(!pv.ok){toast(pv.msg);el('ciPhone').focus();return}const nv=validateClientName(el('ciName').value);if(!selected&&!nv.ok){toast(nv.msg);el('ciName').focus();return}const name=selected?(normalizeName(el('ciName').value)||selected.name):nv.value;const pending={selectedId:selected?.id||null,name,phone:pv.value,house:el('ciHouse').value,people:+el('ciPeople').value||1,table:el('ciTable').value.trim(),source:el('ciSource').value,arrival:el('ciArrival').value||currentClock(),notes:el('ciNotes').value.trim()};const matches=duplicateCandidates(pending.name,pending.phone,pending.selectedId);if(matches.length){showDuplicateConfirmation(pending,matches);return}finalizeCheckin(pending)}
+el('checkinForm').onsubmit=e=>{e.preventDefault();let selected=selectedCheckinClientId?state.clients.find(x=>x.id===selectedCheckinClientId):null;const pv=validatePhone(el('ciPhone').value);if(!pv.ok){toast(pv.msg);el('ciPhone').focus();return}const nv=validateClientName(el('ciName').value);if(!selected&&!nv.ok){toast(nv.msg);el('ciName').focus();return}const name=selected?(normalizeName(el('ciName').value)||selected.name):nv.value;const pending={selectedId:selected?.id||null,name,phone:pv.value,house:el('ciHouse').value,people:+el('ciPeople').value||1,table:el('ciTable').value.trim(),source:el('ciSource').value,arrival:currentClock(),notes:el('ciNotes').value.trim()};const matches=duplicateCandidates(pending.name,pending.phone,pending.selectedId);if(matches.length){showDuplicateConfirmation(pending,matches);return}finalizeCheckin(pending)}
 function renderCheckinStats(){
   const h = normalizeHouseKey(el('ciHouse')?.value || getSessionHouse());
   const vv = state.visits.filter(v => v.date === today() && (h === 'all' || normalizeHouseKey(v.house) === h));
