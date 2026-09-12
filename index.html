@@ -819,7 +819,6 @@ body[data-house] .sidebar{background:linear-gradient(180deg,var(--nav),color-mix
         <div class="card" style="padding:16px">
           <div class="section-title" style="margin-bottom:10px">
             <h3 style="font-size:13.5px">Setores / Praças</h3>
-            <small>duplo clique ou ✏️ para renomear</small>
           </div>
           <div id="fpPracasGuide" style="display:flex;flex-direction:column;gap:8px;font-size:12px">
             <!-- Rendered dynamically depending on Lena vs Iconiko -->
@@ -5998,7 +5997,7 @@ function renderFloorplanPracas(){
   const m = getActiveFloorplan();
   if(!m){ guide.innerHTML = ''; return; }
 
-  // Unique sections list
+  // Unique sections list ordenada alfabeticamente
   if(!Array.isArray(m.sections)){
     m.sections = [...new Set(m.tables.map(t => t.section || 'Salão'))];
   }
@@ -6006,6 +6005,8 @@ function renderFloorplanPracas(){
     const s = t.section || 'Salão';
     if(!m.sections.includes(s)) m.sections.push(s);
   });
+  m.sections = [...new Set(m.sections.map(s => String(s || '').trim()).filter(Boolean))]
+    .sort((a, b) => a.localeCompare(b, 'pt-BR', { numeric: true, sensitivity: 'base' }));
 
   const sectionsHtml = m.sections.map(sec => {
     const count = m.tables.filter(t => (t.section || 'Salão') === sec).length;
@@ -6309,7 +6310,8 @@ function openFloorplanTableModal(tableId){
     m.sections.push(t.section);
   }
 
-  const sectionsList = [...new Set(m.sections.map(s => String(s || '').trim()).filter(Boolean))];
+  const sectionsList = [...new Set(m.sections.map(s => String(s || '').trim()).filter(Boolean))]
+    .sort((a, b) => a.localeCompare(b, 'pt-BR', { numeric: true, sensitivity: 'base' }));
   if(!sectionsList.length) sectionsList.push('Salão Principal');
   const currentSection = t.section || sectionsList[0];
 
