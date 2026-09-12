@@ -627,7 +627,7 @@ body[data-house] .sidebar{background:linear-gradient(180deg,var(--nav),color-mix
 
   <section class="view" id="view-reservations">
    <div class="hero"><div><h2>Reservas</h2><p>Pré-check-in e acompanhamento das reservas.</p></div><button class="btn primary" id="btnOpenReservation" onclick="openReservation()">＋ Nova reserva</button></div><div id="reservationOfflineNotice" style="display:none;margin-bottom:14px"></div>
-<div class="table-card"><div class="table-head"><div class="search"><span>⌕</span><input id="reservationSearch" placeholder="Buscar reserva..."></div><div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><select id="reservationHouse" class="control" title="Filtrar reservas por casa" style="min-width:250px"></select><select id="reservationStatus" class="control"><option value="all">Todos os status</option><option>Pendente</option><option>Confirmada</option><option>Convertida</option><option>Cancelada</option></select></div></div><div class="table-wrap"><table class="data-table"><thead><tr><th>Cliente</th><th>Data</th><th>Hora</th><th>Casa</th><th>Pessoas</th><th>Status</th><th>Ações</th></tr></thead><tbody id="reservationsBody"></tbody></table></div></div>
+<div class="table-card"><div class="table-head"><div class="search"><span>⌕</span><input id="reservationSearch" placeholder="Buscar reserva..."></div><div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><div style="display:inline-flex;gap:6px;align-items:center"><select id="reservationDateFilter" class="control" style="font-weight:700;min-width:130px" title="Filtrar por data da reserva"><option value="today" selected>Hoje</option><option value="tomorrow">Amanhã</option><option value="yesterday">Ontem</option><option value="custom">Outra data...</option><option value="all">Todas as datas</option></select><input id="reservationCustomDate" type="date" class="control" style="display:none;width:auto;padding:8px 10px;font-weight:600" title="Escolha uma data específica"></div><select id="reservationHouse" class="control" title="Filtrar reservas por casa" style="min-width:240px"></select><select id="reservationStatus" class="control"><option value="all">Todos os status</option><option>Pendente</option><option>Confirmada</option><option>Convertida</option><option>Cancelada</option></select></div></div><div class="table-wrap"><table class="data-table"><thead><tr><th>Cliente</th><th>Data</th><th>Hora</th><th>Casa</th><th>Pessoas</th><th>Status</th><th>Ações</th></tr></thead><tbody id="reservationsBody"></tbody></table></div></div>
   </section>
 
   <section class="view" id="view-waitlist">
@@ -2115,7 +2115,7 @@ function go(view){
 
   if(view==='dashboard')renderDashboard();
   if(view==='clients')renderClients();
-  if(view==='reservations')renderReservations();
+  if(view==='reservations'){ resetReservationFiltersToToday(); renderReservations(); }
   if(view==='qrcodes')renderQRCodes();
   if(view==='segments')renderSegments();
   if(view==='intelligence')renderIntelligence();
@@ -3224,13 +3224,211 @@ function renderCheckinStats(){
   if(el('todayPeople')) el('todayPeople').textContent = vv.reduce((s,v) => s + (+v.people || 0), 0);
 }
 
+function getLocalDateStr(offsetDays = 0){
+  const now = new Date();
+  if(offsetDays !== 0) now.setDate(now.getDate() + offsetDays);
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, '0');
+  const d = String(now.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+function normalizeDateIso(str){
+  if(!str) return '';
+  const s = String(str).trim();
+  if(/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  const brMatch = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if(brMatch){
+    const [, d, m, y] = brMatch;
+    return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+  }
+  const d = new Date(s.includes('T') ? s : s + 'T12:00:00');
+  if(!isNaN(d.getTime())){
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  }
+  return s;
+}
+
+function resetReservationFiltersToToday(){
+  const dateSel = el('reservationDateFilter');
+  if(dateSel) dateSel.value = 'today';
+  const customDateInput = el('reservationCustomDate');
+  if(customDateInput){
+    customDateInput.style.display = 'none';
+    customDateInput.value = getLocalDateStr(0);
+  }
+}
+
 function setupReservationHouseFilter(forceSession=false){const select=el('reservationHouse');if(!select)return;const session=normalizeHouseKey(getSessionHouse())||'Leña';const previous=select.value;const u=(typeof getCurrentUser==='function')?getCurrentUser():null;const userHouses=getUserHouses(u);const ordered=[session,...userHouses.filter(h=>h!==session)];select.innerHTML=ordered.map((h,i)=>`<option value="${esc(h)}">${i===0?'Esta recepção — ':''}${esc(houseLabel(h))}</option>`).join('')+'<option value="all">Todas as casas</option>';if(!forceSession&&previous&&select.options&&Array.from(select.options).some(o=>o.value===previous))select.value=previous;else select.value=session}
-function renderReservations(){setupReservationHouseFilter(false);const q=el('reservationSearch').value.toLowerCase().trim(),s=el('reservationStatus').value,h=el('reservationHouse')?.value||normalizeHouseKey(getSessionHouse())||'all';const a=state.reservations.filter(r=>(h==='all'||normalizeHouseKey(r.house)===h)&&(!q||r.name.toLowerCase().includes(q)||digits(r.phone).includes(digits(q)))&&(s==='all'||r.status===s));el('reservationsBody').innerHTML=a.map(r=>{const isExc=r.exceptionReason||(r.notes||'').includes('[EXCEÇÃO');return `<tr><td><div class="person"><div class="avatar">${initials(r.name)}</div><div><b>${esc(r.name)}</b><br><small>${fmtPhone(r.phone)}</small></div></div></td><td>${fmtDate(r.date)}</td><td>${esc(r.time||'—')}</td><td>${esc(houseLabel(normalizeHouseKey(r.house)))}</td><td>${r.people}</td><td><span class="badge ${r.status==='Confirmada'?'good':r.status==='Cancelada'?'warn':'blue'}">${esc(r.status)}</span>${isExc?`<span class="badge warn" style="background:#fef3c7;color:#92400e;border-color:#fde68a;font-size:10px;padding:2px 6px;margin-left:4px;cursor:pointer" title="${esc(r.exceptionReason||r.notes)}">Exceção</span>`:''}</td><td><div class="actions-row"><button class="iconbtn" onclick="convertReservation('${r.id}')">Check-in</button><button class="iconbtn" onclick="cycleReservation('${r.id}')">Status</button><button class="iconbtn danger" style="color:#b91c1c;background:#fef2f2;border:1px solid #fecaca" onclick="deleteReservation('${r.id}')" title="Excluir reserva">Excluir</button></div></td></tr>`}).join('')||'<tr><td colspan="7"><div class="empty">Nenhuma reserva encontrada para esta casa.</div></td></tr>'}
-el('reservationSearch').oninput=renderReservations;el('reservationStatus').onchange=renderReservations;el('reservationHouse').onchange=renderReservations;
+
+function renderReservations(){
+  setupReservationHouseFilter(false);
+  const q = (el('reservationSearch')?.value || '').toLowerCase().trim();
+  const s = el('reservationStatus')?.value || 'all';
+  const h = el('reservationHouse')?.value || normalizeHouseKey(getSessionHouse()) || 'all';
+  const dateFilter = el('reservationDateFilter')?.value || 'today';
+  let targetDate = '';
+  if(dateFilter === 'today'){
+    targetDate = getLocalDateStr(0);
+  } else if(dateFilter === 'tomorrow'){
+    targetDate = getLocalDateStr(1);
+  } else if(dateFilter === 'yesterday'){
+    targetDate = getLocalDateStr(-1);
+  } else if(dateFilter === 'custom'){
+    targetDate = el('reservationCustomDate')?.value || '';
+  }
+
+  const a = state.reservations.filter(r => {
+    const matchHouse = (h === 'all' || normalizeHouseKey(r.house) === h);
+    const matchSearch = (!q || r.name.toLowerCase().includes(q) || digits(r.phone).includes(digits(q)));
+    const matchStatus = (s === 'all' || r.status === s);
+    const matchDate = (dateFilter === 'all') || (!targetDate) || (normalizeDateIso(r.date) === targetDate);
+    return matchHouse && matchSearch && matchStatus && matchDate;
+  });
+
+  let emptyLabel = 'Nenhuma reserva encontrada';
+  if(dateFilter === 'today') emptyLabel += ' para hoje.';
+  else if(dateFilter === 'tomorrow') emptyLabel += ' para amanhã.';
+  else if(dateFilter === 'yesterday') emptyLabel += ' para ontem.';
+  else if(dateFilter === 'custom' && targetDate) emptyLabel += ` para a data ${fmtDate(targetDate)}.`;
+  else emptyLabel += ' para os filtros selecionados.';
+
+  el('reservationsBody').innerHTML = a.map(r => {
+    const isExc = r.exceptionReason || (r.notes || '').includes('[EXCEÇÃO');
+    return `<tr>
+      <td>
+        <div class="person">
+          <div class="avatar">${initials(r.name)}</div>
+          <div><b>${esc(r.name)}</b><br><small>${fmtPhone(r.phone)}</small></div>
+        </div>
+      </td>
+      <td>${fmtDate(r.date)}</td>
+      <td>${esc(r.time || '—')}</td>
+      <td>${esc(houseLabel(normalizeHouseKey(r.house)))}</td>
+      <td>${r.people}</td>
+      <td>
+        <span class="badge ${r.status==='Confirmada'?'good':r.status==='Cancelada'?'warn':'blue'}">${esc(r.status)}</span>
+        ${isExc ? `<span class="badge warn" style="background:#fef3c7;color:#92400e;border-color:#fde68a;font-size:10px;padding:2px 6px;margin-left:4px;cursor:pointer" title="${esc(r.exceptionReason||r.notes)}">Exceção</span>` : ''}
+      </td>
+      <td>
+        <div class="actions-row">
+          <button type="button" class="iconbtn" style="color:#15803d;background:#f0fdf4;border:1px solid #bbf7d0;font-weight:700" onclick="openReservationWhatsApp('${r.id}')" title="Conversar com ${esc(r.name)} no WhatsApp">💬 WhatsApp</button>
+          <button type="button" class="iconbtn" onclick="openEditReservation('${r.id}')" title="Editar dados da reserva">✏️ Editar</button>
+          <button type="button" class="iconbtn" onclick="convertReservation('${r.id}')" title="Iniciar check-in desta reserva">Check-in</button>
+          <button type="button" class="iconbtn" onclick="cycleReservation('${r.id}')" title="Alternar status">Status</button>
+          <button type="button" class="iconbtn danger" style="color:#b91c1c;background:#fef2f2;border:1px solid #fecaca" onclick="deleteReservation('${r.id}')" title="Excluir reserva">Excluir</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('') || `<tr><td colspan="7"><div class="empty">${emptyLabel}</div></td></tr>`;
+}
+
+if(el('reservationSearch')) el('reservationSearch').oninput = renderReservations;
+if(el('reservationStatus')) el('reservationStatus').onchange = renderReservations;
+if(el('reservationHouse')) el('reservationHouse').onchange = renderReservations;
+if(el('reservationDateFilter')) {
+  el('reservationDateFilter').onchange = () => {
+    const customInput = el('reservationCustomDate');
+    if(el('reservationDateFilter').value === 'custom'){
+      if(customInput){
+        customInput.style.display = 'inline-block';
+        if(!customInput.value) customInput.value = getLocalDateStr(0);
+        customInput.focus();
+      }
+    } else {
+      if(customInput) customInput.style.display = 'none';
+    }
+    renderReservations();
+  };
+}
+if(el('reservationCustomDate')) {
+  el('reservationCustomDate').onchange = renderReservations;
+  el('reservationCustomDate').oninput = renderReservations;
+}
+
+function openReservationWhatsApp(id){
+  const r = state.reservations.find(x => x.id === id);
+  if(!r) return;
+  const p = digits(r.phone);
+  if(!p || p.length < 8){
+    toast('Telefone do cliente não informado ou incompleto para WhatsApp.');
+    return;
+  }
+  const fullPhone = p.startsWith('55') ? p : ('55' + p);
+  const houseName = houseLabel(normalizeHouseKey(r.house));
+  const dataFmt = fmtDate(r.date);
+  const horaFmt = r.time ? ` às ${r.time}` : '';
+  const msg = `Olá, *${r.name}*! Tudo bem? Entramos em contato a respeito da sua reserva no *${houseName}* para o dia *${dataFmt}*${horaFmt} (${r.people} pessoas).`;
+  const url = `https://api.whatsapp.com/send?phone=${fullPhone}&text=${encodeURIComponent(msg)}`;
+  window.open(url, '_blank');
+  toast('✓ Abrindo WhatsApp...');
+}
+
+function openEditReservation(id){
+  const r = state.reservations.find(x => x.id === id);
+  if(!r){
+    toast('Reserva não encontrada.');
+    return;
+  }
+  openReservation(r, id);
+}
+
 function deleteReservation(id){const r=state.reservations.find(x=>x.id===id);if(!r)return;if(!confirm(`Deseja realmente excluir a reserva de "${r.name}" (${fmtDate(r.date)})?`))return;state.reservations=state.reservations.filter(x=>x.id!==id);save();dbDeleteReservation(id);toast('Reserva excluída com sucesso.');renderReservations()}
-function isWeekendReservation(dateStr){if(!dateStr)return false;let y,m,d;const sep=dateStr.includes('/')?'/':(dateStr.includes('-')?'-':null);if(!sep)return false;const p=dateStr.split(sep).map(Number);if(p.length<3||p.some(isNaN))return false;if(p[0]>1000){y=p[0];m=p[1];d=p[2]}else if(p[2]>1000){d=p[0];m=p[1];y=p[2]}else{d=p[0];m=p[1];y=2000+p[2]}const dt=new Date(y,m-1,d);const day=dt.getDay();return day===5||day===6}
+function isWeekendReservation(dateStr){
+  if(!dateStr) return false;
+  const iso = normalizeDateIso(dateStr);
+  if(!iso) return false;
+  const dt = new Date(iso + 'T12:00:00');
+  if(isNaN(dt.getTime())) return false;
+  const day = dt.getDay();
+  return day === 5 || day === 6;
+}
 function isRestrictedHouse(house){const n=String(house||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();return n.includes('lena')||n.includes('iconi')}
-function saveReservationDirectly(data){const resObj={id: generateUUID(),name:data.name,phone:digits(data.phone),people:+data.people,date:data.date,time:data.time,house:data.house,status:data.status,notes:data.notes,exceptionReason:data.exceptionReason||''};state.reservations.unshift(resObj);save();dbSyncReservation(resObj);closeModal();toast(data.exceptionReason?'Reserva cadastrada com exceção autorizada.':'Reserva cadastrada.');renderReservations()}
+function saveReservationDirectly(data){
+  if(data.id){
+    const existing = state.reservations.find(x => x.id === data.id);
+    if(existing){
+      existing.name = data.name;
+      existing.phone = digits(data.phone);
+      existing.people = +data.people || 1;
+      existing.date = data.date;
+      existing.time = data.time;
+      existing.house = data.house;
+      existing.status = data.status;
+      existing.notes = data.notes;
+      if(data.clientId) existing.customerId = data.clientId;
+      if(data.exceptionReason !== undefined) existing.exceptionReason = data.exceptionReason;
+      save();
+      dbSyncReservation(existing);
+      closeModal();
+      toast('✓ Reserva atualizada com sucesso!');
+      renderReservations();
+      return;
+    }
+  }
+  const resObj = {
+    id: generateUUID(),
+    customerId: data.clientId || null,
+    name: data.name,
+    phone: digits(data.phone),
+    people: +data.people || 1,
+    date: data.date,
+    time: data.time,
+    house: data.house,
+    status: data.status,
+    notes: data.notes,
+    exceptionReason: data.exceptionReason || ''
+  };
+  state.reservations.unshift(resObj);
+  save();
+  dbSyncReservation(resObj);
+  closeModal();
+  toast(data.exceptionReason ? 'Reserva cadastrada com exceção autorizada.' : 'Reserva cadastrada.');
+  renderReservations();
+}
 
 /* ==========================================================================
    CONFIGURAÇÕES, USUÁRIOS, LOGIN E VALIDAÇÕES DE RESERVA
@@ -4279,7 +4477,7 @@ function checkReservationViolations(pending){
   }
 
   // 4. Limite de reservas por dia & Limite de soma de pessoas por dia
-  const sameDayRes=state.reservations.filter(r=>r.house===pending.house&&r.date===pending.date&&r.status!=='Cancelada');
+  const sameDayRes=state.reservations.filter(r=>(!pending.id||r.id!==pending.id)&&normalizeHouseKey(r.house)===normalizeHouseKey(pending.house)&&normalizeDateIso(r.date)===normalizeDateIso(pending.date)&&r.status!=='Cancelada');
 
   const maxResDay=+cfg.maxReservationsPerDay;
   if(maxResDay>0&&sameDayRes.length>=maxResDay){
@@ -4434,19 +4632,23 @@ function clearSelectedReservationClient(){
   el('rLookup')?.focus();
 }
 
-function openReservation(prefill=null){
-
+function openReservation(prefill=null, editId=null){
   if (!navigator.onLine && isUserAgente02((typeof getCurrentUser === 'function') ? getCurrentUser() : null)) {
     toast('🔒 Sem conexão. Para evitar duplicidades, apenas o Agente de Reservas 01 pode cadastrar reservas offline.', 'warn');
     return;
   }
-  selectedReservationClientId = null;
-  el('modalTitle').textContent = 'Nova reserva';
+  const isEditing = Boolean(editId || prefill?.id);
+  const resId = editId || prefill?.id || null;
+  selectedReservationClientId = prefill?.customerId || prefill?.clientId || null;
+  el('modalTitle').textContent = isEditing ? 'Editar reserva' : 'Nova reserva';
+  const prefillDate = normalizeDateIso(prefill?.date) || (isEditing ? '' : getLocalDateStr(0));
+  const phoneVal = prefill?.phone ? fmtPhone(prefill.phone) : '';
+
   el('modalBody').innerHTML = `
     <form id="reservationForm">
       <div class="form-grid">
         <!-- Localizar cliente existente -->
-        <div class="field span2 client-lookup">
+        <div class="field span2 client-lookup" ${isEditing ? 'style="display:none"' : ''}>
           <label>Localizar cliente existente (opcional)</label>
           <input id="rLookup" autocomplete="off" placeholder="Ex.: Jean Balan, Balan, 3106 ou telefone completo">
           <div class="lookup-help">Nome/sobrenome: digite pelo menos 2 caracteres. Telefone parcial: digite pelo menos os 4 últimos números.</div>
@@ -4462,7 +4664,7 @@ function openReservation(prefill=null){
 
         <div class="field">
           <label>Telefone *</label>
-          <input id="rPhone" required value="${esc(prefill?.phone||'')}">
+          <input id="rPhone" required value="${esc(phoneVal)}">
         </div>
 
         <div class="field">
@@ -4472,7 +4674,7 @@ function openReservation(prefill=null){
 
         <div class="field">
           <label>Data *</label>
-          <input id="rDate" type="date" required value="${esc(prefill?.date||'')}">
+          <input id="rDate" type="date" required value="${esc(prefillDate)}">
           <div id="rDateWarning" style="display:none;font-size:11px;font-weight:700;color:#b45309;margin-top:4px">⚠️ Sexta/Sábado: requer justificativa de exceção para esta casa.</div>
         </div>
 
@@ -4495,8 +4697,10 @@ function openReservation(prefill=null){
         <div class="field">
           <label>Status</label>
           <select id="rStatus">
-            <option>Pendente</option>
-            <option>Confirmada</option>
+            <option value="Pendente">Pendente</option>
+            <option value="Confirmada">Confirmada</option>
+            <option value="Convertida">Convertida</option>
+            <option value="Cancelada">Cancelada</option>
           </select>
         </div>
 
@@ -4508,23 +4712,27 @@ function openReservation(prefill=null){
 
       <div class="form-actions">
         <button type="button" class="btn" onclick="closeModal()">Cancelar</button>
-        <button class="btn primary">Salvar reserva</button>
+        <button class="btn primary">${isEditing ? 'Salvar alterações' : 'Salvar reserva'}</button>
       </div>
     </form>
   `;
 
   // Attach search listener
   const rLookupInput = el('rLookup');
-  if(rLookupInput){
+  if(rLookupInput && !isEditing){
     rLookupInput.addEventListener('input', () => renderReservationLookup());
   }
 
   el('modal').classList.add('show');
-  if(prefill?.house) el('rHouse').value = prefill.house;
-  else if(getSessionHouse()) el('rHouse').value = normalizeHouseKey(getSessionHouse());
+  if(prefill?.house) {
+    el('rHouse').value = normalizeHouseKey(prefill.house);
+  } else if(getSessionHouse()) {
+    const sessH = normalizeHouseKey(getSessionHouse());
+    if(sessH !== 'all') el('rHouse').value = sessH;
+  }
   if(prefill?.status) el('rStatus').value = prefill.status;
 
-  if(prefill?.phone || prefill?.name){
+  if(!isEditing && (prefill?.phone || prefill?.name)){
     const normP = normalizePhone(prefill.phone || '');
     const normN = foldText(prefill.name || '');
     const found = state.clients.find(c => (normP && normalizePhone(c.phone) === normP) || (normN && foldText(c.name) === normN));
@@ -4546,6 +4754,7 @@ function openReservation(prefill=null){
     e.preventDefault();
     const dVal = el('rDate').value, hVal = el('rHouse').value;
     const pending = {
+      id: resId,
       clientId: selectedReservationClientId || null,
       name: el('rName').value.trim(),
       phone: digits(el('rPhone').value),
