@@ -1303,6 +1303,13 @@ async function processOutboxQueue(){
         resError = error;
       } else if (item.action === 'UPSERT_RESERVATION') {
         const r = item.payload;
+        let finalNotes = r.notes || '';
+        if(r.exceptionReason && !finalNotes.includes('[EXCEÇÃO')) {
+          finalNotes = `[EXCEÇÃO: ${r.exceptionReason}] ` + finalNotes;
+        }
+        if(r.priorities && r.priorities.length && !finalNotes.includes('[PRIORIDADE:')) {
+          finalNotes = `[PRIORIDADE: ${r.priorities.join(', ')}] ` + finalNotes;
+        }
         const payload = {
           id: r.id,
           customer_id: isUUID(r.customerId || r.customer_id) ? (r.customerId || r.customer_id) : null,
@@ -1313,7 +1320,7 @@ async function processOutboxQueue(){
           reservation_time: r.time || '',
           people_count: +r.people || 1,
           status: r.status || 'Pendente',
-          notes: r.notes || (r.exceptionReason ? `[EXCEÇÃO] ${r.exceptionReason}` : '')
+          notes: finalNotes
         };
         const { error } = await sb.from('reservations').upsert(payload, { onConflict: 'id' });
         resError = error;
@@ -1780,18 +1787,27 @@ async function pullAllFromSupabase(){
     // 3. PULL RESERVATIONS
     const { data: rRes, error: resErr } = await sb.from('reservations').select('*').order('reservation_date', { ascending: false }).limit(200);
     if(!resErr && rRes && rRes.length > 0){
-      state.reservations = rRes.map(rr => ({
-        id: rr.id,
-        name: rr.customer_name,
-        phone: rr.customer_phone,
-        people: rr.people_count,
-        date: rr.reservation_date,
-        time: rr.reservation_time,
-        house: rr.house,
-        status: rr.status,
-        notes: rr.notes || '',
-        exceptionReason: (rr.notes && rr.notes.includes('[EXCEÇÃO:')) ? (rr.notes.split('[EXCEÇÃO:')[1].split(']')[0].trim()) : ''
-      }));
+      state.reservations = rRes.map(rr => {
+        let priorities = [];
+        if(rr.notes && rr.notes.includes('[PRIORIDADE:')){
+          const pStr = rr.notes.split('[PRIORIDADE:')[1].split(']')[0];
+          priorities = pStr.split(',').map(s=>s.trim()).filter(Boolean);
+        }
+        return {
+          id: rr.id,
+          customerId: rr.customer_id || null,
+          name: rr.customer_name,
+          phone: rr.customer_phone,
+          people: rr.people_count,
+          date: rr.reservation_date,
+          time: rr.reservation_time,
+          house: rr.house,
+          status: rr.status,
+          notes: rr.notes || '',
+          priorities: priorities,
+          exceptionReason: (rr.notes && rr.notes.includes('[EXCEÇÃO:')) ? (rr.notes.split('[EXCEÇÃO:')[1].split(']')[0].trim()) : ''
+        };
+      });
       renderReservations();
     }
 
@@ -3583,11 +3599,19 @@ function renderReservations(){
 
   el('reservationsBody').innerHTML = a.map(r => {
     const isExc = r.exceptionReason || (r.notes || '').includes('[EXCEÇÃO');
+    const rPrios = (r.priorities && r.priorities.length)
+      ? r.priorities
+      : (state.clients.find(c => (r.customerId && c.id === r.customerId) || (normalizePhone(c.phone) === normalizePhone(r.phone)))?.priorities || []);
+    const prioBadgesHtml = (rPrios && rPrios.length) ? `<div style="margin-top:4px">${renderPriorityBadges(rPrios)}</div>` : '';
     return `<tr>
       <td>
         <div class="person">
           <div class="avatar">${initials(r.name)}</div>
-          <div><b>${esc(r.name)}</b><br><small>${fmtPhone(r.phone)}</small></div>
+          <div>
+            <b>${esc(r.name)}</b>
+            ${prioBadgesHtml}
+            <small style="display:block;margin-top:2px">${fmtPhone(r.phone)}</small>
+          </div>
         </div>
       </td>
       <td>${fmtDate(r.date)}</td>
@@ -3673,6 +3697,7 @@ function isWeekendReservation(dateStr){
 }
 function isRestrictedHouse(house){const n=String(house||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();return n.includes('lena')||n.includes('iconi')}
 function saveReservationDirectly(data){
+  const prios = Array.isArray(data.priorities) ? data.priorities : [];
   if(data.id){
     const existing = state.reservations.find(x => x.id === data.id);
     if(existing){
@@ -3684,8 +3709,14 @@ function saveReservationDirectly(data){
       existing.house = data.house;
       existing.status = data.status;
       existing.notes = data.notes;
+      existing.priorities = prios;
       if(data.clientId) existing.customerId = data.clientId;
       if(data.exceptionReason !== undefined) existing.exceptionReason = data.exceptionReason;
+      const cust = state.clients.find(c => (existing.customerId && c.id === existing.customerId) || (normalizePhone(c.phone) === normalizePhone(existing.phone)));
+      if(cust && prios.length){
+        cust.priorities = Array.from(new Set([...(cust.priorities || []), ...prios]));
+        dbSyncCustomer(cust);
+      }
       save();
       dbSyncReservation(existing);
       closeModal();
@@ -3705,8 +3736,14 @@ function saveReservationDirectly(data){
     house: data.house,
     status: data.status,
     notes: data.notes,
+    priorities: prios,
     exceptionReason: data.exceptionReason || ''
   };
+  const cust = state.clients.find(c => (data.clientId && c.id === data.clientId) || (normalizePhone(c.phone) === normalizePhone(data.phone)));
+  if(cust && prios.length){
+    cust.priorities = Array.from(new Set([...(cust.priorities || []), ...prios]));
+    dbSyncCustomer(cust);
+  }
   state.reservations.unshift(resObj);
   save();
   dbSyncReservation(resObj);
@@ -4901,6 +4938,12 @@ function selectReservationClient(id){
   if(el('rName')) el('rName').value = c.name;
   if(el('rPhone')) el('rPhone').value = fmtPhone(c.phone);
 
+  if(Array.isArray(c.priorities)){
+    document.querySelectorAll('input[name="rPriority"]').forEach(cb => {
+      cb.checked = c.priorities.includes(cb.value);
+    });
+  }
+
   const card = el('rSelectedClientCard');
   if(card){
     card.className = 'span2 selected-client-card show';
@@ -4914,6 +4957,7 @@ function clearSelectedReservationClient(){
   if(el('rLookup')) el('rLookup').value = '';
   if(el('rName')) el('rName').value = '';
   if(el('rPhone')) el('rPhone').value = '';
+  document.querySelectorAll('input[name="rPriority"]').forEach(cb => { cb.checked = false; });
   const card = el('rSelectedClientCard');
   if(card){ card.className = 'span2 selected-client-card'; card.innerHTML = ''; }
   el('rLookup')?.focus();
@@ -4930,6 +4974,22 @@ function openReservation(prefill=null, editId=null){
   el('modalTitle').textContent = isEditing ? 'Editar reserva' : 'Nova reserva';
   const prefillDate = normalizeDateIso(prefill?.date) || (isEditing ? '' : getLocalDateStr(0));
   const phoneVal = prefill?.phone ? fmtPhone(prefill.phone) : '';
+
+  let initialPrios = prefill?.priorities || [];
+  if((!initialPrios || !initialPrios.length) && editId){
+    const rFound = state.reservations.find(x => x.id === editId);
+    if(rFound && rFound.priorities) initialPrios = rFound.priorities;
+  }
+  if((!initialPrios || !initialPrios.length) && selectedReservationClientId){
+    const cFound = state.clients.find(x => x.id === selectedReservationClientId);
+    if(cFound && cFound.priorities) initialPrios = cFound.priorities;
+  }
+  if((!initialPrios || !initialPrios.length) && prefill?.phone){
+    const normP = normalizePhone(prefill.phone);
+    const cFound = state.clients.find(x => normalizePhone(x.phone) === normP);
+    if(cFound && cFound.priorities) initialPrios = cFound.priorities;
+  }
+  const currentPrios = Array.isArray(initialPrios) ? initialPrios : [];
 
   el('modalBody').innerHTML = `
     <form id="reservationForm">
@@ -4992,6 +5052,17 @@ function openReservation(prefill=null, editId=null){
         </div>
 
         <div class="field span2">
+          <label>Prioridade (Atendimento Preferencial)</label>
+          <div class="priority-checkbox-group" id="rPriorityGroup">
+            <label class="priority-pill-toggle"><input type="checkbox" name="rPriority" value="Gestante" ${currentPrios.includes('Gestante') ? 'checked' : ''}> <span>🤰 Gestante</span></label>
+            <label class="priority-pill-toggle"><input type="checkbox" name="rPriority" value="Idoso" ${currentPrios.includes('Idoso') ? 'checked' : ''}> <span>🧓 Idoso</span></label>
+            <label class="priority-pill-toggle"><input type="checkbox" name="rPriority" value="PCD" ${currentPrios.includes('PCD') ? 'checked' : ''}> <span>♿ PCD</span></label>
+            <label class="priority-pill-toggle"><input type="checkbox" name="rPriority" value='Com Criança "no colo"' ${currentPrios.includes('Com Criança "no colo"') ? 'checked' : ''}> <span>👶 Com Criança "no colo"</span></label>
+          </div>
+          <div class="field-help" style="margin-top:4px">Múltipla escolha. Sinaliza atendimento prioritário no salão e na reserva.</div>
+        </div>
+
+        <div class="field span2">
           <label>Observações</label>
           <textarea id="rNotes">${esc(prefill?.notes||'')}</textarea>
         </div>
@@ -5040,6 +5111,7 @@ function openReservation(prefill=null, editId=null){
   el('reservationForm').onsubmit = e => {
     e.preventDefault();
     const dVal = el('rDate').value, hVal = el('rHouse').value;
+    const selectedPriorities = Array.from(document.querySelectorAll('input[name="rPriority"]:checked')).map(cb => cb.value);
     const pending = {
       id: resId,
       clientId: selectedReservationClientId || null,
@@ -5050,6 +5122,7 @@ function openReservation(prefill=null, editId=null){
       time: el('rTime').value,
       house: hVal,
       status: el('rStatus').value,
+      priorities: selectedPriorities,
       notes: el('rNotes').value.trim()
     };
     const violations = checkReservationViolations(pending);
@@ -5061,7 +5134,32 @@ function openReservation(prefill=null, editId=null){
   };
 }
 function cycleReservation(id){const r=state.reservations.find(x=>x.id===id);if(!r)return;const a=['Pendente','Confirmada','Cancelada'];r.status=a[(a.indexOf(r.status)+1)%a.length];save();dbSyncReservation(r);renderReservations()}
-function convertReservation(id){const r=state.reservations.find(x=>x.id===id);if(!r)return;r.status='Convertida';save();go('checkin');el('ciPeople').value=r.people;el('ciHouse').value=r.house;if(r.notes)el('ciNotes').value=r.notes;const c=state.clients.find(x=>normalizePhone(x.phone)===normalizePhone(r.phone));if(c)selectCheckinClient(c.id);else{selectedCheckinClientId=null;el('ciLookup').value=r.name;el('ciPhone').value=fmtPhone(r.phone);el('ciName').value=r.name;lookupCheckinClient()}toast('Reserva carregada no check-in.')}
+function convertReservation(id){
+  const r=state.reservations.find(x=>x.id===id);
+  if(!r)return;
+  r.status='Convertida';
+  save();
+  go('checkin');
+  el('ciPeople').value=r.people;
+  el('ciHouse').value=r.house;
+  if(r.notes)el('ciNotes').value=r.notes;
+  const c=state.clients.find(x=>normalizePhone(x.phone)===normalizePhone(r.phone));
+  if(c)selectCheckinClient(c.id);
+  else{
+    selectedCheckinClientId=null;
+    el('ciLookup').value=r.name;
+    el('ciPhone').value=fmtPhone(r.phone);
+    el('ciName').value=r.name;
+    lookupCheckinClient();
+  }
+  const priosToCheck = (r.priorities && r.priorities.length) ? r.priorities : (c?.priorities || []);
+  if(priosToCheck && priosToCheck.length){
+    document.querySelectorAll('input[name="ciPriority"]').forEach(cb => {
+      if(priosToCheck.includes(cb.value)) cb.checked = true;
+    });
+  }
+  toast('Reserva carregada no check-in.');
+}
 function closeModal(){el('modal').classList.remove('show')}
 el('modal').onclick=e=>{if(e.target===el('modal'))closeModal()}
 function openNewClient(){
