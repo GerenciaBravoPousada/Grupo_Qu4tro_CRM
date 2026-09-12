@@ -300,7 +300,7 @@ body[data-house] .sidebar{background:linear-gradient(180deg,var(--nav),color-mix
    </nav>
   </div>
   <section class="view active" id="view-dashboard">
-   <div class="hero"><div><h2>Visão Geral</h2><p>Leitura operacional e estratégica da base de clientes.</p></div><div class="filters"><select id="dashHouse" class="control"><option value="all">Todas as casas</option><option value="Bravo Café">Bravo Café</option><option value="Café da Bravo Pousada">Café da Bravo Pousada</option><option value="Íconico">Iconiko</option><option value="Leña">Leña</option></select><select id="dashPeriod" class="control"><option value="all">Todo o histórico</option><option value="30">Últimos 30 dias</option><option value="90">Últimos 90 dias</option><option value="180">Últimos 180 dias</option></select></div></div>
+   <div class="hero"><div><h2>Visão Geral</h2><p>Leitura operacional e estratégica da base de clientes.</p></div><div class="filters"><select id="dashHouse" class="control"><option value="all">Todas as casas</option><option value="Bravo Café">Bravo Café</option><option value="Café da Bravo Pousada">Café da Bravo Pousada</option><option value="Íconico">Iconiko</option><option value="Leña">Leña</option></select><select id="dashPeriod" class="control"><option value="all">Todo o Período</option><option value="today">Hoje</option><option value="yesterday">Ontem</option><option value="7">Últimos 7 dias</option><option value="14">Últimos 14 dias</option><option value="30">Últimos 30 dias</option><option value="60">Últimos 60 dias</option><option value="90">Últimos 90 dias</option><option value="180">Últimos 180 dias</option><option value="custom">📅 Período específico...</option></select><button type="button" id="btnCustomPeriodEdit" class="btn ghost" style="display:none;padding:7px 12px;font-size:12px;border:1px solid var(--accent);border-radius:10px;background:#fff8ee;color:#8d642f;font-weight:700" onclick="openCustomPeriodModal()" title="Alterar período específico">📅 <span id="customPeriodBadgeText"></span> ✎</button></div></div>
    <div class="cards" id="metrics"></div>
    <div class="grid2"><div class="card"><div class="section-title"><h3>Origem dos clientes</h3><small>visitas filtradas</small></div><div id="sourceBars"></div></div><div class="card"><div class="section-title"><h3>Novo × Recorrente</h3><small>classificação da visita</small></div><div id="statusDonut" class="donut-wrap"></div></div></div>
    <div class="grid3"><div class="card"><div class="section-title"><h3>Casas</h3></div><div id="houseBars"></div></div><div class="card"><div class="section-title"><h3>Últimos check-ins</h3><button class="btn ghost" onclick="go('checkin')">Novo</button></div><div id="recentVisits"></div></div><div class="card"><div class="section-title"><h3>Alertas comerciais</h3></div><div id="quickInsights"></div></div></div>
@@ -316,7 +316,7 @@ body[data-house] .sidebar{background:linear-gradient(180deg,var(--nav),color-mix
   </section>
 
   <section class="view" id="view-checkin">
-   <div class="hero"><div><h2>Novo Check-in</h2><p>Localize primeiro quem já é cliente. Busque por nome, sobrenome, telefone completo ou últimos dígitos.</p></div><div class="kpi-strip"><div class="kpi-chip"><span>Check-ins hoje</span><strong id="todayCheckins">0</strong></div><div class="kpi-chip"><span>Pessoas hoje</span><strong id="todayPeople">0</strong></div></div></div>
+   <div class="hero"><div><h2>Novo Check-in</h2><p>Localize primeiro quem já é cliente. Busque por nome, sobrenome, telefone completo ou últimos dígitos.</p></div><div class="kpi-strip"><div class="kpi-chip"><span>Check-ins hoje</span><strong id="todayCheckins">0</strong></div><div class="kpi-chip"><span>Pessoas hoje</span><strong id="todayPeople">0</strong></div><button type="button" class="kpi-chip" id="btnViewCheckinsList" onclick="openCheckinListModal()" style="cursor:pointer;background:linear-gradient(135deg, #132c39, #0f202a);color:#fff;border-color:#1e3a4b;text-align:left;display:flex;flex-direction:column;justify-content:center;gap:3px;transition:all .15s ease" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='#1e3a4b'"><span style="color:#94a3b8;font-size:10px;text-transform:uppercase;letter-spacing:.5px">Registros do Salão</span><strong style="color:#e5bd7e;font-size:13.5px;display:flex;align-items:center;gap:6px">📋 Ver lista check-ins →</strong></button></div></div>
    <div class="card form-shell checkin-shell"><div class="checkin-brand-banner" id="checkinBrandBanner"><img id="checkinHouseLogo" alt="Casa do check-in" onerror="this.style.display='none'" onload="this.style.display=''"><div class="checkin-brand-copy"><strong id="checkinHouseName">Check-in</strong><span id="checkinHouseSubtitle">Recepção selecionada para este atendimento</span><div class="house-badge">Check-in presencial</div></div><div class="checkin-brand-side">A casa acompanha a seleção abaixo<br>e pode ser alterada antes da confirmação.</div></div><form id="checkinForm"><div class="form-grid"><div class="field span2 client-lookup"><label>Localizar cliente existente</label><input id="ciLookup" autocomplete="off" placeholder="Ex.: Jean Balan, Balan, 3106 ou telefone completo"><div class="lookup-help">Nome/sobrenome: digite pelo menos 2 caracteres. Telefone parcial: digite pelo menos os 4 últimos números.</div><div class="lookup-results" id="ciLookupResults"></div></div><div class="span2 selected-client-card" id="selectedClientCard"></div><div class="checkin-status span2" id="clientFound"></div><div class="field"><label>Nome do cliente *</label><input id="ciName" required placeholder="Nome e sobrenome"></div><div class="field"><label>Telefone *</label><input id="ciPhone" inputmode="tel" placeholder="(22) 99999-9999" required></div><div class="field"><label>Casa *</label><select id="ciHouse" required><option value="Bravo Café">Bravo Café</option><option value="Café da Bravo Pousada">Café da Bravo Pousada</option><option value="Íconico">Iconiko Cozinha Japonesa</option><option value="Leña">Leña Casa Italiana</option></select><div class="reception-note">Preenchida automaticamente pela recepção escolhida no início do turno. Pode ser alterada antes da confirmação.</div></div><div class="field"><label>Nº de pessoas *</label><input id="ciPeople" type="number" min="1" value="2" required></div><div class="field"><label>Mesa</label><input id="ciTable" inputmode="numeric"></div><div class="field"><label>Como nos conheceu?</label><select id="ciSource"><option>Da casa</option><option>Instagram</option><option>Google</option><option>Indicação</option><option>Passagem/Passante</option><option>TikTok</option><option>Outro</option></select></div><div class="field"><label>Horário de check-in</label><input id="ciArrival" type="time"><div class="reception-note">Se ficar em branco, será gravado o horário exato do clique em “Confirmar check-in”.</div></div><div class="field span2"><label>Prioridade (Atendimento Preferencial)</label><div class="priority-checkbox-group" id="ciPriorityGroup"><label class="priority-pill-toggle"><input type="checkbox" name="ciPriority" value="Gestante"> <span>🤰 Gestante</span></label><label class="priority-pill-toggle"><input type="checkbox" name="ciPriority" value="Idoso"> <span>🧓 Idoso</span></label><label class="priority-pill-toggle"><input type="checkbox" name="ciPriority" value="PCD"> <span>♿ PCD</span></label><label class="priority-pill-toggle"><input type="checkbox" name="ciPriority" value='Com Criança "no colo"'> <span>👶 Com Criança "no colo"</span></label></div><div class="field-help" style="margin-top:4px">Múltipla escolha. Sinaliza atendimento prioritário no salão e no cadastro do cliente.</div></div><div class="field span2"><label>Observações</label><textarea id="ciNotes" placeholder="Preferências, restrições, observações operacionais..."></textarea></div></div><div class="form-actions"><button type="reset" class="btn">Limpar</button><button type="submit" class="btn gold">✓ Confirmar check-in</button></div></form></div>
   </section>
 
@@ -1242,17 +1242,253 @@ function updateOpWaitlistBadge(){
     b.style.display = 'none';
   }
 }
+let dashCustomStart = '';
+let dashCustomEnd = '';
+let lastDashPeriodValue = 'all';
+
+function getLocalDateStr(d = new Date()){
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+function getPastDateStr(daysAgo){
+  const d = new Date();
+  d.setDate(d.getDate() - daysAgo);
+  return getLocalDateStr(d);
+}
+
+function normalizeDateOnly(dateVal){
+  if(!dateVal) return '';
+  const s = String(dateVal).trim();
+  if(/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
+  if(/^\d{2}\/\d{2}\/\d{4}/.test(s)){
+    const parts = s.split('/');
+    return `${parts[2]}-${parts[1]}-${parts[0]}`;
+  }
+  return s.slice(0, 10);
+}
+
 function filteredVisits(){
   let a = [...state.visits], h = el('dashHouse')?.value || 'all', p = el('dashPeriod')?.value || 'all';
   const normH = normalizeHouseKey(h);
   if(normH !== 'all'){
     a = a.filter(v => normalizeHouseKey(v.house) === normH);
   }
-  if(p !== 'all'){
-    const lim = Number(p);
-    a = a.filter(v => daysSince(v.date) <= lim);
+  if(p === 'all'){
+    return a;
+  }
+  const todayStr = getLocalDateStr();
+  if(p === 'today'){
+    return a.filter(v => normalizeDateOnly(v.date) === todayStr);
+  }
+  if(p === 'yesterday'){
+    const yesterdayStr = getPastDateStr(1);
+    return a.filter(v => normalizeDateOnly(v.date) === yesterdayStr);
+  }
+  if(p === 'custom'){
+    const start = dashCustomStart ? normalizeDateOnly(dashCustomStart) : '';
+    const end = dashCustomEnd ? normalizeDateOnly(dashCustomEnd) : '';
+    return a.filter(v => {
+      const vd = normalizeDateOnly(v.date);
+      if(!vd) return false;
+      if(start && vd < start) return false;
+      if(end && vd > end) return false;
+      return true;
+    });
+  }
+  const lim = Number(p);
+  if(!isNaN(lim) && lim > 0){
+    const startStr = getPastDateStr(lim);
+    return a.filter(v => {
+      const vd = normalizeDateOnly(v.date);
+      return vd >= startStr && vd <= todayStr;
+    });
   }
   return a;
+}
+
+function handleDashPeriodChange(){
+  const p = el('dashPeriod')?.value;
+  if(p === 'custom'){
+    openCustomPeriodModal();
+  } else {
+    lastDashPeriodValue = p;
+    const optCustom = el('dashPeriod')?.querySelector('option[value="custom"]');
+    if(optCustom) optCustom.textContent = '📅 Período específico...';
+    const badge = el('btnCustomPeriodEdit');
+    if(badge) badge.style.display = 'none';
+    renderDashboard();
+  }
+}
+
+function openCustomPeriodModal(){
+  const curStart = dashCustomStart || getPastDateStr(7);
+  const curEnd = dashCustomEnd || getLocalDateStr();
+
+  el('modalTitle').textContent = '📅 Selecionar Período Específico';
+  el('modalBody').innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:16px">
+      <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:12px 14px;font-size:12.5px;color:#475569;line-height:1.4">
+        Escolha as datas inicial (<strong>De</strong>) e final (<strong>Até</strong>) para filtrar os dados da <strong>Visão Geral</strong>.
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:14px">
+        <div class="field">
+          <label style="display:flex;align-items:center;gap:5px;font-weight:700;font-size:12px;margin-bottom:6px;color:#334155">
+            📅 Data Inicial (De):
+          </label>
+          <input type="date" id="dashCustomStartDate" class="control" value="${esc(curStart)}" style="width:100%;padding:10px 12px;font-size:13px;border-radius:10px;border:1.5px solid var(--line);background:#fff" onchange="updateCustomPeriodSpanInfo()">
+        </div>
+        <div class="field">
+          <label style="display:flex;align-items:center;gap:5px;font-weight:700;font-size:12px;margin-bottom:6px;color:#334155">
+            📅 Data Final (Até):
+          </label>
+          <input type="date" id="dashCustomEndDate" class="control" value="${esc(curEnd)}" style="width:100%;padding:10px 12px;font-size:13px;border-radius:10px;border:1.5px solid var(--line);background:#fff" onchange="updateCustomPeriodSpanInfo()">
+        </div>
+      </div>
+
+      <div>
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted);margin-bottom:8px">
+          Atalhos Rápidos:
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px">
+          <button type="button" class="btn ghost" style="padding:5px 9px;font-size:11.5px" onclick="setCustomPeriodPreset('today')">Hoje</button>
+          <button type="button" class="btn ghost" style="padding:5px 9px;font-size:11.5px" onclick="setCustomPeriodPreset('yesterday')">Ontem</button>
+          <button type="button" class="btn ghost" style="padding:5px 9px;font-size:11.5px" onclick="setCustomPeriodPreset('7')">Últimos 7 dias</button>
+          <button type="button" class="btn ghost" style="padding:5px 9px;font-size:11.5px" onclick="setCustomPeriodPreset('14')">Últimos 14 dias</button>
+          <button type="button" class="btn ghost" style="padding:5px 9px;font-size:11.5px" onclick="setCustomPeriodPreset('30')">Últimos 30 dias</button>
+          <button type="button" class="btn ghost" style="padding:5px 9px;font-size:11.5px" onclick="setCustomPeriodPreset('month')">Este Mês</button>
+          <button type="button" class="btn ghost" style="padding:5px 9px;font-size:11.5px" onclick="setCustomPeriodPreset('prevMonth')">Mês Passado</button>
+        </div>
+      </div>
+
+      <div id="customPeriodSpanInfo" style="font-size:12px;color:#1e293b;padding:9px 12px;background:#f1f5f9;border-radius:8px;display:flex;align-items:center;justify-content:space-between">
+        <span>Calculando intervalo...</span>
+      </div>
+
+      <div class="form-actions" style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
+        <button type="button" class="btn ghost" style="color:#64748b" onclick="cancelCustomPeriodModal()">Cancelar</button>
+        <div style="display:flex;gap:8px">
+          <button type="button" class="btn ghost" onclick="clearCustomPeriod()">Limpar / Todo o Período</button>
+          <button type="button" class="btn gold" style="padding:9px 18px;font-weight:700" onclick="applyCustomPeriod()">✓ Aplicar Período</button>
+        </div>
+      </div>
+    </div>
+  `;
+  el('modal').classList.add('show');
+  updateCustomPeriodSpanInfo();
+}
+
+function setCustomPeriodPreset(preset){
+  const today = new Date();
+  let s = '', e = getLocalDateStr(today);
+  if(preset === 'today'){
+    s = e;
+  } else if(preset === 'yesterday'){
+    const y = new Date(); y.setDate(y.getDate() - 1);
+    s = getLocalDateStr(y);
+    e = s;
+  } else if(preset === '7'){
+    s = getPastDateStr(6);
+  } else if(preset === '14'){
+    s = getPastDateStr(13);
+  } else if(preset === '30'){
+    s = getPastDateStr(29);
+  } else if(preset === 'month'){
+    s = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-01`;
+  } else if(preset === 'prevMonth'){
+    const d = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+    const y = d.getFullYear(), m = d.getMonth() + 1;
+    const lastDay = new Date(y, m, 0).getDate();
+    s = `${y}-${String(m).padStart(2, '0')}-01`;
+    e = `${y}-${String(m).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+  }
+  if(el('dashCustomStartDate')) el('dashCustomStartDate').value = s;
+  if(el('dashCustomEndDate')) el('dashCustomEndDate').value = e;
+  updateCustomPeriodSpanInfo();
+}
+
+function updateCustomPeriodSpanInfo(){
+  const s = el('dashCustomStartDate')?.value;
+  const e = el('dashCustomEndDate')?.value;
+  const info = el('customPeriodSpanInfo');
+  if(!info) return;
+
+  if(!s && !e){
+    info.innerHTML = '<span>Intervalo: <strong>Selecione as datas</strong></span>';
+  } else if(s && !e){
+    info.innerHTML = `<span>A partir de: <strong>${fmtDate(s)}</strong></span>`;
+  } else if(!s && e){
+    info.innerHTML = `<span>Até: <strong>${fmtDate(e)}</strong></span>`;
+  } else {
+    if(s > e){
+      info.innerHTML = `<span style="color:#b91c1c;font-weight:700">⚠️ A data inicial não pode ser posterior à data final.</span>`;
+    } else {
+      const d1 = new Date(s + 'T00:00:00');
+      const d2 = new Date(e + 'T00:00:00');
+      const diffDays = Math.round((d2 - d1) / (1000 * 60 * 60 * 24)) + 1;
+      info.innerHTML = `<span>Intervalo: <strong>${fmtDate(s)}</strong> até <strong>${fmtDate(e)}</strong> (${diffDays} ${diffDays === 1 ? 'dia' : 'dias'})</span>`;
+    }
+  }
+}
+
+function applyCustomPeriod(){
+  const s = el('dashCustomStartDate')?.value;
+  const e = el('dashCustomEndDate')?.value;
+  if(!s && !e){
+    toast('Selecione pelo menos uma data.');
+    return;
+  }
+  if(s && e && s > e){
+    toast('A data inicial não pode ser posterior à data final.');
+    return;
+  }
+  dashCustomStart = s;
+  dashCustomEnd = e;
+  lastDashPeriodValue = 'custom';
+
+  const label = (s && e && s === e) ? `📅 ${fmtDate(s)}` : `📅 ${fmtDate(s || 'Início')} a ${fmtDate(e || 'Hoje')}`;
+  const optCustom = el('dashPeriod')?.querySelector('option[value="custom"]');
+  if(optCustom) optCustom.textContent = label;
+  if(el('dashPeriod')) el('dashPeriod').value = 'custom';
+
+  const badge = el('btnCustomPeriodEdit');
+  const badgeText = el('customPeriodBadgeText');
+  if(badge && badgeText){
+    badgeText.textContent = (s && e && s === e) ? fmtDate(s) : `${fmtDate(s || '...')} a ${fmtDate(e || '...')}`;
+    badge.style.display = 'inline-flex';
+  }
+
+  closeModal();
+  renderDashboard();
+  toast('Período específico aplicado com sucesso!');
+}
+
+function cancelCustomPeriodModal(){
+  closeModal();
+  if(!dashCustomStart && !dashCustomEnd){
+    if(el('dashPeriod')) el('dashPeriod').value = lastDashPeriodValue !== 'custom' ? lastDashPeriodValue : 'all';
+    const badge = el('btnCustomPeriodEdit');
+    if(badge) badge.style.display = 'none';
+  } else {
+    if(el('dashPeriod')) el('dashPeriod').value = 'custom';
+  }
+}
+
+function clearCustomPeriod(){
+  dashCustomStart = '';
+  dashCustomEnd = '';
+  if(el('dashPeriod')) el('dashPeriod').value = 'all';
+  lastDashPeriodValue = 'all';
+  const optCustom = el('dashPeriod')?.querySelector('option[value="custom"]');
+  if(optCustom) optCustom.textContent = '📅 Período específico...';
+  const badge = el('btnCustomPeriodEdit');
+  if(badge) badge.style.display = 'none';
+  closeModal();
+  renderDashboard();
+  toast('Filtro redefinido para todo o período.');
 }
 function renderDashboard(){const vv=filteredVisits();const phones=new Set(vv.map(v=>digits(v.phone)).filter(Boolean));const newN=vv.filter(v=>(v.status||'').toLowerCase().includes('novo')).length, recN=vv.filter(v=>(v.status||'').toLowerCase().includes('recorr')).length;const people=vv.reduce((s,v)=>s+(+v.people||0),0);const avg=vv.length?people/vv.length:0;const metrics=[['Clientes únicos',phones.size.toLocaleString('pt-BR'),'na seleção'],['Visitas',vv.length.toLocaleString('pt-BR'),'registros'],['Pessoas atendidas',people.toLocaleString('pt-BR'),`${avg.toFixed(1)} por visita`],['Taxa recorrência',((recN/Math.max(1,newN+recN))*100).toFixed(1)+'%','das visitas classificadas']];el('metrics').innerHTML=metrics.map(m=>`<div class="card metric"><div class="label">${m[0]}</div><div class="value">${m[1]}</div><div class="delta">${m[2]}</div></div>`).join('');
  const counts={};vv.forEach(v=>counts[v.source||'Não informado']=(counts[v.source||'Não informado']||0)+1);const top=Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,7),max=top[0]?.[1]||1;el('sourceBars').innerHTML=top.map(([k,n])=>`<div class="barrow"><span title="${esc(k)}">${esc(k.slice(0,18))}</span><div class="bartrack"><div class="bar" style="width:${n/max*100}%"></div></div><strong>${n}</strong></div>`).join('')||'<div class="empty">Sem dados</div>';
@@ -1260,7 +1496,356 @@ function renderDashboard(){const vv=filteredVisits();const phones=new Set(vv.map
  const hc={Íconico:0,Leña:0};vv.forEach(v=>hc[v.house]=(hc[v.house]||0)+1);const hm=Math.max(...Object.values(hc),1);el('houseBars').innerHTML=Object.entries(hc).map(([k,n])=>`<div class="barrow"><span>${k}</span><div class="bartrack"><div class="bar" style="width:${n/hm*100}%"></div></div><strong>${n}</strong></div>`).join('');
  el('recentVisits').innerHTML=vv.slice(0,5).map(v=>`<div class="visit-item"><div class="date">${fmtDate(v.date)}<br>${esc(v.arrival||'')}</div><div><strong>${esc(v.name)}</strong><p>${esc(v.house)} • ${v.people} pessoa(s) • Mesa ${esc(v.table||'—')}</p></div><span class="badge ${v.status?.toLowerCase().includes('recorr')?'gold':'blue'}">${esc(v.status||'—')}</span></div>`).join('')||'<div class="empty">Sem visitas</div>';renderQuickInsights()}
 function renderQuickInsights(){const cc=state.clients.map(calcClient);const risk=cc.filter(c=>c.totalVisits>=2&&daysSince(c.lastVisit)>90).length;const crossI=cc.filter(c=>c.iconico>0&&c.lena===0).length;const crossL=cc.filter(c=>c.lena>0&&c.iconico===0).length;el('quickInsights').innerHTML=`<div class="insight"><strong>${risk.toLocaleString('pt-BR')} clientes em risco</strong><p>2+ visitas e mais de 90 dias sem retornar.</p></div><div class="insight"><strong>${crossI.toLocaleString('pt-BR')} só no Íconico</strong><p>Potencial de convite para conhecer o Leña.</p></div><div class="insight"><strong>${crossL.toLocaleString('pt-BR')} só no Leña</strong><p>Potencial de convite para conhecer o Íconico.</p></div>`}
-el('dashHouse').onchange=renderDashboard;el('dashPeriod').onchange=renderDashboard;
+el('dashHouse').onchange = renderDashboard;
+el('dashPeriod').onchange = handleDashPeriodChange;
+
+/* ==========================================================================
+   CONSULTA E EDIÇÃO DE CHECK-INS DO SALÃO
+   ========================================================================== */
+
+let checkinListDateMode = 'today';
+let checkinListSelectedDate = '';
+
+function getEffectiveCheckinListDate(){
+  if(checkinListDateMode === 'today'){
+    return getLocalDateStr();
+  } else if(checkinListDateMode === 'yesterday'){
+    return getPastDateStr(1);
+  } else if(checkinListDateMode === 'custom'){
+    return checkinListSelectedDate || getLocalDateStr();
+  }
+  return getLocalDateStr();
+}
+
+function openCheckinListModal(){
+  const curHouse = normalizeHouseKey(getSessionHouse());
+  const curDate = getEffectiveCheckinListDate();
+
+  el('modalTitle').textContent = '📋 Lista de Check-ins do Salão';
+  el('modalBody').innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <!-- Filter Bar -->
+      <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:12px">
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <label style="font-size:11px;font-weight:700;color:#64748b">Ponto de vista (Data):</label>
+          <div style="display:flex;gap:6px;align-items:center">
+            <select id="checkinListDateFilter" class="control" style="font-size:12.5px;font-weight:700;padding:8px 10px" onchange="handleCheckinListDateFilterChange()">
+              <option value="today" ${checkinListDateMode === 'today' ? 'selected' : ''}>Hoje</option>
+              <option value="yesterday" ${checkinListDateMode === 'yesterday' ? 'selected' : ''}>Ontem</option>
+              <option value="custom" ${checkinListDateMode === 'custom' ? 'selected' : ''}>📅 Data específica (1 dia)...</option>
+            </select>
+            <input type="date" id="checkinListSingleDate" class="control" value="${esc(curDate)}" style="display:${checkinListDateMode === 'custom' ? 'inline-block' : 'none'};padding:7px 10px;font-size:12.5px" onchange="handleCheckinListSingleDateChange()">
+          </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <label style="font-size:11px;font-weight:700;color:#64748b">Casa / Recepção:</label>
+          <select id="checkinListHouseFilter" class="control" style="font-size:12.5px;padding:8px 10px" onchange="renderCheckinList()">
+            <option value="session" selected>Esta recepção (${esc(houseLabel(curHouse))})</option>
+            <option value="all">Todas as casas</option>
+            <option value="Leña">Leña Casa Italiana</option>
+            <option value="Íconico">Iconiko Cozinha Japonesa</option>
+            <option value="Bravo Café">Bravo Café</option>
+            <option value="Café da Bravo Pousada">Café da Bravo Pousada</option>
+          </select>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:4px;flex:1;min-width:180px">
+          <label style="font-size:11px;font-weight:700;color:#64748b">Buscar na lista:</label>
+          <input type="text" id="checkinListSearch" placeholder="Nome, telefone, mesa..." class="control" style="font-size:12px;padding:8px 10px" oninput="renderCheckinList()">
+        </div>
+      </div>
+
+      <!-- KPI Summary bar -->
+      <div id="checkinListKpiSummary" style="display:flex;gap:14px;align-items:center;background:#f1f5f9;border-radius:10px;padding:9px 14px;font-size:12px;font-weight:600;color:#334155">
+      </div>
+
+      <!-- Checkins Table / List container -->
+      <div class="table-wrap" style="max-height:55vh;overflow-y:auto;border:1px solid var(--line);border-radius:12px">
+        <table class="data-table" style="min-width:720px;font-size:12px">
+          <thead>
+            <tr>
+              <th style="width:70px">Horário</th>
+              <th>Cliente</th>
+              <th>Telefone</th>
+              <th style="width:65px;text-align:center">Pessoas</th>
+              <th style="width:65px;text-align:center">Mesa</th>
+              <th>Casa</th>
+              <th>Origem</th>
+              <th>Status / Obs</th>
+              <th style="text-align:right;width:85px">Ação</th>
+            </tr>
+          </thead>
+          <tbody id="checkinListTbody"></tbody>
+        </table>
+      </div>
+
+      <div class="form-actions" style="margin-top:6px;display:flex;justify-content:flex-end">
+        <button type="button" class="btn" onclick="closeModal()">Fechar</button>
+      </div>
+    </div>
+  `;
+  el('modal').classList.add('show');
+  renderCheckinList();
+}
+
+function handleCheckinListDateFilterChange(){
+  const mode = el('checkinListDateFilter')?.value || 'today';
+  checkinListDateMode = mode;
+  const singleDateInput = el('checkinListSingleDate');
+  if(mode === 'custom'){
+    if(singleDateInput){
+      singleDateInput.style.display = 'inline-block';
+      if(!checkinListSelectedDate) checkinListSelectedDate = getLocalDateStr();
+      singleDateInput.value = checkinListSelectedDate;
+      singleDateInput.focus();
+    }
+  } else {
+    if(singleDateInput) singleDateInput.style.display = 'none';
+  }
+  renderCheckinList();
+}
+
+function handleCheckinListSingleDateChange(){
+  const val = el('checkinListSingleDate')?.value;
+  if(val){
+    checkinListSelectedDate = val;
+    renderCheckinList();
+  }
+}
+
+function renderCheckinList(){
+  const tbody = el('checkinListTbody');
+  if(!tbody) return;
+
+  const targetDate = getEffectiveCheckinListDate();
+  const houseFilter = el('checkinListHouseFilter')?.value || 'session';
+  const query = (el('checkinListSearch')?.value || '').toLowerCase().trim();
+
+  const sessionHouse = normalizeHouseKey(getSessionHouse());
+
+  let list = state.visits.filter(v => normalizeDateOnly(v.date) === targetDate);
+
+  if(houseFilter === 'session'){
+    if(sessionHouse !== 'all'){
+      list = list.filter(v => normalizeHouseKey(v.house) === sessionHouse);
+    }
+  } else if(houseFilter !== 'all'){
+    list = list.filter(v => normalizeHouseKey(v.house) === normalizeHouseKey(houseFilter));
+  }
+
+  if(query){
+    list = list.filter(v => 
+      (v.name && v.name.toLowerCase().includes(query)) ||
+      (v.phone && digits(v.phone).includes(digits(query))) ||
+      (v.table && String(v.table).toLowerCase().includes(query)) ||
+      (v.notes && v.notes.toLowerCase().includes(query))
+    );
+  }
+
+  // Sort by arrival descending (latest first)
+  list.sort((a, b) => (b.arrival || '').localeCompare(a.arrival || ''));
+
+  const totalPeople = list.reduce((sum, v) => sum + (+v.people || 0), 0);
+  const kpiEl = el('checkinListKpiSummary');
+  if(kpiEl){
+    kpiEl.innerHTML = `
+      <span>📅 Data: <strong>${fmtDate(targetDate)}</strong></span>
+      <span>•</span>
+      <span>Total Check-ins: <strong style="color:var(--accent)">${list.length}</strong></span>
+      <span>•</span>
+      <span>Pessoas Atendidas: <strong style="color:#15803d">${totalPeople}</strong></span>
+    `;
+  }
+
+  if(!list.length){
+    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:32px 14px;color:var(--muted)">Nenhum check-in registrado para <strong>${fmtDate(targetDate)}</strong>.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = list.map(v => {
+    const isEdited = (v.notes || '').includes('[Editado') || v.lastEditedReason;
+    return `
+      <tr>
+        <td><strong>${esc(v.arrival || '—')}</strong></td>
+        <td>
+          <div class="person" style="gap:6px">
+            <div>
+              <strong>${esc(v.name)}</strong>
+              ${isEdited ? `<span class="badge warn" style="font-size:9.5px;padding:1px 5px;margin-left:4px" title="${esc(v.lastEditedReason || 'Registro alterado')}">Editado</span>` : ''}
+            </div>
+          </div>
+        </td>
+        <td>${fmtPhone(v.phone)}</td>
+        <td style="text-align:center"><strong>${v.people}</strong></td>
+        <td style="text-align:center">${v.table ? `<span style="background:#f1f5f9;padding:2px 6px;border-radius:6px;font-weight:700">${esc(v.table)}</span>` : '—'}</td>
+        <td><small>${esc(houseLabel(v.house))}</small></td>
+        <td><small style="color:var(--muted)">${esc(v.source || '—')}</small></td>
+        <td>
+          <span class="badge ${v.status?.toLowerCase().includes('recorr') ? 'gold' : 'blue'}" style="font-size:10px">${esc(v.status || 'Novo')}</span>
+          ${v.notes ? `<div style="font-size:10.5px;color:var(--muted);margin-top:2px;max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${esc(v.notes)}">${esc(v.notes)}</div>` : ''}
+        </td>
+        <td style="text-align:right">
+          <button type="button" class="btn ghost" onclick="openEditCheckinModal('${esc(v.id)}')" style="padding:4px 8px;font-size:11.5px;font-weight:700;border:1px solid #cbd5e1;border-radius:8px;background:#fff" title="Editar informações deste check-in">
+            ✎ Editar
+          </button>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function openEditCheckinModal(visitId){
+  const v = state.visits.find(x => x.id === visitId);
+  if(!v){
+    toast('Check-in não encontrado.');
+    return;
+  }
+
+  el('modalTitle').textContent = `✎ Editar Check-in — ${v.name}`;
+  el('modalBody').innerHTML = `
+    <form id="editCheckinForm" onsubmit="event.preventDefault(); submitEditCheckinForm('${esc(v.id)}');">
+      <div class="form-grid" style="gap:12px">
+        <div class="field">
+          <label>Nome do Cliente *</label>
+          <input type="text" id="editCiName" value="${esc(v.name)}" required>
+        </div>
+        <div class="field">
+          <label>Telefone / WhatsApp *</label>
+          <input type="tel" id="editCiPhone" value="${esc(v.phone)}" required>
+        </div>
+        <div class="field">
+          <label>Nº de Pessoas *</label>
+          <input type="number" id="editCiPeople" value="${v.people}" min="1" required>
+        </div>
+        <div class="field">
+          <label>Mesa</label>
+          <input type="text" id="editCiTable" value="${esc(v.table || '')}">
+        </div>
+        <div class="field">
+          <label>Horário de Chegada</label>
+          <input type="time" id="editCiArrival" value="${esc(v.arrival || '')}">
+        </div>
+        <div class="field">
+          <label>Casa / Restaurante *</label>
+          <select id="editCiHouse" required>
+            <option value="Leña" ${normalizeHouseKey(v.house) === 'Leña' ? 'selected' : ''}>Leña Casa Italiana</option>
+            <option value="Íconico" ${normalizeHouseKey(v.house) === 'Íconico' ? 'selected' : ''}>Iconiko Cozinha Japonesa</option>
+            <option value="Bravo Café" ${normalizeHouseKey(v.house) === 'Bravo Café' ? 'selected' : ''}>Bravo Café</option>
+            <option value="Café da Bravo Pousada" ${normalizeHouseKey(v.house) === 'Café da Bravo Pousada' ? 'selected' : ''}>Café da Bravo Pousada</option>
+          </select>
+        </div>
+        <div class="field span2">
+          <label>Como nos conheceu? (Origem)</label>
+          <select id="editCiSource">
+            <option ${v.source === 'Da casa' ? 'selected' : ''}>Da casa</option>
+            <option ${v.source === 'Instagram' ? 'selected' : ''}>Instagram</option>
+            <option ${v.source === 'Google' ? 'selected' : ''}>Google</option>
+            <option ${v.source === 'Indicação' ? 'selected' : ''}>Indicação</option>
+            <option ${v.source === 'Passagem/Passante' ? 'selected' : ''}>Passagem/Passante</option>
+            <option ${v.source === 'TikTok' ? 'selected' : ''}>TikTok</option>
+            <option ${v.source === 'Outro' ? 'selected' : ''}>Outro</option>
+          </select>
+        </div>
+        <div class="field span2">
+          <label>Observações</label>
+          <textarea id="editCiNotes" style="min-height:60px">${esc(v.notes || '')}</textarea>
+        </div>
+
+        <!-- MOTIVO DA ALTERAÇÃO OBRIGATÓRIO -->
+        <div class="field span2" style="background:#fffbeb;border:1.5px solid #fde68a;border-radius:12px;padding:12px;margin-top:4px">
+          <label style="color:#92400e;font-weight:800;font-size:12px;display:flex;align-items:center;gap:6px">
+            ⚠️ Motivo da Alteração * (Obrigatório para confirmação e auditoria)
+          </label>
+          <input type="text" id="editCiReason" required placeholder="Ex.: Garçom informou mudança de mesa 12 para 14, erro no nº de pessoas..." style="margin-top:6px;width:100%;background:#fff;border-color:#f59e0b">
+          <small style="color:#b45309;font-size:10.5px;display:block;margin-top:4px">
+            O motivo e o usuário responsável serão registrados no histórico desta visita para controle gerencial.
+          </small>
+        </div>
+      </div>
+
+      <div class="form-actions" style="margin-top:16px;display:flex;justify-content:space-between;align-items:center">
+        <button type="button" class="btn" onclick="openCheckinListModal()">← Voltar à Lista</button>
+        <button type="submit" class="btn gold" style="font-weight:700">✓ Salvar Alterações</button>
+      </div>
+    </form>
+  `;
+  setTimeout(() => el('editCiReason')?.focus(), 150);
+}
+
+function submitEditCheckinForm(visitId){
+  const v = state.visits.find(x => x.id === visitId);
+  if(!v) return;
+
+  const reason = (el('editCiReason')?.value || '').trim();
+  if(!reason || reason.length < 3){
+    toast('Por favor, informe o motivo da alteração (mínimo 3 letras).');
+    el('editCiReason')?.focus();
+    return;
+  }
+
+  const newName = (el('editCiName')?.value || '').trim();
+  if(!newName){
+    toast('Informe o nome do cliente.');
+    el('editCiName')?.focus();
+    return;
+  }
+
+  let phoneVal = (el('editCiPhone')?.value || '').trim();
+  let finalPhone = v.phone || '';
+  if(phoneVal && phoneVal !== '0' && phoneVal !== '—'){
+    const pv = validatePhone(phoneVal);
+    if(pv.ok){
+      finalPhone = pv.value;
+    } else if(digits(phoneVal).length >= 8){
+      toast(pv.msg);
+      el('editCiPhone')?.focus();
+      return;
+    } else {
+      finalPhone = phoneVal;
+    }
+  }
+
+  const newPeople = +el('editCiPeople')?.value || 1;
+  const newTable = (el('editCiTable')?.value || '').trim();
+  const newArrival = el('editCiArrival')?.value || v.arrival;
+  const newHouse = el('editCiHouse')?.value || v.house;
+  const newSource = el('editCiSource')?.value || v.source;
+  const newNotes = (el('editCiNotes')?.value || '').trim();
+
+  // Pedir confirmação e motivo antes de salvar conforme solicitado
+  const confirmMsg = `Confirma a alteração do check-in de "${v.name}"?\n\n• Motivo registrado: "${reason}"\n• Novo cliente: ${newName}\n• Pessoas: ${newPeople}\n• Mesa: ${newTable || '—'}`;
+  if(!confirm(confirmMsg)){
+    return;
+  }
+
+  // Grava auditoria e atualiza visita
+  const u = (typeof getCurrentUser === 'function') ? getCurrentUser() : null;
+  const userName = u?.name || 'Operador';
+  const nowStamp = new Date().toLocaleDateString('pt-BR') + ' às ' + currentClock();
+  const auditLog = `\n[Editado em ${nowStamp} por ${userName} — Motivo: ${reason}]`;
+
+  v.name = newName;
+  v.phone = finalPhone;
+  v.people = newPeople;
+  v.table = newTable;
+  v.arrival = newArrival;
+  v.house = newHouse;
+  v.source = newSource;
+  v.notes = newNotes + auditLog;
+  v.lastEditedAt = new Date().toISOString();
+  v.lastEditedBy = userName;
+  v.lastEditedReason = reason;
+
+  save();
+  dbSyncVisit(v);
+
+  renderCheckinStats();
+  renderDashboard();
+
+  toast(`Check-in de ${newName} atualizado com sucesso!`);
+  openCheckinListModal();
+}
 
 const PRIORITY_OPTIONS = [
   { id: 'Gestante', label: 'Gestante', icon: '🤰', color: '#be185d', bg: '#fdf2f8', border: '#fbcfe8' },
