@@ -1503,6 +1503,7 @@ async function pullAllFromSupabase(){
             const parsedMaps = JSON.parse(rc.notes);
             if(parsedMaps && Array.isArray(parsedMaps.maps) && parsedMaps.maps.length === 2){
               state.restaurantMaps = parsedMaps;
+              save();
               if(typeof renderFloorplan === 'function' && el('view-tables')?.classList.contains('active')) renderFloorplan();
             }
           } catch(e){}
@@ -5282,11 +5283,11 @@ function makeRestaurantMaps(){
   table(iconiko,300,887,'32',6,'round',56,56,'Área Entrada');
   [[698,654,'61'],[775,654,'63'],[850,654,'62'],[698,694,'64'],[775,694,'65'],[850,694,'66'],[698,748,'56'],[775,748,'58'],[850,748,'60'],[677,819,'50'],[718,819,'51'],[773,819,'52'],[814,819,'53'],[855,819,'54']].forEach(([x,y,n])=>table(iconiko,x,y,n,2,'rect',30,30,'Salão Reservado'));
 
-  return {version:1,maps:[lena,iconiko]};
+  return {version:2,maps:[lena,iconiko]};
 }
 
 function getFloorplanData(){
-  if(!state.restaurantMaps || state.restaurantMaps.version !== 1 || !Array.isArray(state.restaurantMaps.maps) || state.restaurantMaps.maps.length !== 2){
+  if(!state.restaurantMaps || state.restaurantMaps.version !== 2 || !Array.isArray(state.restaurantMaps.maps) || state.restaurantMaps.maps.length !== 2){
     state.restaurantMaps = makeRestaurantMaps();
     save();
   }
