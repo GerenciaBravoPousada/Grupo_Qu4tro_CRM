@@ -1476,8 +1476,20 @@ async function dbDeleteReservation(id){
 
 async function dbSyncFloorplans(maps){
   if(!maps) return;
+  if(maps && !maps.updatedAt) maps.updatedAt = Date.now();
   await addToOutbox('SYNC_FLOORPLANS', maps);
   if(navigator.onLine) processOutboxQueue();
+}
+
+let _syncFloorplansTimeout = null;
+function debouncedSyncFloorplans(){
+  if(_syncFloorplansTimeout) clearTimeout(_syncFloorplansTimeout);
+  _syncFloorplansTimeout = setTimeout(() => {
+    if(state.restaurantMaps){
+      state.restaurantMaps.updatedAt = Date.now();
+      dbSyncFloorplans(state.restaurantMaps);
+    }
+  }, 350);
 }
 
 async function dbSyncWaitlist(wl){
@@ -1613,9 +1625,22 @@ async function pullAllFromSupabase(){
           try {
             const parsedMaps = JSON.parse(rc.notes);
             if(parsedMaps && Array.isArray(parsedMaps.maps) && parsedMaps.maps.length === 2){
-              state.restaurantMaps = parsedMaps;
-              save();
-              if(typeof renderFloorplan === 'function' && el('view-tables')?.classList.contains('active')) renderFloorplan();
+              const localUpdated = state.restaurantMaps?.updatedAt || 0;
+              const remoteUpdated = parsedMaps.updatedAt || 0;
+              if(remoteUpdated >= localUpdated){
+                parsedMaps.maps.forEach(m => {
+                  if(!Array.isArray(m.sections)){
+                    m.sections = [...new Set(m.tables.map(t => t.section || 'Salão'))];
+                  }
+                  m.tables.forEach(t => {
+                    const s = t.section || 'Salão';
+                    if(!m.sections.includes(s)) m.sections.push(s);
+                  });
+                });
+                state.restaurantMaps = parsedMaps;
+                save();
+                if(typeof renderFloorplan === 'function' && el('view-tables')?.classList.contains('active')) renderFloorplan();
+              }
             }
           } catch(e){}
           return;
@@ -5320,7 +5345,7 @@ function makeRestaurantMaps(){
   const rect = (x,y,w,h,fill='#06466d') => ({type:'rect',x,y,w,h,fill});
   const line = (points) => ({type:'line',points});
   const label = (x,y,text) => ({type:'label',x,y,text});
-  const make = (id,name,width,height,structures) => ({id,name,width,height,structures,tables:[]});
+  const make = (id,name,width,height,structures,sections=[]) => ({id,name,width,height,structures,sections,tables:[]});
 
   let seq = 0;
   function table(m,x,y,number=null,seats=2,shape='rect',w=30,h=36,section='Salão',rotation=0){
@@ -5331,7 +5356,7 @@ function makeRestaurantMaps(){
   const lena = make('lena','Leña Casa Italiana',790,460,[
     rect(694,8,80,32), rect(758,40,16,155,'#443329'), rect(686,195,88,34), rect(425,8,215,16,'#443329'), rect(9,8,416,114), rect(467,164,108,34), rect(298,190,34,106),
     rect(181,380,181,78), rect(224,316,32,80), {type:'outline',x:415,y:380,w:357,h:78}, label(503,419,'H'), label(563,419,'A'), label(623,419,'L'), label(683,419,'L')
-  ]);
+  ], ['Salão Principal', 'Varanda / Deck']);
 
   table(lena, 725, 58, '9', 2, 'rect', 30, 36, 'Salão Principal', 90);
   table(lena, 725, 96, '9', 2, 'rect', 30, 36, 'Salão Principal', 90);
@@ -5383,7 +5408,7 @@ function makeRestaurantMaps(){
     line('650,620 650,850 880,850'),label(554,904,'Cozinha'),rect(432,755,16,105),rect(172,755,58,12),
     rect(238,970,18,30),rect(330,970,18,30),
     {type:'stairs',x:121,y:674,w:57,h:91},{type:'stairs',x:376,y:863,w:57,h:136}
-  ]);
+  ], ['Salão Superior', 'Salão Mezanino', 'Sushi Bar', 'Salão Térreo', 'Área Entrada', 'Salão Reservado']);
 
   [[474,77,'17'],[516,77,'17B'],[608,77,'16'],[650,77,'16B'],[700,77,'15'],[741,77,'15B'],[466,158,'20'],[466,219,'19'],[550,185,'18']].forEach(([x,y,n])=>table(iconiko,x,y,n,2,'rect',30,36,'Salão Superior'));
   table(iconiko,670,184,'14',6,'round',64,64,'Salão Superior');
@@ -5394,7 +5419,7 @@ function makeRestaurantMaps(){
   table(iconiko,300,887,'32',6,'round',56,56,'Área Entrada');
   [[698,654,'61'],[775,654,'63'],[850,654,'62'],[698,694,'64'],[775,694,'65'],[850,694,'66'],[698,748,'56'],[775,748,'58'],[850,748,'60'],[677,819,'50'],[718,819,'51'],[773,819,'52'],[814,819,'53'],[855,819,'54']].forEach(([x,y,n])=>table(iconiko,x,y,n,2,'rect',30,30,'Salão Reservado'));
 
-  return {version:2,maps:[lena,iconiko]};
+  return {version:2,updatedAt:Date.now(),maps:[lena,iconiko]};
 }
 
 function getFloorplanData(){
@@ -5402,6 +5427,16 @@ function getFloorplanData(){
     state.restaurantMaps = makeRestaurantMaps();
     save();
   }
+  // Garantir que todos os mapas possuem array de sections consistente
+  state.restaurantMaps.maps.forEach(m => {
+    if(!Array.isArray(m.sections)){
+      m.sections = [...new Set(m.tables.map(t => t.section || 'Salão'))];
+    }
+    m.tables.forEach(t => {
+      const s = t.section || 'Salão';
+      if(!m.sections.includes(s)) m.sections.push(s);
+    });
+  });
   return state.restaurantMaps;
 }
 
@@ -5509,6 +5544,7 @@ function floorplanUndo(){
   state.restaurantMaps = floorplanHistory.pop();
   selectedFloorplanTableId = null;
   save();
+  debouncedSyncFloorplans();
   renderFloorplan();
   toast('Alteração desfeita.');
 }
@@ -5962,10 +5998,16 @@ function renderFloorplanPracas(){
   const m = getActiveFloorplan();
   if(!m){ guide.innerHTML = ''; return; }
 
-  // Unique sections
-  const sections = [...new Set(m.tables.map(t => t.section || 'Salão'))];
+  // Unique sections list
+  if(!Array.isArray(m.sections)){
+    m.sections = [...new Set(m.tables.map(t => t.section || 'Salão'))];
+  }
+  m.tables.forEach(t => {
+    const s = t.section || 'Salão';
+    if(!m.sections.includes(s)) m.sections.push(s);
+  });
 
-  guide.innerHTML = sections.map(sec => {
+  const sectionsHtml = m.sections.map(sec => {
     const count = m.tables.filter(t => (t.section || 'Salão') === sec).length;
     const isAct = floorplanHighlightedSection === sec;
     return `
@@ -5978,14 +6020,33 @@ function renderFloorplanPracas(){
           <span style="display:inline-flex;align-items:center;gap:6px">
             <span>${esc(sec)}</span>
             <span style="font-size:11px;opacity:0.65;cursor:pointer;padding:1px 4px;border-radius:4px" 
-                  title="Renomear este setor" 
+                  title="Renomear esta praça" 
                   onclick="event.stopPropagation();openRenameSectionModal('${esc(sec)}', event)">✏️</span>
           </span>
           <span style="font-size:11px;opacity:0.75">${count} ${count === 1 ? 'mesa' : 'mesas'}</span>
         </button>
+        ${count === 0 ? `
+          <button type="button" class="btn ghost" 
+            onclick="deleteFloorplanSection('${esc(sec)}')" 
+            title="Excluir praça vazia (sem mesas)" 
+            style="padding:4px 6px;color:#ef4444;border:none;font-size:13px;opacity:0.8"
+            onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.8'">
+            🗑️
+          </button>
+        ` : ''}
       </div>
     `;
   }).join('');
+
+  guide.innerHTML = sectionsHtml + `
+    <button type="button" class="btn" onclick="openAddSectionModal()" 
+      style="width:100%;justify-content:center;font-size:12px;font-weight:700;margin-top:4px;border:1.5px dashed #94a3b8;background:#f8fafc;color:#0f172a;border-radius:8px;padding:7px;transition:all 0.15s ease"
+      onmouseover="this.style.borderColor='#0284c7';this.style.background='#f0f9ff'"
+      onmouseout="this.style.borderColor='#94a3b8';this.style.background='#f8fafc'"
+      title="Criar nova praça ou setor no mapa do restaurante">
+      ＋ Incluir Nova Praça
+    </button>
+  `;
 }
 
 function openRenameSectionModal(oldName, e){
@@ -6041,6 +6102,15 @@ function handleRenameSectionSubmit(e, oldName){
   if(!m) return;
 
   floorplanCheckpoint();
+
+  // Atualizar m.sections
+  if(!Array.isArray(m.sections)){
+    m.sections = [...new Set(m.tables.map(t => t.section || 'Salão'))];
+  }
+  const idx = m.sections.indexOf(oldName);
+  if(idx >= 0) m.sections[idx] = newName;
+  else m.sections.push(newName);
+
   let affected = 0;
   m.tables.forEach(t => {
     if((t.section || 'Salão') === oldName){
@@ -6053,10 +6123,101 @@ function handleRenameSectionSubmit(e, oldName){
     floorplanHighlightedSection = newName;
   }
 
+  if(state.restaurantMaps) state.restaurantMaps.updatedAt = Date.now();
   save();
+  dbSyncFloorplans(state.restaurantMaps);
   closeModal();
   renderFloorplan();
   toast(`✓ Setor renomeado para "${newName}" (${affected} mesas atualizadas)!`);
+}
+
+function openAddSectionModal(){
+  const m = getActiveFloorplan();
+  if(!m) return;
+
+  el('modalTitle').textContent = 'Incluir Nova Praça / Setor';
+  el('modalBody').innerHTML = `
+    <form id="fpAddSectionForm" onsubmit="handleAddSectionSubmit(event)">
+      <div style="margin-bottom:14px;font-size:13px;color:var(--muted)">
+        Adicione uma nova praça de atendimento ao mapa do <strong>${esc(m.name)}</strong>.<br>
+        Após criar, você poderá associar mesas a esta nova praça.
+      </div>
+      <div class="field" style="margin-bottom:16px">
+        <label style="font-size:12px;font-weight:700;display:block;margin-bottom:4px">Nome da Praça / Setor *</label>
+        <input id="fpAddSectionName" class="control" required placeholder="Ex.: Lounge, Bar, Mezanino, Área Externa" style="width:100%;padding:10px 12px;font-size:14px;font-weight:600">
+      </div>
+      <div class="form-actions" style="display:flex;justify-content:flex-end;gap:8px">
+        <button type="button" class="btn" onclick="closeModal()">Cancelar</button>
+        <button type="submit" class="btn primary" style="font-weight:700">✓ Incluir Praça</button>
+      </div>
+    </form>
+  `;
+  el('modal').classList.add('show');
+  setTimeout(() => {
+    const inp = el('fpAddSectionName');
+    if(inp) inp.focus();
+  }, 50);
+}
+
+function handleAddSectionSubmit(e){
+  e.preventDefault();
+  const inp = el('fpAddSectionName');
+  if(!inp) return;
+  const newName = inp.value.trim();
+  if(!newName){
+    toast('Informe o nome da praça.');
+    return;
+  }
+
+  const m = getActiveFloorplan();
+  if(!m) return;
+
+  if(!Array.isArray(m.sections)){
+    m.sections = [...new Set(m.tables.map(t => t.section || 'Salão'))];
+  }
+
+  if(m.sections.some(s => s.toLowerCase() === newName.toLowerCase())){
+    toast(`A praça "${newName}" já existe no mapa.`);
+    return;
+  }
+
+  floorplanCheckpoint();
+  m.sections.push(newName);
+  floorplanHighlightedSection = newName;
+
+  if(state.restaurantMaps) state.restaurantMaps.updatedAt = Date.now();
+  save();
+  dbSyncFloorplans(state.restaurantMaps);
+  closeModal();
+  renderFloorplan();
+  toast(`✓ Praça "${newName}" incluída com sucesso!`);
+}
+
+function deleteFloorplanSection(secName){
+  const m = getActiveFloorplan();
+  if(!m) return;
+
+  const count = m.tables.filter(t => (t.section || 'Salão') === secName).length;
+  if(count > 0){
+    toast(`Não é possível excluir: existem ${count} mesas nesta praça.`);
+    return;
+  }
+
+  if(!confirm(`Deseja realmente excluir a praça "${secName}"?`)) return;
+
+  floorplanCheckpoint();
+  if(Array.isArray(m.sections)){
+    m.sections = m.sections.filter(s => s !== secName);
+  }
+  if(floorplanHighlightedSection === secName){
+    floorplanHighlightedSection = null;
+  }
+
+  if(state.restaurantMaps) state.restaurantMaps.updatedAt = Date.now();
+  save();
+  dbSyncFloorplans(state.restaurantMaps);
+  renderFloorplan();
+  toast(`✓ Praça "${secName}" removida com sucesso.`);
 }
 
 function toggleHighlightFloorplanSection(sec){
@@ -6168,7 +6329,7 @@ function openFloorplanTableModal(tableId){
           <label>Setor / Praça de Atendimento</label>
           <input id="fpTableSection" list="fpSectionsList" value="${esc(t.section || 'Salão Principal')}" placeholder="Ex.: Salão Principal, Varanda, Sushi Bar">
           <datalist id="fpSectionsList">
-            ${[...new Set(m.tables.map(x => x.section || 'Salão'))].map(s => `<option value="${esc(s)}"></option>`).join('')}
+            ${(Array.isArray(m.sections) && m.sections.length ? m.sections : [...new Set(m.tables.map(x => x.section || 'Salão'))]).map(s => `<option value="${esc(s)}"></option>`).join('')}
           </datalist>
         </div>
         <div class="field span2" style="background:#f8fafc;border:1px solid var(--line);border-radius:10px;padding:12px;margin-top:2px">
@@ -6231,6 +6392,7 @@ function handleFloorplanTableSubmit(e, tableId){
 
   if(t.shape === 'round') t.h = t.w;
 
+  if(state.restaurantMaps) state.restaurantMaps.updatedAt = Date.now();
   save();
   dbSyncFloorplans(state.restaurantMaps);
   closeModal();
@@ -6252,11 +6414,12 @@ function openFloorplanAddTableModal(){
     w: 30,
     h: 36,
     rotation: 0,
-    section: 'Salão Principal'
+    section: (Array.isArray(m.sections) && m.sections.length ? m.sections[0] : 'Salão Principal')
   };
   m.tables.push(newTable);
   selectedFloorplanTableId = newId;
   save();
+  debouncedSyncFloorplans();
   renderFloorplan();
   openFloorplanTableModal(newId);
 }
@@ -6299,6 +6462,7 @@ function duplicateFloorplanTable(tableId, openModalAfter = false){
   m.tables.push(copy);
   selectedFloorplanTableId = copy.id;
   save();
+  debouncedSyncFloorplans();
   renderFloorplan();
   toast(`✓ Mesa ${copy.number} duplicada com a mesma configuração!`);
   if(openModalAfter){
@@ -6318,6 +6482,7 @@ function deleteFloorplanTable(tableId){
   m.tables = m.tables.filter(x => x.id !== tableId);
   if(selectedFloorplanTableId === tableId) selectedFloorplanTableId = null;
   save();
+  debouncedSyncFloorplans();
   renderFloorplan();
   toast(`Mesa ${num} excluída com sucesso. Use "Desfazer" para reverter se necessário.`);
 }
@@ -6356,6 +6521,7 @@ function nudgeFloorplanTable(tableId, screenDx, screenDy){
   if(cardPos) cardPos.textContent = `X: ${t.x} • Y: ${t.y}`;
 
   save();
+  debouncedSyncFloorplans();
 }
 
 // Drag & Drop Pointer Events
@@ -6434,6 +6600,7 @@ function bindFloorplanEvents(){
     if(svg.hasPointerCapture(e.pointerId)) svg.releasePointerCapture(e.pointerId);
     if(wasMoved){
       save();
+      debouncedSyncFloorplans();
       renderFloorplan();
     }
   }
