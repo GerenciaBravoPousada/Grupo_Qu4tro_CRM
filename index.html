@@ -2166,11 +2166,71 @@ function normalizeName(v){return String(v||'').trim().replace(/\s+/g,' ')}
 function validateClientName(v){const n=normalizeName(v),parts=n.split(' ').filter(Boolean),word=/^[\p{L}][\p{L}'’.-]*$/u;if(parts.length<2)return {ok:false,msg:'Informe pelo menos nome e sobrenome.'};if(!word.test(parts[0])||!word.test(parts[1]))return {ok:false,msg:'Nome e sobrenome devem conter letras, não números.'};const letters=x=>(x.match(/\p{L}/gu)||[]).length;if(letters(parts[0])<2)return {ok:false,msg:'O primeiro nome precisa ter pelo menos 2 letras.'};if(letters(parts[1])<2)return {ok:false,msg:'O segundo nome precisa ter pelo menos 2 letras.'};return {ok:true,value:n}}
 function normalizePhone(v){let s=digits(v);if((s.length===10||s.length===11)&&!s.startsWith('55'))s='55'+s;return s}
 function validatePhone(v){const s=normalizePhone(v);if(!s)return {ok:false,msg:'Informe o telefone.'};if(/^0+$/.test(s)||/^(\d)\1{7,}$/.test(s))return {ok:false,msg:'Informe um número de telefone válido.'};if(s.startsWith('55')){const nat=s.slice(2);if(!(nat.length===10||nat.length===11))return {ok:false,msg:'Telefone brasileiro deve ter DDD + número completo.'};if(nat.startsWith('0'))return {ok:false,msg:'DDD inválido.'};return {ok:true,value:s}}if(s.length<8||s.length>15)return {ok:false,msg:'Informe o número completo, incluindo código de área/país.'};return {ok:true,value:s}}
-function fmtDate(v){if(!v)return '—';const d=new Date(v+'T12:00:00');return isNaN(d)?v:d.toLocaleDateString('pt-BR')}
+function normalizeDateIso(str){
+  if(!str) return '';
+  const s = String(str).trim();
+  if(/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  const brMatch = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if(brMatch){
+    const [, d, m, y] = brMatch;
+    return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+  }
+  const d = new Date(s.includes('T') ? s : s + 'T12:00:00');
+  if(!isNaN(d.getTime())){
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  }
+  return s;
+}
+
+function fmtDate(v){
+  if(!v) return '—';
+  const iso = normalizeDateIso(v);
+  if(/^\d{4}-\d{2}-\d{2}$/.test(iso)){
+    const [y, m, d] = iso.split('-');
+    return `${d}/${m}/${y}`;
+  }
+  return v;
+}
+
+function getLocalDateStr(arg = 0){
+  let target;
+  if(arg instanceof Date){
+    target = arg;
+  } else if(typeof arg === 'number'){
+    target = new Date();
+    if(arg !== 0) target.setDate(target.getDate() + arg);
+  } else if(typeof arg === 'string' && arg.trim()){
+    const trimmed = arg.trim();
+    if(/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed;
+    const brMatch = trimmed.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if(brMatch) return `${brMatch[3]}-${brMatch[2].padStart(2,'0')}-${brMatch[1].padStart(2,'0')}`;
+    const parsed = new Date(trimmed.includes('T') ? trimmed : trimmed + 'T12:00:00');
+    if(!isNaN(parsed.getTime())) target = parsed;
+    else target = new Date();
+  } else {
+    target = new Date();
+  }
+  if(isNaN(target.getTime())) target = new Date();
+  const y = target.getFullYear();
+  const m = String(target.getMonth() + 1).padStart(2, '0');
+  const d = String(target.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+function getPastDateStr(daysAgo = 1){
+  const num = typeof daysAgo === 'number' ? daysAgo : 1;
+  const d = new Date();
+  d.setDate(d.getDate() - num);
+  return getLocalDateStr(d);
+}
+
 function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function initials(n){return String(n||'?').trim().split(/\s+/).slice(0,2).map(x=>x[0]).join('').toUpperCase()}
 function toast(msg){el('toast').textContent=msg;el('toast').classList.add('show');setTimeout(()=>el('toast').classList.remove('show'),2600)}
-function today(){return new Date().toISOString().slice(0,10)}
+function today(){return getLocalDateStr(0)}
 function daysSince(d){if(!d)return 9999;return Math.floor((Date.now()-new Date(d+'T12:00:00'))/86400000)}
 function clientVisits(c){const p=digits(c.phone);return state.visits.filter(v=>(p&&digits(v.phone)===p)||(!p&&v.name.toLowerCase()===c.name.toLowerCase())).sort((a,b)=>(b.date+b.arrival).localeCompare(a.date+a.arrival))}
 function calcClient(c){
@@ -2371,18 +2431,7 @@ let dashCustomStart = '';
 let dashCustomEnd = '';
 let lastDashPeriodValue = 'all';
 
-function getLocalDateStr(d = new Date()){
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
-}
-
-function getPastDateStr(daysAgo){
-  const d = new Date();
-  d.setDate(d.getDate() - daysAgo);
-  return getLocalDateStr(d);
-}
+// (getLocalDateStr & getPastDateStr unified above)
 
 function normalizeDateOnly(dateVal){
   if(!dateVal) return '';
@@ -3414,14 +3463,7 @@ function renderCheckinStats(){
   if(typeof updateLenaSyncBanner === 'function') updateLenaSyncBanner();
 }
 
-function getLocalDateStr(offsetDays = 0){
-  const now = new Date();
-  if(offsetDays !== 0) now.setDate(now.getDate() + offsetDays);
-  const y = now.getFullYear();
-  const m = String(now.getMonth() + 1).padStart(2, '0');
-  const d = String(now.getDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
-}
+// (duplicate getLocalDateStr removed)
 
 function normalizeDateIso(str){
   if(!str) return '';
