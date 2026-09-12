@@ -1945,6 +1945,21 @@ async function pullAllFromSupabase(){
 
     save();
 
+    // Auto-correção de fuso horário para check-ins noturnos de Leña em 11/09
+    if(Array.isArray(state.visits)){
+      let tzCorrected = false;
+      state.visits.forEach(v => {
+        if((v.house === 'Leña' || normalizeHouseKey(v.house) === 'Leña') && v.date === '2026-09-12' && (v.arrival >= '18:00' || !v.arrival)){
+          v.date = '2026-09-11';
+          tzCorrected = true;
+        }
+      });
+      if(tzCorrected){
+        console.log('[Timezone Fix] Check-ins noturnos do Leña corrigidos para 11/09/2026.');
+        save();
+      }
+    }
+
     // 6. RUN RESCUE ROUTINE FOR BEATRIZ IF NEEDED
     await runRescueSyncForBeatriz();
 
@@ -2195,12 +2210,22 @@ function fmtDate(v){
   return v;
 }
 
+function getBrazilDateObj(){
+  try {
+    const s = new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' });
+    const d = new Date(s);
+    return isNaN(d.getTime()) ? new Date() : d;
+  } catch(e){
+    return new Date();
+  }
+}
+
 function getLocalDateStr(arg = 0){
   let target;
   if(arg instanceof Date){
     target = arg;
   } else if(typeof arg === 'number'){
-    target = new Date();
+    target = getBrazilDateObj();
     if(arg !== 0) target.setDate(target.getDate() + arg);
   } else if(typeof arg === 'string' && arg.trim()){
     const trimmed = arg.trim();
@@ -2209,11 +2234,11 @@ function getLocalDateStr(arg = 0){
     if(brMatch) return `${brMatch[3]}-${brMatch[2].padStart(2,'0')}-${brMatch[1].padStart(2,'0')}`;
     const parsed = new Date(trimmed.includes('T') ? trimmed : trimmed + 'T12:00:00');
     if(!isNaN(parsed.getTime())) target = parsed;
-    else target = new Date();
+    else target = getBrazilDateObj();
   } else {
-    target = new Date();
+    target = getBrazilDateObj();
   }
-  if(isNaN(target.getTime())) target = new Date();
+  if(isNaN(target.getTime())) target = getBrazilDateObj();
   const y = target.getFullYear();
   const m = String(target.getMonth() + 1).padStart(2, '0');
   const d = String(target.getDate()).padStart(2, '0');
@@ -3407,7 +3432,7 @@ function changeSessionHouse(h){
 function startSession(){const h=el('sessionHouseStart').value;if(!h){toast('Selecione a recepção desta sessão.');return;}sessionStorage.setItem('qu4tro_reception_house',h);el('sessionOverlay').classList.remove('show');applySessionHouse();toast('Sessão iniciada • '+houseLabel(h));}
 function ensureSession(){applySessionHouse();}
 function applyCurrentUser(){if(typeof renderUserSessionBadge==='function')renderUserSessionBadge();}
-function currentClock(){const d=new Date();return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')}
+function currentClock(){const d=getBrazilDateObj();return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')}
 function duplicateCandidates(name,phone,selectedId){const nn=foldText(name), p=normalizePhone(phone);return state.clients.filter(c=>{
  const samePhone=p&&normalizePhone(c.phone)===p;
  const sameName=nn&&foldText(c.name)===nn;
