@@ -536,7 +536,6 @@ body[data-house] .sidebar{background:linear-gradient(180deg,var(--nav),color-mix
 
   <section class="view" id="view-checkin">
    <div class="hero"><div><h2>Novo Check-in</h2><p>Localize primeiro quem já é cliente. Busque por nome, sobrenome, telefone completo ou últimos dígitos.</p></div><div class="kpi-strip"><div class="kpi-chip"><span>Check-ins hoje</span><strong id="todayCheckins">0</strong></div><div class="kpi-chip"><span>Pessoas hoje</span><strong id="todayPeople">0</strong></div></div></div>
-   <div id="lenaSyncBanner" style="display:none;background:#fef3c7;border:1.5px solid #f59e0b;border-radius:12px;padding:12px 16px;margin-bottom:14px;align-items:center;justify-content:space-between;gap:12px"><div style="display:flex;align-items:center;gap:8px"><span style="font-size:18px">⚠️</span><div><strong style="color:#92400e;font-size:13px">Check-ins de Leña aguardando sincronização:</strong><span id="lenaSyncBannerText" style="color:#78350f;font-size:12px;display:block;margin-top:2px">Existem atendimentos salvos na memória deste computador que ainda não foram gravados no Supabase.</span></div></div><button type="button" class="btn gold" style="white-space:nowrap;font-size:12px;font-weight:700;padding:7px 14px;background:#b45309;color:#fff" onclick="runRescueSyncForBeatriz(true)">Sincronizar Agora 🚀</button></div>
    <div class="card form-shell checkin-shell"><div class="checkin-brand-banner" id="checkinBrandBanner"><img id="checkinHouseLogo" alt="Casa do check-in" onerror="this.style.display='none'" onload="this.style.display=''"><div class="checkin-brand-copy"><strong id="checkinHouseName">Check-in</strong><span id="checkinHouseSubtitle">Recepção selecionada para este atendimento</span></div><div class="checkin-brand-side">A casa acompanha a seleção abaixo<br>e pode ser alterada antes da confirmação.</div></div><form id="checkinForm"><div class="form-grid"><div class="field span2 client-lookup"><label>Localizar cliente existente</label><input id="ciLookup" autocomplete="off" placeholder="Ex.: Jean Balan, Balan, 3106 ou telefone completo"><div class="lookup-help">Nome/sobrenome: digite pelo menos 2 caracteres. Telefone parcial: digite pelo menos os 4 últimos números.</div><div class="lookup-results" id="ciLookupResults"></div></div><div class="span2 selected-client-card" id="selectedClientCard"></div><div class="checkin-status span2" id="clientFound"></div><!-- Linha 01: Nome do cliente * (50%) + Telefone * (50%) -->
 <div class="field"><label>Nome do cliente *</label><input id="ciName" required placeholder="Nome e sobrenome"></div>
 <div class="field"><label>Telefone *</label><input id="ciPhone" inputmode="tel" placeholder="(22) 99999-9999" required></div>
@@ -1738,19 +1737,7 @@ async function runRescueSyncForBeatriz(force = false){
 
 function updateLenaSyncBanner(){
   const banner = el('lenaSyncBanner');
-  const txt = el('lenaSyncBannerText');
-  if(!banner) return;
-  const count = (state.visits || []).filter(v => {
-    const h = normalizeHouseKey(v.house);
-    const dIso = normalizeDateIso(v.date);
-    return (h === 'Leña' || h === 'Lena') && (dIso === '2026-09-11' || dIso === '2026-09-10' || dIso === '2026-09-12' || String(v.date).includes('11/09') || String(v.date).includes('10/09')) && !v.syncedToSupabase;
-  }).length;
-  if(count > 0){
-    banner.style.display = 'flex';
-    if(txt) txt.textContent = `Existem ${count} check-in(s) de Leña salvos na memória deste computador aguardando envio para a nuvem.`;
-  } else {
-    banner.style.display = 'none';
-  }
+  if(banner) banner.style.display = 'none';
 }
 
 async function pullAllFromSupabase(){
@@ -1950,7 +1937,8 @@ async function pullAllFromSupabase(){
           houseStatus: rv.status || 'Recorrente',
           notes: rv.notes || '',
           amount: rv.amount || 0,
-          operatorReception: rv.operator_reception || rv.house
+          operatorReception: rv.operator_reception || rv.house,
+          syncedToSupabase: true
         };
 
         if(localIdx !== -1){
