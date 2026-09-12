@@ -6297,6 +6297,22 @@ function openFloorplanTableModal(tableId){
   const t = m.tables.find(x => x.id === tableId);
   if(!t) return;
 
+  // Garantir lista completa e única de praças cadastradas para o seletor
+  if(!Array.isArray(m.sections)){
+    m.sections = [...new Set(m.tables.map(x => x.section || 'Salão'))];
+  }
+  m.tables.forEach(tbl => {
+    const s = tbl.section || 'Salão';
+    if(!m.sections.includes(s)) m.sections.push(s);
+  });
+  if(t.section && !m.sections.includes(t.section)){
+    m.sections.push(t.section);
+  }
+
+  const sectionsList = [...new Set(m.sections.map(s => String(s || '').trim()).filter(Boolean))];
+  if(!sectionsList.length) sectionsList.push('Salão Principal');
+  const currentSection = t.section || sectionsList[0];
+
   el('modalTitle').textContent = `Configurar Mesa ${t.number || ''}`;
   el('modalBody').innerHTML = `
     <form id="fpTableForm" onsubmit="handleFloorplanTableSubmit(event, '${t.id}')">
@@ -6326,11 +6342,24 @@ function openFloorplanTableModal(tableId){
           </select>
         </div>
         <div class="field span2">
-          <label>Setor / Praça de Atendimento</label>
-          <input id="fpTableSection" list="fpSectionsList" value="${esc(t.section || 'Salão Principal')}" placeholder="Ex.: Salão Principal, Varanda, Sushi Bar">
-          <datalist id="fpSectionsList">
-            ${(Array.isArray(m.sections) && m.sections.length ? m.sections : [...new Set(m.tables.map(x => x.section || 'Salão'))]).map(s => `<option value="${esc(s)}"></option>`).join('')}
-          </datalist>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
+            <label style="margin:0;font-size:11px;font-weight:700;color:#556a77">Setor / Praça de Atendimento *</label>
+            <button type="button" class="btn ghost" style="padding:2px 8px;font-size:11px;color:#0284c7;font-weight:700;line-height:1.2" onclick="toggleFloorplanNewSectionField()" title="Cadastrar novo setor ou praça">
+              ＋ Nova Praça
+            </button>
+          </div>
+          <select id="fpTableSection" onchange="handleFloorplanSectionSelectChange(this)" style="font-weight:600">
+            ${sectionsList.map(sec => `<option value="${esc(sec)}" ${sec === currentSection ? 'selected' : ''}>${esc(sec)}</option>`).join('')}
+            <option value="__new__" style="color:#0284c7;font-weight:700">＋ Cadastrar Nova Praça...</option>
+          </select>
+          <div id="fpNewSectionWrapper" style="display:none;margin-top:8px;background:#f0f9ff;border:1px solid #bae6fd;border-radius:10px;padding:10px">
+            <label style="font-size:11px;font-weight:700;color:#0369a1;display:block;margin-bottom:4px">Nome da Nova Praça / Setor *</label>
+            <div style="display:flex;gap:6px">
+              <input id="fpNewSectionInput" placeholder="Ex.: Praça 03, Varanda, Deck" style="flex:1;background:#fff;font-weight:600;font-size:13px">
+              <button type="button" class="btn ghost" style="padding:4px 8px;font-size:11px" onclick="cancelFloorplanNewSectionField('${esc(currentSection)}')">Cancelar</button>
+            </div>
+            <div style="font-size:10.5px;color:#0369a1;margin-top:4px">Ao salvar a mesa, esta nova praça será associada e cadastrada no mapa do restaurante.</div>
+          </div>
         </div>
         <div class="field span2" style="background:#f8fafc;border:1px solid var(--line);border-radius:10px;padding:12px;margin-top:2px">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
@@ -6377,6 +6406,45 @@ function openFloorplanTableModal(tableId){
   setTimeout(() => el('fpTableNumber')?.focus(), 50);
 }
 
+function toggleFloorplanNewSectionField(){
+  const wrap = el('fpNewSectionWrapper');
+  const sel = el('fpTableSection');
+  if(!wrap || !sel) return;
+  const isHidden = wrap.style.display === 'none';
+  wrap.style.display = isHidden ? 'block' : 'none';
+  if(isHidden){
+    sel.value = '__new__';
+    setTimeout(() => el('fpNewSectionInput')?.focus(), 50);
+  } else {
+    if(sel.options.length > 0 && sel.options[0].value !== '__new__'){
+      sel.selectedIndex = 0;
+    }
+  }
+}
+
+function handleFloorplanSectionSelectChange(sel){
+  const wrap = el('fpNewSectionWrapper');
+  if(!wrap) return;
+  if(sel.value === '__new__'){
+    wrap.style.display = 'block';
+    setTimeout(() => el('fpNewSectionInput')?.focus(), 50);
+  } else {
+    wrap.style.display = 'none';
+  }
+}
+
+function cancelFloorplanNewSectionField(fallbackVal){
+  const wrap = el('fpNewSectionWrapper');
+  const sel = el('fpTableSection');
+  if(wrap) wrap.style.display = 'none';
+  if(sel){
+    sel.value = fallbackVal;
+    if(sel.value !== fallbackVal && sel.options.length > 0){
+      sel.selectedIndex = 0;
+    }
+  }
+}
+
 function handleFloorplanTableSubmit(e, tableId){
   e.preventDefault();
   const m = getActiveFloorplan();
@@ -6388,7 +6456,28 @@ function handleFloorplanTableSubmit(e, tableId){
   t.seats = Number(el('fpTableSeats').value) || 2;
   t.shape = el('fpTableShape').value;
   t.rotation = Number(el('fpTableRotation').value) || 0;
-  t.section = el('fpTableSection').value.trim() || 'Salão';
+
+  let sectionVal = el('fpTableSection')?.value || '';
+  const isNewSection = sectionVal === '__new__' || (el('fpNewSectionWrapper') && el('fpNewSectionWrapper').style.display !== 'none');
+  if(isNewSection){
+    const custom = (el('fpNewSectionInput')?.value || '').trim();
+    if(!custom){
+      toast('Por favor, informe o nome da nova praça ou selecione uma opção existente.');
+      el('fpNewSectionInput')?.focus();
+      return;
+    }
+    sectionVal = custom;
+  }
+
+  t.section = sectionVal.trim() || 'Salão';
+
+  // Garantir que a praça fique cadastrada no array de praças do mapa
+  if(!Array.isArray(m.sections)){
+    m.sections = [...new Set(m.tables.map(x => x.section || 'Salão'))];
+  }
+  if(!m.sections.includes(t.section)){
+    m.sections.push(t.section);
+  }
 
   if(t.shape === 'round') t.h = t.w;
 
