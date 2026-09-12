@@ -287,6 +287,12 @@ body[data-house] .sidebar{background:linear-gradient(180deg,var(--nav),color-mix
   color:#000000!important;
 }
 
+
+.op-close-tab{display:inline-flex;align-items:center;justify-content:center;width:17px;height:17px;border-radius:50%;margin-left:6px;font-size:11px;font-weight:800;line-height:1;background:rgba(255,255,255,.2);color:inherit;cursor:pointer;transition:all .15s ease}
+.op-close-tab:hover{background:#ef4444!important;color:#fff!important}
+.op-nav-btn.active .op-close-tab{background:rgba(0,0,0,.14);color:#0f172a}
+.op-nav-btn.active .op-close-tab:hover{background:#ef4444!important;color:#fff!important}
+
 </style>
 </head>
 <body>
@@ -389,6 +395,11 @@ body[data-house] .sidebar{background:linear-gradient(180deg,var(--nav),color-mix
      <span class="op-ico">⊞</span>
      <span class="op-btn-text">Mapa de Mesas</span>
     </button>
+    <button type="button" class="op-nav-btn" id="opTabCheckinList" data-opview="checkin-list" onclick="go('checkin-list')" title="Lista de Check-ins do Salão" style="display:none">
+     <span class="op-ico">📋</span>
+     <span class="op-btn-text">Lista de Check-ins</span>
+     <span class="op-close-tab" onclick="closeCheckinListView(event)" title="Fechar esta guia e voltar">✕</span>
+    </button>
    </nav>
   </div>
   <section class="view active" id="view-dashboard">
@@ -408,7 +419,7 @@ body[data-house] .sidebar{background:linear-gradient(180deg,var(--nav),color-mix
   </section>
 
   <section class="view" id="view-checkin">
-   <div class="hero"><div><h2>Novo Check-in</h2><p>Localize primeiro quem já é cliente. Busque por nome, sobrenome, telefone completo ou últimos dígitos.</p></div><div class="kpi-strip"><div class="kpi-chip"><span>Check-ins hoje</span><strong id="todayCheckins">0</strong></div><div class="kpi-chip"><span>Pessoas hoje</span><strong id="todayPeople">0</strong></div><button type="button" class="kpi-chip" id="btnViewCheckinsList" onclick="openCheckinListModal()" style="cursor:pointer;background:linear-gradient(135deg, #132c39, #0f202a);color:#fff;border-color:#1e3a4b;text-align:left;display:flex;flex-direction:column;justify-content:center;gap:3px;transition:all .15s ease" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='#1e3a4b'"><span style="color:#94a3b8;font-size:10px;text-transform:uppercase;letter-spacing:.5px">Registros do Salão</span><strong style="color:#e5bd7e;font-size:13.5px;display:flex;align-items:center;gap:6px">📋 Ver lista check-ins →</strong></button></div></div>
+   <div class="hero"><div><h2>Novo Check-in</h2><p>Localize primeiro quem já é cliente. Busque por nome, sobrenome, telefone completo ou últimos dígitos.</p></div><div class="kpi-strip"><div class="kpi-chip"><span>Check-ins hoje</span><strong id="todayCheckins">0</strong></div><div class="kpi-chip"><span>Pessoas hoje</span><strong id="todayPeople">0</strong></div><button type="button" class="kpi-chip" id="btnViewCheckinsList" onclick="openCheckinListView()" style="cursor:pointer;background:linear-gradient(135deg, #132c39, #0f202a);color:#fff;border-color:#1e3a4b;text-align:left;display:flex;flex-direction:column;justify-content:center;gap:3px;transition:all .15s ease" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='#1e3a4b'"><span style="color:#94a3b8;font-size:10px;text-transform:uppercase;letter-spacing:.5px">Registros do Salão</span><strong style="color:#e5bd7e;font-size:13.5px;display:flex;align-items:center;gap:6px">📋 Ver lista check-ins →</strong></button></div></div>
    <div class="card form-shell checkin-shell"><div class="checkin-brand-banner" id="checkinBrandBanner"><img id="checkinHouseLogo" alt="Casa do check-in" onerror="this.style.display='none'" onload="this.style.display=''"><div class="checkin-brand-copy"><strong id="checkinHouseName">Check-in</strong><span id="checkinHouseSubtitle">Recepção selecionada para este atendimento</span><div class="house-badge">Check-in presencial</div></div><div class="checkin-brand-side">A casa acompanha a seleção abaixo<br>e pode ser alterada antes da confirmação.</div></div><form id="checkinForm"><div class="form-grid"><div class="field span2 client-lookup"><label>Localizar cliente existente</label><input id="ciLookup" autocomplete="off" placeholder="Ex.: Jean Balan, Balan, 3106 ou telefone completo"><div class="lookup-help">Nome/sobrenome: digite pelo menos 2 caracteres. Telefone parcial: digite pelo menos os 4 últimos números.</div><div class="lookup-results" id="ciLookupResults"></div></div><div class="span2 selected-client-card" id="selectedClientCard"></div><div class="checkin-status span2" id="clientFound"></div><!-- Linha 01: Nome do cliente * (50%) + Telefone * (50%) -->
 <div class="field"><label>Nome do cliente *</label><input id="ciName" required placeholder="Nome e sobrenome"></div>
 <div class="field"><label>Telefone *</label><input id="ciPhone" inputmode="tel" placeholder="(22) 99999-9999" required></div>
@@ -420,6 +431,85 @@ body[data-house] .sidebar{background:linear-gradient(180deg,var(--nav),color-mix
   <div class="field"><label>Mesa</label><input id="ciTable" inputmode="numeric" placeholder="Nº mesa"></div>
   <div class="field"><label>Como nos conheceu?</label><select id="ciSource"><option>Da casa</option><option>Instagram</option><option>Google</option><option>Indicação</option><option>Passagem/Passante</option><option>TikTok</option><option>Outro</option></select></div>
 </div><div class="field span2"><label>Prioridade (Atendimento Preferencial)</label><div class="priority-checkbox-group" id="ciPriorityGroup"><label class="priority-pill-toggle"><input type="checkbox" name="ciPriority" value="Gestante"> <span>🤰 Gestante</span></label><label class="priority-pill-toggle"><input type="checkbox" name="ciPriority" value="Idoso"> <span>🧓 Idoso</span></label><label class="priority-pill-toggle"><input type="checkbox" name="ciPriority" value="PCD"> <span>♿ PCD</span></label><label class="priority-pill-toggle"><input type="checkbox" name="ciPriority" value='Com Criança "no colo"'> <span>👶 Com Criança "no colo"</span></label></div><div class="field-help" style="margin-top:4px">Múltipla escolha. Sinaliza atendimento prioritário no salão e no cadastro do cliente.</div></div><div class="field span2"><label>Observações</label><textarea id="ciNotes" placeholder="Preferências, restrições, observações operacionais..."></textarea></div></div><div class="form-actions"><button type="reset" class="btn">Limpar</button><button type="submit" class="btn gold">✓ Confirmar check-in</button></div></form></div>
+  </section>
+
+  
+  <!-- SEÇÃO / GUIA: LISTA DE CHECK-INS DO SALÃO (ABERTURA VIA KAMBAN DE OPERAÇÃO) -->
+  <section class="view" id="view-checkin-list">
+    <div class="hero">
+      <div>
+        <h2>📋 Lista de Check-ins do Salão</h2>
+        <p>Acompanhamento e auditoria dos atendimentos do dia com filtros por data, busca e edição.</p>
+      </div>
+      <div class="actions-row">
+        <button type="button" class="btn" onclick="closeCheckinListView(event)" style="background:#fff;border:1.5px solid #cbd5e1;font-weight:700;color:#000;display:inline-flex;align-items:center;gap:6px">
+          <span>✕</span> Fechar Lista (Voltar)
+        </button>
+      </div>
+    </div>
+
+    <!-- Filtros e Controles -->
+    <div class="card" style="margin-bottom:16px;padding:16px">
+      <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end">
+        <div style="display:flex;flex-direction:column;gap:5px">
+          <label style="font-size:12px;font-weight:750;color:#000">Ponto de vista (Data):</label>
+          <div style="display:flex;gap:8px;align-items:center">
+            <select id="checkinListDateFilter" class="control" style="font-size:13px;font-weight:700;padding:9px 12px;color:#000;border:1.5px solid #cbd5e1" onchange="handleCheckinListDateFilterChange()">
+              <option value="today">Hoje</option>
+              <option value="yesterday">Ontem</option>
+              <option value="custom">📅 Data específica (1 dia)...</option>
+            </select>
+            <input type="date" id="checkinListSingleDate" class="control" style="display:none;padding:8px 12px;font-size:13px;color:#000;border:1.5px solid #cbd5e1" onchange="handleCheckinListSingleDateChange()">
+          </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:5px">
+          <label style="font-size:12px;font-weight:750;color:#000">Casa / Recepção:</label>
+          <select id="checkinListHouseFilter" class="control" style="font-size:13px;font-weight:700;padding:9px 12px;color:#000;border:1.5px solid #cbd5e1" onchange="renderCheckinList()">
+          </select>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:5px;flex:1;min-width:240px">
+          <label style="font-size:12px;font-weight:750;color:#000">Buscar na lista:</label>
+          <div class="search" style="max-width:none">
+            <span>⌕</span>
+            <input type="text" id="checkinListSearch" placeholder="Nome, telefone, mesa..." style="color:#000;font-weight:600;border:1.5px solid #cbd5e1" oninput="renderCheckinList()">
+          </div>
+        </div>
+      </div>
+
+      <!-- KPI Summary bar -->
+      <div id="checkinListKpiSummary" style="display:flex;gap:14px;align-items:center;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:10px;padding:10px 14px;margin-top:14px;font-size:12.5px;font-weight:600;color:#000">
+      </div>
+    </div>
+
+    <!-- Checkins Table / List container -->
+    <div class="table-card">
+      <div class="table-wrap" style="max-height:68vh">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Horário</th>
+              <th>Cliente</th>
+              <th>Telefone</th>
+              <th style="text-align:center">Pessoas</th>
+              <th style="text-align:center">Mesa</th>
+              <th>Casa</th>
+              <th>Origem</th>
+              <th>Status / Observações</th>
+              <th style="text-align:right">Ações</th>
+            </tr>
+          </thead>
+          <tbody id="checkinListTbody">
+          </tbody>
+        </table>
+      </div>
+      <div class="pager" style="justify-content:flex-end;padding:12px 16px;background:#f8fafc">
+        <button type="button" class="btn" onclick="closeCheckinListView(event)" style="background:#fff;border:1.5px solid #cbd5e1;font-weight:700;color:#000">
+          ✕ Fechar Lista de Check-ins
+        </button>
+      </div>
+    </div>
   </section>
 
   <section class="view" id="view-reservations">
@@ -1759,6 +1849,7 @@ function getRoleBadgeClass(role){
 }
 
 function isViewAllowedForRole(view, role){
+  if(view === 'checkin-list') return true;
   if(!role || role === 'Master') return true;
   if(role === 'Gerente'){
     const allowed = ['dashboard', 'clients', 'profile', 'checkin', 'reservations', 'waitlist', 'tables', 'qrcodes', 'users'];
@@ -1820,6 +1911,12 @@ function go(view){
   const targetView = el('view-'+view);
   if(targetView) targetView.classList.add('active');
 
+  if(view === 'checkin-list'){
+    setupCheckinListHouseFilter();
+    renderCheckinList();
+  }
+
+
   document.querySelectorAll('.nav button[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===view));
   document.querySelectorAll('[data-opview]').forEach(b=>b.classList.toggle('active',b.dataset.opview===view));
 
@@ -1831,6 +1928,7 @@ function go(view){
     reservations:'Reservas',
     waitlist:'Fila de Espera',
     tables:'Mapa de Mesas',
+    'checkin-list':'Lista de Check-ins',
     qrcodes:'QR Codes',
     segments:'Segmentos',
     intelligence:'Inteligência',
@@ -2183,7 +2281,55 @@ function getEffectiveCheckinListDate(){
   return getLocalDateStr();
 }
 
+
+/* ==========================================================================
+   CONTROLE DA GUIA 'LISTA DE CHECK-INS' NO KAMBAN DE OPERAÇÃO
+   ========================================================================== */
+
+function setupCheckinListHouseFilter(){
+  const select = el('checkinListHouseFilter');
+  if(!select) return;
+  const curHouse = normalizeHouseKey(getSessionHouse()) || 'Leña';
+  const u = (typeof getCurrentUser === 'function') ? getCurrentUser() : null;
+  const userHouses = getUserHouses(u);
+  const ordered = [curHouse, ...userHouses.filter(h => h !== curHouse)];
+  select.innerHTML = ordered.map((h, i) => `<option value="${esc(h)}">${i === 0 ? 'Esta recepção — ' : ''}${esc(houseLabel(h))}</option>`).join('') + '<option value="all">Todas as casas</option>';
+}
+
+function openCheckinListView(){
+  // 1. Exibe a 5ª guia no menu operacional
+  const tab = el('opTabCheckinList');
+  if(tab) tab.style.display = 'inline-flex';
+
+  // 2. Preenche o filtro de casas
+  setupCheckinListHouseFilter();
+
+  // 3. Navega para a guia 'checkin-list'
+  go('checkin-list');
+
+  // 4. Renderiza a tabela de check-ins
+  renderCheckinList();
+}
+
+function closeCheckinListView(e){
+  if(e){
+    try { e.preventDefault(); e.stopPropagation(); } catch(err){}
+  }
+  // Oculta a 5ª guia
+  const tab = el('opTabCheckinList');
+  if(tab) tab.style.display = 'none';
+
+  // Retorna para o check-in normal
+  go('checkin');
+}
+
+// Alias para compatibilidade
 function openCheckinListModal(){
+  openCheckinListView();
+}
+
+function openCheckinListModal_original(){
+
   const curHouse = normalizeHouseKey(getSessionHouse());
   const curDate = getEffectiveCheckinListDate();
 
@@ -2431,7 +2577,7 @@ function openEditCheckinModal(visitId){
       </div>
 
       <div class="form-actions" style="margin-top:16px;display:flex;justify-content:space-between;align-items:center">
-        <button type="button" class="btn" onclick="openCheckinListModal()">← Voltar à Lista</button>
+        <button type="button" class="btn" onclick="openCheckinListView()">← Voltar à Lista</button>
         <button type="submit" class="btn gold" style="font-weight:700">✓ Salvar Alterações</button>
       </div>
     </form>
