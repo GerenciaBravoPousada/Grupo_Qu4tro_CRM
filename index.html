@@ -2943,7 +2943,7 @@ function renderCheckinList(){
 }
 
 function openEditCheckinModal(visitId){
-  const v = state.visits.find(x => x.id === visitId);
+  const v = (state.visits || []).find(x => String(x.id) === String(visitId));
   if(!v){
     toast('Check-in não encontrado.');
     return;
@@ -3012,11 +3012,12 @@ function openEditCheckinModal(visitId){
       </div>
 
       <div class="form-actions" style="margin-top:16px;display:flex;justify-content:space-between;align-items:center">
-        <button type="button" class="btn" onclick="openCheckinListView()">← Voltar à Lista</button>
+        <button type="button" class="btn" onclick="closeModal()">Cancelar</button>
         <button type="submit" class="btn gold" style="font-weight:700">✓ Salvar Alterações</button>
       </div>
     </form>
   `;
+  el('modal').classList.add('show');
   setTimeout(() => el('editCiReason')?.focus(), 150);
 }
 
@@ -3090,8 +3091,35 @@ function submitEditCheckinForm(visitId){
   renderCheckinStats();
   renderDashboard();
 
+  // Sincronização direta adicional para garantir persistência imediata no Supabase
+  const sb = getSupabase();
+  if(sb && navigator.onLine){
+    const payload = {
+      id: v.id,
+      customer_id: isUUID(v.customer_id || v.clientId) ? (v.customer_id || v.clientId) : null,
+      customer_name: v.name,
+      customer_phone: digits(v.phone) || '',
+      house: v.house,
+      visit_date: normalizeDateIso(v.date) || today(),
+      arrival_time: v.arrival || '',
+      people_count: +v.people || 1,
+      table_number: String(v.table || ''),
+      source: v.source || 'Da casa',
+      status: v.status || 'Atendido',
+      notes: v.notes || '',
+      operator_reception: v.operatorReception || ''
+    };
+    sb.from('visits').upsert(payload, { onConflict: 'id' }).then(({ error }) => {
+      if(error && error.code === '23503'){
+        payload.customer_id = null;
+        sb.from('visits').upsert(payload, { onConflict: 'id' });
+      }
+    }).catch(() => {});
+  }
+
+  closeModal();
+  renderCheckinList();
   toast(`Check-in de ${newName} atualizado com sucesso!`);
-  openCheckinListModal();
 }
 
 const PRIORITY_OPTIONS = [
