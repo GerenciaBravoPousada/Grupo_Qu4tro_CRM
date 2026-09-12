@@ -416,7 +416,7 @@ body[data-house] .sidebar{background:linear-gradient(180deg,var(--nav),color-mix
 
   <section class="view" id="view-clients">
    <div class="hero"><div><h2>Clientes</h2><p>Cadastro único, recorrência e histórico por pessoa.</p></div><div class="filters"><select id="clientHouse" class="control"><option value="all">Todas as casas</option><option value="iconico">Visitou Íconico</option><option value="lena">Visitou Leña</option><option value="cafe">Visitou Bravo Café</option><option value="pousada">Visitou Café da Bravo Pousada</option><option value="both">Visitou mais de uma casa</option></select><select id="clientSegment" class="control"><option value="all">Todos os segmentos</option><option value="new">1 visita</option><option value="recurring">2+ visitas</option><option value="vip">5+ visitas</option></select><select id="clientPriority" class="control"><option value="all">Todas as prioridades</option><option value="any">⭐ Com prioridade (qualquer)</option><option value="Gestante">🤰 Gestante</option><option value="Idoso">🧓 Idoso</option><option value="PCD">♿ PCD</option><option value='Com Criança "no colo"'>👶 Com Criança "no colo"</option></select></div></div>
-   <div class="table-card"><div class="table-head"><div class="search"><span>⌕</span><input id="clientSearch" placeholder="Buscar por nome ou telefone..."></div><div class="actions-row"><button class="btn" onclick="openNewClient()">＋ Cliente</button><button class="btn" onclick="exportCSV('clients')">⇩ CSV</button></div></div><div class="table-wrap"><table class="data-table"><thead><tr><th>Cliente</th><th>Telefone</th><th>Última visita</th><th>Íconico</th><th>Leña</th><th>Total</th><th>Segmento</th><th></th></tr></thead><tbody id="clientsBody"></tbody></table></div><div class="pager"><span id="clientCount"></span><div><button class="iconbtn" id="prevClients">←</button> <span id="clientPageLabel"></span> <button class="iconbtn" id="nextClients">→</button></div></div></div>
+   <div class="table-card"><div class="table-head"><div class="search"><span>⌕</span><input id="clientSearch" placeholder="Buscar por nome ou telefone..."></div><div class="actions-row"><button class="btn" onclick="openNewClient()">＋ Cliente</button><button class="btn" onclick="exportCSV('clients')">⇩ CSV</button></div></div><div class="table-wrap"><table class="data-table"><thead><tr><th>Cliente</th><th>Telefone</th><th>Última visita</th><th>Íconico</th><th>Leña</th><th>Bravo Café</th><th>Bravo Pousada</th><th>Total</th><th>Segmento</th><th></th></tr></thead><tbody id="clientsBody"></tbody></table></div><div class="pager"><span id="clientCount"></span><div><button class="iconbtn" id="prevClients">←</button> <span id="clientPageLabel"></span> <button class="iconbtn" id="nextClients">→</button></div></div></div>
   </section>
 
   <section class="view" id="view-profile">
@@ -1483,11 +1483,21 @@ async function pullAllFromSupabase(){
       renderReservations();
     }
 
-    // 4. PULL CUSTOMERS (FULL SYNC)
-    const { data: rCust, error: cErr } = await sb.from('customers').select('*').limit(5000);
-    if(!cErr && rCust && rCust.length > 0){
+    // 4. PULL CUSTOMERS (FULL SYNC PAGINATED)
+    let allCust = [];
+    let cPage = 0;
+    const cStep = 1000;
+    while(true){
+      const { data: cBatch, error: cErr } = await sb.from('customers').select('*').range(cPage * cStep, (cPage + 1) * cStep - 1);
+      if(cErr || !cBatch || cBatch.length === 0) break;
+      allCust.push(...cBatch);
+      if(cBatch.length < cStep) break;
+      cPage++;
+    }
+
+    if(allCust.length > 0){
       let clientsUpdated = false;
-      rCust.forEach(rc => {
+      allCust.forEach(rc => {
         if(rc.name === '__SYSTEM_FLOORPLANS__'){
           try {
             const parsedMaps = JSON.parse(rc.notes);
@@ -1518,6 +1528,9 @@ async function pullAllFromSupabase(){
           } catch(e){}
         }
 
+        const isPousadaFirst = normalizeHouseKey(rc.first_house) === 'Café da Bravo Pousada';
+        const isBravoCafeFirst = normalizeHouseKey(rc.first_house) === 'Bravo Café';
+
         const localIdx = state.clients.findIndex(c => c.id === rc.id || (rc.phone && digits(c.phone) === digits(rc.phone)));
         const clientObj = {
           id: rc.id,
@@ -1528,13 +1541,13 @@ async function pullAllFromSupabase(){
           lastVisit: rc.last_visit || '',
           iconico: rc.visits_iconiko || 0,
           lena: rc.visits_lena || 0,
-          cafe: rc.visits_cafe || 0,
-          cafePousada: 0,
+          cafe: isPousadaFirst ? 0 : (rc.visits_cafe || 0),
+          cafePousada: isPousadaFirst ? Math.max(rc.visits_cafe || 1, 1) : 0,
           firstHouse: rc.first_house || '',
           visitedIconico: (rc.visits_iconiko > 0) ? 'Sim' : 'Não',
           visitedLena: (rc.visits_lena > 0) ? 'Sim' : 'Não',
-          visitedCafe: (rc.visits_cafe > 0) ? 'Sim' : 'Não',
-          visitedCafePousada: 'Não',
+          visitedCafe: (!isPousadaFirst && rc.visits_cafe > 0) ? 'Sim' : 'Não',
+          visitedCafePousada: isPousadaFirst ? 'Sim' : 'Não',
           source: rc.source || 'Da casa',
           totalVisits: rc.total_visits || 1,
           priorities: priorities,
@@ -1545,7 +1558,7 @@ async function pullAllFromSupabase(){
         if(localIdx !== -1){
           state.clients[localIdx] = Object.assign(state.clients[localIdx], clientObj);
         } else {
-          state.clients.unshift(clientObj);
+          state.clients.push(clientObj);
         }
         clientsUpdated = true;
       });
@@ -1554,11 +1567,21 @@ async function pullAllFromSupabase(){
       }
     }
 
-    // 5. PULL VISITS (FULL SYNC)
-    const { data: rVisits, error: vErr } = await sb.from('visits').select('*').order('visit_date', { ascending: false }).limit(5000);
-    if(!vErr && rVisits && rVisits.length > 0){
+    // 5. PULL VISITS (FULL SYNC PAGINATED)
+    let allVisits = [];
+    let vPage = 0;
+    const vStep = 1000;
+    while(true){
+      const { data: vBatch, error: vErr } = await sb.from('visits').select('*').order('visit_date', { ascending: false }).range(vPage * vStep, (vPage + 1) * vStep - 1);
+      if(vErr || !vBatch || vBatch.length === 0) break;
+      allVisits.push(...vBatch);
+      if(vBatch.length < vStep) break;
+      vPage++;
+    }
+
+    if(allVisits.length > 0){
       let visitsUpdated = false;
-      rVisits.forEach(rv => {
+      allVisits.forEach(rv => {
         const localIdx = state.visits.findIndex(v => v.id === rv.id || (digits(v.phone) === digits(rv.customer_phone) && v.date === rv.visit_date && v.arrival === rv.arrival_time));
         const visitObj = {
           id: rv.id,
@@ -1583,13 +1606,14 @@ async function pullAllFromSupabase(){
         if(localIdx !== -1){
           state.visits[localIdx] = Object.assign(state.visits[localIdx], visitObj);
         } else {
-          state.visits.unshift(visitObj);
+          state.visits.push(visitObj);
         }
         visitsUpdated = true;
       });
       if(visitsUpdated){
         renderCheckinStats();
         renderDashboard();
+        renderClients();
       }
     }
 
@@ -1830,12 +1854,14 @@ function calcClient(c){
   const cf = vv.filter(v => normalizeHouseKey(v.house) === 'Bravo Café').length;
   const cp = vv.filter(v => normalizeHouseKey(v.house) === 'Café da Bravo Pousada').length;
   const tot = i + l + cf + cp;
+  const isPousada = cp > 0 || normalizeHouseKey(c.firstHouse) === 'Café da Bravo Pousada' || (c.cafePousada || 0) > 0;
+  const isCafe = cf > 0 || normalizeHouseKey(c.firstHouse) === 'Bravo Café' || (!isPousada && (c.cafe || 0) > 0);
   return {
     ...c,
     iconico: Math.max(c.iconico || 0, i),
     lena: Math.max(c.lena || 0, l),
-    cafe: Math.max(c.cafe || 0, cf),
-    cafePousada: Math.max(c.cafePousada || 0, cp),
+    cafe: Math.max(isCafe ? (c.cafe || 0) : 0, cf),
+    cafePousada: Math.max(isPousada ? (c.cafePousada || 0) : 0, cp, isPousada ? 1 : 0),
     totalVisits: Math.max(c.totalVisits || 0, tot > 0 ? tot : (c.totalVisits || 0)),
     lastVisit: vv[0]?.date || c.lastVisit,
     firstVisit: vv[vv.length-1]?.date || c.firstVisit
@@ -2728,11 +2754,11 @@ function getFilteredClients(){
     .filter(c => !q || c.name.toLowerCase().includes(q) || digits(c.phone).includes(digits(q)))
     .filter(c => {
       if(hf === 'all') return true;
-      if(hf === 'iconico') return (c.iconico > 0 || clientVisits(c).some(v => normalizeHouseKey(v.house) === 'Íconico'));
-      if(hf === 'lena') return (c.lena > 0 || clientVisits(c).some(v => normalizeHouseKey(v.house) === 'Leña'));
-      if(hf === 'cafe') return (c.cafe > 0 || clientVisits(c).some(v => normalizeHouseKey(v.house) === 'Bravo Café'));
-      if(hf === 'pousada') return (c.cafePousada > 0 || clientVisits(c).some(v => normalizeHouseKey(v.house) === 'Café da Bravo Pousada'));
-      if(hf === 'both') return [c.iconico > 0, c.lena > 0, c.cafe > 0, c.cafePousada > 0].filter(Boolean).length >= 2;
+      if(hf === 'iconico') return (c.iconico > 0 || normalizeHouseKey(c.firstHouse) === 'Íconico' || clientVisits(c).some(v => normalizeHouseKey(v.house) === 'Íconico'));
+      if(hf === 'lena') return (c.lena > 0 || normalizeHouseKey(c.firstHouse) === 'Leña' || clientVisits(c).some(v => normalizeHouseKey(v.house) === 'Leña'));
+      if(hf === 'cafe') return (c.cafe > 0 || normalizeHouseKey(c.firstHouse) === 'Bravo Café' || clientVisits(c).some(v => normalizeHouseKey(v.house) === 'Bravo Café'));
+      if(hf === 'pousada') return (c.cafePousada > 0 || normalizeHouseKey(c.firstHouse) === 'Café da Bravo Pousada' || clientVisits(c).some(v => normalizeHouseKey(v.house) === 'Café da Bravo Pousada'));
+      if(hf === 'both') return [c.iconico > 0, c.lena > 0, (c.cafe || 0) > 0, (c.cafePousada || 0) > 0].filter(Boolean).length >= 2;
       return true;
     })
     .filter(c => sf === 'all' || (sf === 'new' && c.totalVisits <= 1) || (sf === 'recurring' && c.totalVisits >= 2) || (sf === 'vip' && c.totalVisits >= 5))
@@ -2751,8 +2777,8 @@ function renderClients(){
   const slice=a.slice((clientPage-1)*pageSize,clientPage*pageSize);
   el('clientsBody').innerHTML=slice.map(c=>{
     const prioBadges = renderPriorityBadges(c.priorities);
-    return `<tr><td><div class="person"><div class="avatar">${initials(c.name)}</div><div><b>${esc(c.name)}</b>${prioBadges?`<div style="margin-top:3px">${prioBadges}</div>`:''}<br><span style="color:var(--muted);font-size:10px">${esc(c.source||'')}</span></div></div></td><td>${fmtPhone(c.phone)}</td><td>${fmtDate(c.lastVisit)}</td><td>${c.iconico}</td><td>${c.lena}</td><td><b>${c.totalVisits}</b></td><td><span class="badge ${c.totalVisits>=5?'gold':c.totalVisits>=2?'good':'blue'}">${segmentOf(c)}</span></td><td><button class="iconbtn" onclick="openProfile('${esc(c.id)}')">Ver →</button></td></tr>`;
-  }).join('')||'<tr><td colspan="8"><div class="empty">Nenhum cliente encontrado.</div></td></tr>';
+    return `<tr><td><div class="person"><div class="avatar">${initials(c.name)}</div><div><b>${esc(c.name)}</b>${prioBadges?`<div style="margin-top:3px">${prioBadges}</div>`:''}<br><span style="color:var(--muted);font-size:10px">${esc(c.source||'')}</span></div></div></td><td>${fmtPhone(c.phone)}</td><td>${fmtDate(c.lastVisit)}</td><td>${c.iconico}</td><td>${c.lena}</td><td>${c.cafe||0}</td><td>${c.cafePousada||0}</td><td><b>${c.totalVisits}</b></td><td><span class="badge ${c.totalVisits>=5?'gold':c.totalVisits>=2?'good':'blue'}">${segmentOf(c)}</span></td><td><button class="iconbtn" onclick="openProfile('${esc(c.id)}')">Ver →</button></td></tr>`;
+  }).join('')||'<tr><td colspan="10"><div class="empty">Nenhum cliente encontrado.</div></td></tr>';
   el('clientCount').textContent=`${a.length.toLocaleString('pt-BR')} clientes`;
   el('clientPageLabel').textContent=`${clientPage}/${pages}`;
   el('prevClients').disabled=clientPage<=1;
@@ -2790,6 +2816,8 @@ function openProfile(id){
       <div><span>Última visita</span><strong>${fmtDate(c.lastVisit)}</strong></div>
       <div><span>Íconico</span><strong>${c.iconico}</strong></div>
       <div><span>Leña</span><strong>${c.lena}</strong></div>
+      <div><span>Bravo Café</span><strong>${c.cafe || 0}</strong></div>
+      <div><span>Bravo Pousada</span><strong>${c.cafePousada || 0}</strong></div>
       <div><span>Origem</span><strong>${esc(c.source||'—')}</strong></div>
       <div><span>Primeira casa</span><strong>${esc(c.firstHouse||'—')}</strong></div>
     </div>
@@ -2813,11 +2841,11 @@ document.querySelectorAll('input[name="ciPriority"]').forEach(cb => {
 });
 const card=el('selectedClientCard');card.className='span2 selected-client-card show';
 const selPrioHtml = (c.priorities && c.priorities.length) ? `<div style="margin-top:6px">${renderPriorityBadges(c.priorities)}</div>` : '';
-card.innerHTML=`<div style="display:flex;justify-content:space-between;gap:10px;align-items:center"><div><strong>✓ ${esc(cc.name)}</strong>${selPrioHtml}<div style="font-size:10px;color:var(--muted);margin-top:2px">Cliente existente selecionado</div></div><button type="button" class="iconbtn" onclick="clearSelectedCheckinClient()">Trocar</button></div><div class="selected-grid"><div><span>Telefone</span><b>${fmtPhone(cc.phone)}</b></div><div><span>CPF</span><b>${esc(cc.cpf||'Não informado')}</b></div><div><span>Última visita</span><b>${fmtDate(cc.lastVisit)}</b></div><div><span>Total de visitas</span><b>${cc.totalVisits}</b></div></div>`;const info=el('clientFound');info.className='checkin-status show found';info.innerHTML=`<strong>${segmentOf(cc)}</strong><div style="font-size:11px;color:var(--muted);margin-top:4px">Íconico: ${cc.iconico} • Leña: ${cc.lena} • Bravo Café: ${cc.cafe||0} • Primeira casa: ${esc(houseLabel(cc.firstHouse||'—'))}</div>`}
+card.innerHTML=`<div style="display:flex;justify-content:space-between;gap:10px;align-items:center"><div><strong>✓ ${esc(cc.name)}</strong>${selPrioHtml}<div style="font-size:10px;color:var(--muted);margin-top:2px">Cliente existente selecionado</div></div><button type="button" class="iconbtn" onclick="clearSelectedCheckinClient()">Trocar</button></div><div class="selected-grid"><div><span>Telefone</span><b>${fmtPhone(cc.phone)}</b></div><div><span>CPF</span><b>${esc(cc.cpf||'Não informado')}</b></div><div><span>Última visita</span><b>${fmtDate(cc.lastVisit)}</b></div><div><span>Total de visitas</span><b>${cc.totalVisits}</b></div></div>`;const info=el('clientFound');info.className='checkin-status show found';info.innerHTML=`<strong>${segmentOf(cc)}</strong><div style="font-size:11px;color:var(--muted);margin-top:4px">Íconico: ${cc.iconico} • Leña: ${cc.lena} • Bravo Café: ${cc.cafe||0} • Pousada: ${cc.cafePousada||0} • Primeira casa: ${esc(houseLabel(cc.firstHouse||'—'))}</div>`}
 function clearSelectedCheckinClient(){selectedCheckinClientId=null;el('ciLookup').value='';el('ciName').value='';el('ciPhone').value='';document.querySelectorAll('input[name="ciPriority"]').forEach(cb=>cb.checked=false);el('selectedClientCard').className='span2 selected-client-card';el('selectedClientCard').innerHTML='';el('clientFound').className='checkin-status';el('clientFound').innerHTML='';el('ciLookup').focus()}
 function startCheckinForProfile(){if(!currentClient)return;go('checkin');selectCheckinClient(currentClient.id)}
 
-function houseLabel(h){return h==='Leña'?'Leña Casa Italiana':h==='Íconico'?'Iconiko Cozinha Japonesa':h==='Bravo Café'?'Bravo Café':h||'—'}
+function houseLabel(h){return h==='Leña'?'Leña Casa Italiana':h==='Íconico'?'Iconiko Cozinha Japonesa':h==='Bravo Café'?'Bravo Café':(h==='Café da Bravo Pousada'||h==='cafedabravopousada')?'Café da Bravo Pousada':h||'—'}
 function getSessionHouse(){return sessionStorage.getItem('qu4tro_reception_house')||''}
 const HOUSE_BRANDING = {
   'Bravo Café': {
@@ -4455,8 +4483,8 @@ function openNewClient(){
   };
 }
 
-function segData(){const cc=state.clients.map(calcClient);return {'VIP ativo':cc.filter(c=>segmentOf(c)==='VIP ativo'),'Recorrentes':cc.filter(c=>c.totalVisits>=2),'Novos':cc.filter(c=>segmentOf(c)==='Novo'),'Em risco':cc.filter(c=>['Em risco','VIP em risco'].includes(segmentOf(c))),'Só Íconico':cc.filter(c=>c.iconico>0&&c.lena===0),'Só Leña':cc.filter(c=>c.lena>0&&c.iconico===0)}}
-function renderSegments(){const s=segData(),desc={'VIP ativo':'5+ visitas e retorno nos últimos 60 dias.','Recorrentes':'Clientes com duas ou mais visitas.','Novos':'Uma visita recente; janela ideal para estimular o segundo retorno.','Em risco':'Recorrentes afastados por mais de 90 dias.','Só Íconico':'Conhecem Íconico, mas ainda não registraram visita ao Leña.','Só Leña':'Conhecem Leña, mas ainda não registraram visita ao Íconico.'};el('segmentGrid').innerHTML=Object.entries(s).map(([k,a])=>`<button class="card seg-card" style="text-align:left;border:1px solid var(--line)" onclick="showSegment('${k}')"><h3>${k}</h3><div class="big">${a.length.toLocaleString('pt-BR')}</div><p>${desc[k]}</p></button>`).join('');if(selectedSegment)showSegment(selectedSegment)}
+function segData(){const cc=state.clients.map(calcClient);return {'VIP ativo':cc.filter(c=>segmentOf(c)==='VIP ativo'),'Recorrentes':cc.filter(c=>c.totalVisits>=2),'Novos':cc.filter(c=>segmentOf(c)==='Novo'),'Em risco':cc.filter(c=>['Em risco','VIP em risco'].includes(segmentOf(c))),'Só Íconico':cc.filter(c=>c.iconico>0&&c.lena===0&&(c.cafe||0)===0&&(c.cafePousada||0)===0),'Só Leña':cc.filter(c=>c.lena>0&&c.iconico===0&&(c.cafe||0)===0&&(c.cafePousada||0)===0),'Só Bravo Café':cc.filter(c=>(c.cafe||0)>0&&c.iconico===0&&c.lena===0&&(c.cafePousada||0)===0),'Só Bravo Pousada':cc.filter(c=>(c.cafePousada||0)>0&&c.iconico===0&&c.lena===0&&(c.cafe||0)===0),'Cross-selling':cc.filter(c=>[c.iconico>0,c.lena>0,(c.cafe||0)>0,(c.cafePousada||0)>0].filter(Boolean).length>=2)}}
+function renderSegments(){const s=segData(),desc={'VIP ativo':'5+ visitas e retorno nos últimos 60 dias.','Recorrentes':'Clientes com duas ou mais visitas.','Novos':'Uma visita recente; janela ideal para estimular o segundo retorno.','Em risco':'Recorrentes afastados por mais de 90 dias.','Só Íconico':'Conhecem Íconico exclusivamente.','Só Leña':'Conhecem Leña exclusivamente.','Só Bravo Café':'Conhecem Bravo Café exclusivamente.','Só Bravo Pousada':'Conhecem Café da Bravo Pousada exclusivamente.','Cross-selling':'Conhecem 2 ou mais casas do grupo.'};el('segmentGrid').innerHTML=Object.entries(s).map(([k,a])=>`<button class="card seg-card" style="text-align:left;border:1px solid var(--line)" onclick="showSegment('${k}')"><h3>${k}</h3><div class="big">${a.length.toLocaleString('pt-BR')}</div><p>${desc[k]}</p></button>`).join('');if(selectedSegment)showSegment(selectedSegment)}
 function showSegment(k){selectedSegment=k;const a=segData()[k]||[];el('selectedSegmentLabel').textContent=`${k} • ${a.length} clientes`;el('segmentList').className='';el('segmentList').innerHTML=`<div class="table-wrap" style="max-height:420px"><table class="data-table"><thead><tr><th>Cliente</th><th>Telefone</th><th>Última visita</th><th>Visitas</th><th></th></tr></thead><tbody>${a.slice(0,100).map(c=>`<tr><td>${esc(c.name)}</td><td>${fmtPhone(c.phone)}</td><td>${fmtDate(c.lastVisit)}</td><td>${c.totalVisits}</td><td><button class="iconbtn" onclick="openProfile('${c.id}')">Ver</button></td></tr>`).join('')}</tbody></table></div>`}
 function renderIntelligence(){const cc=state.clients.map(calcClient),risk=cc.filter(c=>c.totalVisits>=2&&daysSince(c.lastVisit)>90),newRecent=cc.filter(c=>c.totalVisits<=1&&daysSince(c.lastVisit)<=30),vip=cc.filter(c=>c.totalVisits>=5&&daysSince(c.lastVisit)<=60);el('intelligenceList').innerHTML=`<div class="insight"><strong>Recuperação: ${risk.length} clientes</strong><p>Já voltaram pelo menos uma vez, mas estão há mais de 90 dias sem visita. É o público com sinal mais claro para campanha de retorno.</p></div><div class="insight"><strong>Segundo retorno: ${newRecent.length} clientes</strong><p>Clientes recentes com apenas uma visita. Janela útil para transformar aquisição em recorrência.</p></div><div class="insight"><strong>Relacionamento VIP: ${vip.length} clientes</strong><p>Clientes de alta frequência ainda ativos. Podem receber tratamento de fidelização e reconhecimento.</p></div>`;const onlyI=cc.filter(c=>c.iconico>0&&c.lena===0),onlyL=cc.filter(c=>c.lena>0&&c.iconico===0),both=cc.filter(c=>c.iconico>0&&c.lena>0),mx=Math.max(onlyI.length,onlyL.length,both.length,1);el('crossHouse').innerHTML=[['Só Íconico',onlyI.length],['Só Leña',onlyL.length],['Conhecem as duas',both.length]].map(([k,n])=>`<div class="barrow"><span>${k}</span><div class="bartrack"><div class="bar" style="width:${n/mx*100}%"></div></div><strong>${n}</strong></div>`).join('')}
 function getPublicBaseUrl(){
@@ -4539,7 +4567,7 @@ function renderData(){el('dataStats').textContent=`Base local atual: ${state.cli
 function exportBackup(){const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='grupo_qu4tro_backup.json';a.click();URL.revokeObjectURL(a.href)}
 el('backupInput').onchange=e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{try{const d=JSON.parse(rd.result);if(!d.clients||!d.visits)throw Error();state=d;save();toast('Backup importado com sucesso.')}catch{toast('Arquivo de backup inválido.')}};rd.readAsText(f)}
 function resetData(){if(!confirm('Restaurar a base inicial deste protótipo? Alterações locais serão apagadas.'))return;state=structuredClone(SEED_DATA);save();toast('Base inicial restaurada.')}
-function exportCSV(type){const rows=type==='clients'?getFilteredClients():state.visits;let headers,body;if(type==='clients'){headers=['Nome','Telefone','Prioridades','Primeira visita','Última visita','Visitas Iconico','Visitas Lena','Visitas Bravo Cafe','Total','Origem','Segmento'];body=rows.map(c=>[c.name,c.phone,(c.priorities||[]).join(', '),c.firstVisit,c.lastVisit,c.iconico,c.lena,c.cafe||0,c.totalVisits,c.source,segmentOf(c)])}const csv=[headers,...body].map(r=>r.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(';')).join('\n');const blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='grupo_qu4tro_clientes.csv';a.click();URL.revokeObjectURL(a.href)}
+function exportCSV(type){const rows=type==='clients'?getFilteredClients():state.visits;let headers,body;if(type==='clients'){headers=['Nome','Telefone','Prioridades','Primeira visita','Última visita','Visitas Iconico','Visitas Lena','Visitas Bravo Cafe','Visitas Bravo Pousada','Total','Origem','Segmento'];body=rows.map(c=>[c.name,c.phone,(c.priorities||[]).join(', '),c.firstVisit,c.lastVisit,c.iconico,c.lena,c.cafe||0,c.cafePousada||0,c.totalVisits,c.source,segmentOf(c)])}const csv=[headers,...body].map(r=>r.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(';')).join('\n');const blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='grupo_qu4tro_clientes.csv';a.click();URL.revokeObjectURL(a.href)}
 function refreshAll(){renderDashboard();renderClients();renderReservations();renderSegments();renderIntelligence();renderData();renderCheckinStats();renderQRCodes();renderSettings();renderUsers();renderUserSessionBadge();if(typeof renderWaitlist==='function')renderWaitlist();if(typeof updateOpWaitlistBadge==='function')updateOpWaitlistBadge();if(typeof renderFloorplan==='function' && el('view-tables')?.classList.contains('active')) renderFloorplan();}
 refreshAll();
 ensureSession();
