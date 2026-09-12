@@ -584,6 +584,14 @@ body[data-house] .sidebar{background:linear-gradient(180deg,var(--nav),color-mix
           </select>
         </div>
 
+        <div style="display:flex;flex-direction:column;gap:5px">
+          <label style="font-size:12px;font-weight:750;color:#000">Ordem do Horário:</label>
+          <select id="checkinListOrderFilter" class="control" style="font-size:13px;font-weight:700;padding:9px 12px;color:#000;border:1.5px solid #cbd5e1" onchange="renderCheckinList()">
+            <option value="asc" selected>Primeiros no topo (18h → 23h)</option>
+            <option value="desc">Últimos no topo (23h → 18h)</option>
+          </select>
+        </div>
+
         <div style="display:flex;flex-direction:column;gap:5px;flex:1;min-width:240px">
           <label style="font-size:12px;font-weight:750;color:#000">Buscar na lista:</label>
           <div class="search" style="max-width:none">
@@ -604,7 +612,7 @@ body[data-house] .sidebar{background:linear-gradient(180deg,var(--nav),color-mix
         <table class="data-table checkin-compact-table">
           <thead>
             <tr>
-              <th class="col-time">Horário</th>
+              <th class="col-time" onclick="toggleCheckinListOrder()" style="cursor:pointer;user-select:none" title="Clique para alternar a ordem dos horários">Horário <span id="checkinListOrderIcon">↑</span></th>
               <th class="col-client">Cliente</th>
               <th class="col-phone">Telefone</th>
               <th class="col-people">Pessoas</th>
@@ -2877,6 +2885,24 @@ function handleCheckinListSingleDateChange(){
   }
 }
 
+function shiftTimeMinutes(t){
+  if(!t) return 9999;
+  const parts = String(t).split(':');
+  let h = parseInt(parts[0], 10);
+  const m = parseInt(parts[1], 10) || 0;
+  if(isNaN(h)) return 9999;
+  if(h < 6) h += 24; // madrugadas (00h-05h) aparecem após 23h59
+  return h * 60 + m;
+}
+
+function toggleCheckinListOrder(){
+  const sel = el('checkinListOrderFilter');
+  if(sel){
+    sel.value = (sel.value === 'asc' ? 'desc' : 'asc');
+    renderCheckinList();
+  }
+}
+
 function renderCheckinList(){
   const tbody = el('checkinListTbody');
   if(!tbody) return;
@@ -2906,8 +2932,16 @@ function renderCheckinList(){
     );
   }
 
-  // Sort by arrival descending (latest first)
-  list.sort((a, b) => (b.arrival || '').localeCompare(a.arrival || ''));
+  const order = el('checkinListOrderFilter')?.value || 'asc';
+  const orderIcon = el('checkinListOrderIcon');
+  if(orderIcon) orderIcon.textContent = (order === 'asc' ? ' ↑' : ' ↓');
+
+  // Ordenação cronológica por horário: primeiros atendimentos no topo (18:56 ... 22:55 no final) ou decrescente
+  list.sort((a, b) => {
+    const ta = shiftTimeMinutes(a.arrival);
+    const tb = shiftTimeMinutes(b.arrival);
+    return order === 'desc' ? (tb - ta) : (ta - tb);
+  });
 
   const totalPeople = list.reduce((sum, v) => sum + (+v.people || 0), 0);
   const kpiEl = el('checkinListKpiSummary');
