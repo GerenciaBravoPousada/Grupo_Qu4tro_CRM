@@ -1176,6 +1176,7 @@ function go(view){
 
   el('pageTitle').textContent=names[view]||view;
   el('sidebar').classList.remove('open');
+  try { window.scrollTo({ top: 0, behavior: 'instant' }); } catch(e) { window.scrollTo(0, 0); }
 
   if(view==='dashboard')renderDashboard();
   if(view==='clients')renderClients();
