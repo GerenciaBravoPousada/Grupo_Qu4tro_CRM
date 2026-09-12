@@ -293,6 +293,117 @@ body[data-house] .sidebar{background:linear-gradient(180deg,var(--nav),color-mix
 .op-nav-btn.active .op-close-tab{background:rgba(0,0,0,.14);color:#0f172a}
 .op-nav-btn.active .op-close-tab:hover{background:#ef4444!important;color:#fff!important}
 
+/* ==========================================================================
+   TABELA DE CHECK-INS DO SALÃO (COMPACTA E OTIMIZADA HORIZONTALMENTE)
+   ========================================================================== */
+.checkin-compact-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: auto;
+}
+.checkin-compact-table th,
+.checkin-compact-table td {
+  padding: 4px 8px !important;
+  font-size: 12px !important;
+  line-height: 1.25 !important;
+  vertical-align: middle !important;
+  border-bottom: 1px solid #edf2f7 !important;
+}
+.checkin-compact-table th {
+  background: #f8fafc !important;
+  color: #475569 !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  padding: 6px 8px !important;
+  border-bottom: 1.5px solid #cbd5e1 !important;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+.checkin-compact-table tbody tr {
+  height: 29px !important;
+  transition: background 0.1s ease;
+}
+.checkin-compact-table tbody tr:nth-child(even) {
+  background: #fafcfd;
+}
+.checkin-compact-table tbody tr:hover {
+  background: #f0f7fa !important;
+}
+
+/* Larguras e alinhamentos de colunas para otimização horizontal */
+.checkin-compact-table .col-time {
+  width: 58px;
+  min-width: 58px;
+  max-width: 65px;
+  text-align: center;
+  white-space: nowrap;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: #0f172a;
+}
+.checkin-compact-table .col-client {
+  min-width: 130px;
+  max-width: 220px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.checkin-compact-table .col-phone {
+  width: 116px;
+  min-width: 116px;
+  max-width: 125px;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  color: #334155;
+}
+.checkin-compact-table .col-people {
+  width: 52px;
+  min-width: 52px;
+  max-width: 58px;
+  text-align: center;
+  white-space: nowrap;
+  font-weight: 700;
+  color: #0f172a;
+}
+.checkin-compact-table .col-table {
+  width: 55px;
+  min-width: 55px;
+  max-width: 60px;
+  text-align: center;
+  white-space: nowrap;
+}
+.checkin-compact-table .col-house {
+  width: 135px;
+  min-width: 130px;
+  max-width: 155px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #334155;
+}
+.checkin-compact-table .col-source {
+  width: 82px;
+  min-width: 80px;
+  max-width: 95px;
+  white-space: nowrap;
+  color: #64748b;
+  font-size: 11px !important;
+}
+.checkin-compact-table .col-status {
+  min-width: 120px;
+  white-space: nowrap;
+}
+.checkin-compact-table .col-actions {
+  width: 68px;
+  min-width: 68px;
+  max-width: 75px;
+  text-align: right;
+  white-space: nowrap;
+}
+
 </style>
 </head>
 <body>
@@ -487,27 +598,27 @@ body[data-house] .sidebar{background:linear-gradient(180deg,var(--nav),color-mix
     <!-- Checkins Table / List container -->
     <div class="table-card">
       <div class="table-wrap" style="max-height:68vh">
-        <table class="data-table">
+        <table class="data-table checkin-compact-table">
           <thead>
             <tr>
-              <th>Horário</th>
-              <th>Cliente</th>
-              <th>Telefone</th>
-              <th style="text-align:center">Pessoas</th>
-              <th style="text-align:center">Mesa</th>
-              <th>Casa</th>
-              <th>Origem</th>
-              <th>Status / Observações</th>
-              <th style="text-align:right">Ações</th>
+              <th class="col-time">Horário</th>
+              <th class="col-client">Cliente</th>
+              <th class="col-phone">Telefone</th>
+              <th class="col-people">Pessoas</th>
+              <th class="col-table">Mesa</th>
+              <th class="col-house">Casa</th>
+              <th class="col-source">Origem</th>
+              <th class="col-status">Status / Observações</th>
+              <th class="col-actions">Ações</th>
             </tr>
           </thead>
           <tbody id="checkinListTbody">
           </tbody>
         </table>
       </div>
-      <div class="pager" style="justify-content:space-between;padding:12px 16px;background:#f8fafc">
-        <div style="font-size:12px;color:var(--muted)">Visualização contínua de check-ins registrados.</div>
-        <button type="button" class="btn" onclick="renderCheckinList()" style="background:#fff;border:1.5px solid #cbd5e1;font-weight:700;color:#000">
+      <div class="pager" style="justify-content:space-between;padding:8px 14px;background:#f8fafc">
+        <div style="font-size:11.5px;color:var(--muted)">Visualização contínua de check-ins registrados.</div>
+        <button type="button" class="btn" onclick="renderCheckinList()" style="background:#fff;border:1.5px solid #cbd5e1;font-weight:700;color:#000;padding:5px 10px;font-size:11.5px">
           🔄 Atualizar Lista
         </button>
       </div>
@@ -2403,18 +2514,18 @@ function openCheckinListModal_original(){
 
       <!-- Checkins Table / List container -->
       <div class="table-wrap" style="max-height:55vh;overflow-y:auto;border:1px solid var(--line);border-radius:12px">
-        <table class="data-table" style="min-width:720px;font-size:12px">
+        <table class="data-table checkin-compact-table" style="min-width:720px">
           <thead>
             <tr>
-              <th style="width:70px">Horário</th>
-              <th>Cliente</th>
-              <th>Telefone</th>
-              <th style="width:65px;text-align:center">Pessoas</th>
-              <th style="width:65px;text-align:center">Mesa</th>
-              <th>Casa</th>
-              <th>Origem</th>
-              <th>Status / Obs</th>
-              <th style="text-align:right;width:85px">Ação</th>
+              <th class="col-time">Horário</th>
+              <th class="col-client">Cliente</th>
+              <th class="col-phone">Telefone</th>
+              <th class="col-people">Pessoas</th>
+              <th class="col-table">Mesa</th>
+              <th class="col-house">Casa</th>
+              <th class="col-source">Origem</th>
+              <th class="col-status">Status / Obs</th>
+              <th class="col-actions">Ação</th>
             </tr>
           </thead>
           <tbody id="checkinListTbody"></tbody>
@@ -2506,28 +2617,28 @@ function renderCheckinList(){
 
   tbody.innerHTML = list.map(v => {
     const isEdited = (v.notes || '').includes('[Editado') || v.lastEditedReason;
+    const phoneVal = v.phone ? String(v.phone).trim() : '';
+    const phoneDisplay = (!phoneVal || phoneVal === '0' || /^0+$/.test(phoneVal)) ? '<span style="color:#94a3b8">—</span>' : fmtPhone(phoneVal);
+    const houseName = houseLabel(v.house);
     return `
       <tr>
-        <td><strong>${esc(v.arrival || '—')}</strong></td>
-        <td>
-          <div class="person" style="gap:6px">
-            <div>
-              <strong>${esc(v.name)}</strong>
-              ${isEdited ? `<span class="badge warn" style="font-size:9.5px;padding:1px 5px;margin-left:4px" title="${esc(v.lastEditedReason || 'Registro alterado')}">Editado</span>` : ''}
-            </div>
+        <td class="col-time">${esc(v.arrival || '—')}</td>
+        <td class="col-client" title="${esc(v.name)}">
+          <strong>${esc(v.name)}</strong>${isEdited ? `<span class="badge warn" style="font-size:9px;padding:1px 4px;margin-left:4px" title="${esc(v.lastEditedReason || 'Registro alterado')}">Editado</span>` : ''}
+        </td>
+        <td class="col-phone">${phoneDisplay}</td>
+        <td class="col-people">${v.people}</td>
+        <td class="col-table">${v.table ? `<span style="background:#f1f5f9;padding:1px 6px;border-radius:5px;font-weight:700;color:#0f172a">${esc(v.table)}</span>` : '<span style="color:#94a3b8">—</span>'}</td>
+        <td class="col-house" title="${esc(houseName)}">${esc(houseName)}</td>
+        <td class="col-source" title="${esc(v.source || '—')}">${esc(v.source || '—')}</td>
+        <td class="col-status">
+          <div style="display:inline-flex;align-items:center;gap:6px;max-width:100%">
+            <span class="badge ${v.status?.toLowerCase().includes('recorr') ? 'gold' : 'blue'}" style="font-size:9.5px;padding:2px 6px;line-height:1">${esc(v.status || 'Novo')}</span>
+            ${v.notes ? `<span style="font-size:10.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:170px" title="${esc(v.notes)}">${esc(v.notes)}</span>` : ''}
           </div>
         </td>
-        <td>${fmtPhone(v.phone)}</td>
-        <td style="text-align:center"><strong>${v.people}</strong></td>
-        <td style="text-align:center">${v.table ? `<span style="background:#f1f5f9;padding:2px 6px;border-radius:6px;font-weight:700">${esc(v.table)}</span>` : '—'}</td>
-        <td><small>${esc(houseLabel(v.house))}</small></td>
-        <td><small style="color:var(--muted)">${esc(v.source || '—')}</small></td>
-        <td>
-          <span class="badge ${v.status?.toLowerCase().includes('recorr') ? 'gold' : 'blue'}" style="font-size:10px">${esc(v.status || 'Novo')}</span>
-          ${v.notes ? `<div style="font-size:10.5px;color:var(--muted);margin-top:2px;max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${esc(v.notes)}">${esc(v.notes)}</div>` : ''}
-        </td>
-        <td style="text-align:right">
-          <button type="button" class="btn ghost" onclick="openEditCheckinModal('${esc(v.id)}')" style="padding:4px 8px;font-size:11.5px;font-weight:700;border:1px solid #cbd5e1;border-radius:8px;background:#fff" title="Editar informações deste check-in">
+        <td class="col-actions">
+          <button type="button" class="btn ghost" onclick="openEditCheckinModal('${esc(v.id)}')" style="padding:2px 7px;font-size:11px;font-weight:700;border:1px solid #cbd5e1;border-radius:6px;background:#fff;height:24px;line-height:1" title="Editar check-in">
             ✎ Editar
           </button>
         </td>
