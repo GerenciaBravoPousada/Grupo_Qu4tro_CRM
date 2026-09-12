@@ -5,6 +5,14 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="theme-color" content="#0f202a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Qu4tro CRM">
 <title>GRUPO QU4TRO — Gestão de Clientes</title>
 <script src="qrcode.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -199,6 +207,23 @@ body[data-house] .sidebar{background:linear-gradient(180deg,var(--nav),color-mix
   }
 }
 
+
+/* PWA, OFFLINE-FIRST & AUTO-CLEAN STYLES */
+.network-sync-chip{display:flex;align-items:center;gap:7px;border:1px solid var(--line);background:#fff;border-radius:10px;padding:6px 11px;font-size:11px;cursor:pointer;transition:all .15s ease;user-select:none}
+.network-sync-chip:hover{background:#f8fafc;border-color:#b9c7d0}
+.sync-dot{width:8px;height:8px;border-radius:50%;display:inline-block;transition:all .3s ease}
+.sync-dot.online{background:#10b981;box-shadow:0 0 0 2px rgba(16,185,129,.25)}
+.sync-dot.offline{background:#f59e0b;box-shadow:0 0 0 2px rgba(245,158,11,.25)}
+.sync-dot.syncing{background:#3b82f6;box-shadow:0 0 0 2px rgba(59,130,246,.25);animation:syncPulse 1s infinite alternate}
+@keyframes syncPulse{0%{transform:scale(0.85);opacity:0.6}100%{transform:scale(1.2);opacity:1}}
+.sync-badge{background:#ef4444;color:#fff;font-size:9px;font-weight:800;border-radius:999px;padding:1px 5px;min-width:14px;text-align:center}
+.offline-reservation-banner{padding:12px 16px;border-radius:12px;font-size:12px;line-height:1.45;display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.offline-reservation-banner.warn{background:#fffbeb;border:1px solid #fde68a;color:#92400e}
+.offline-reservation-banner.info{background:#eff6ff;border:1px solid #bfdbfe;color:#1e40af}
+.btn.disabled,.btn:disabled{opacity:0.45;cursor:not-allowed!important;pointer-events:none}
+.btn-pwa-install{width:100%;border:1px solid rgba(255,255,255,.15);background:rgba(217,119,6,.15);color:#fbbf24;padding:9px 12px;border-radius:9px;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:8px;margin-top:8px;transition:all .15s ease}
+.btn-pwa-install:hover{background:rgba(217,119,6,.3);color:#fff;border-color:rgba(217,119,6,.4)}
+
 </style>
 </head>
 <body>
@@ -266,7 +291,11 @@ body[data-house] .sidebar{background:linear-gradient(180deg,var(--nav),color-mix
  <div class="sidebar-foot">GRUPO QU4TRO • Gestão de Clientes<br>Sistema Multiestabelecimento</div>
 </aside>
 <main class="main">
- <header class="topbar"><div style="display:flex;align-items:center;gap:10px"><button class="btn mobile-menu" id="menuBtn">☰</button><button type="button" class="iconbtn desktop-only" id="topbarCollapseBtn" onclick="toggleSidebarCollapse()" title="Recolher / Expandir Menu Lateral" style="display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border:1px solid var(--line);background:#fff;border-radius:9px;font-size:14px;color:var(--muted);cursor:pointer;margin-right:2px"><span id="topbarToggleIcon">⇤</span></button><div><h1 id="pageTitle">Visão Geral</h1><div class="sub">Customer Intelligence • Bravo Café • Café da Bravo Pousada • Iconiko • Leña</div></div></div><div class="top-actions"><div class="user-session-chip" id="topUserChip" onclick="openUserSessionModal()" title="Gerenciar sessão / perfil do usuário"><div class="user-avatar-sm" id="topUserAvatar">GB</div><div class="user-chip-meta desktop-only"><span class="user-chip-name" id="topUserName">Gerência Bravo</span><span class="user-chip-role" id="topUserRole">Master</span></div><span style="font-size:10px;color:var(--muted);margin-left:2px">▾</span></div><img id="topHouseLogo" class="session-house-logo desktop-only" alt="Casa atual" onerror="this.style.display='none'" onload="this.style.display=''"><div class="session-chip desktop-only"><span>Empresa:</span><select id="sessionHouse" onchange="changeSessionHouse(this.value)"><option value="Bravo Café">Bravo Café</option><option value="Café da Bravo Pousada">Café da Bravo Pousada</option><option value="Íconico">Iconiko Cozinha Japonesa</option><option value="Leña">Leña Casa Italiana</option></select></div><button class="btn desktop-only" onclick="go('checkin')">＋ Novo check-in</button><button class="btn primary" onclick="go('clients')">⌕ Buscar cliente</button></div></header>
+ <header class="topbar"><div style="display:flex;align-items:center;gap:10px"><button class="btn mobile-menu" id="menuBtn">☰</button><button type="button" class="iconbtn desktop-only" id="topbarCollapseBtn" onclick="toggleSidebarCollapse()" title="Recolher / Expandir Menu Lateral" style="display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border:1px solid var(--line);background:#fff;border-radius:9px;font-size:14px;color:var(--muted);cursor:pointer;margin-right:2px"><span id="topbarToggleIcon">⇤</span></button><div><h1 id="pageTitle">Visão Geral</h1><div class="sub">Customer Intelligence • Bravo Café • Café da Bravo Pousada • Iconiko • Leña</div></div></div><div class="top-actions"><div class="network-sync-chip" id="networkSyncChip" onclick="handleSyncChipClick()" title="Status da sincronização em nuvem e fila offline">
+  <span class="sync-dot online" id="syncDot"></span>
+  <span class="sync-text desktop-only" id="syncStatusText">Conectado</span>
+  <span class="sync-badge" id="syncPendingBadge" style="display:none">0</span>
+</div><div class="user-session-chip" id="topUserChip" onclick="openUserSessionModal()" title="Gerenciar sessão / perfil do usuário"><div class="user-avatar-sm" id="topUserAvatar">GB</div><div class="user-chip-meta desktop-only"><span class="user-chip-name" id="topUserName">Gerência Bravo</span><span class="user-chip-role" id="topUserRole">Master</span></div><span style="font-size:10px;color:var(--muted);margin-left:2px">▾</span></div><img id="topHouseLogo" class="session-house-logo desktop-only" alt="Casa atual" onerror="this.style.display='none'" onload="this.style.display=''"><div class="session-chip desktop-only"><span>Empresa:</span><select id="sessionHouse" onchange="changeSessionHouse(this.value)"><option value="Bravo Café">Bravo Café</option><option value="Café da Bravo Pousada">Café da Bravo Pousada</option><option value="Íconico">Iconiko Cozinha Japonesa</option><option value="Leña">Leña Casa Italiana</option></select></div><button class="btn desktop-only" onclick="go('checkin')">＋ Novo check-in</button><button class="btn primary" onclick="go('clients')">⌕ Buscar cliente</button></div></header>
  <div class="content">
   <div class="house-context-banner op-banner" id="houseContextBanner">
    <div class="op-house-info">
@@ -321,7 +350,8 @@ body[data-house] .sidebar{background:linear-gradient(180deg,var(--nav),color-mix
   </section>
 
   <section class="view" id="view-reservations">
-   <div class="hero"><div><h2>Reservas</h2><p>Pré-check-in e acompanhamento das reservas.</p></div><button class="btn primary" onclick="openReservation()">＋ Nova reserva</button></div><div class="table-card"><div class="table-head"><div class="search"><span>⌕</span><input id="reservationSearch" placeholder="Buscar reserva..."></div><div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><select id="reservationHouse" class="control" title="Filtrar reservas por casa" style="min-width:250px"></select><select id="reservationStatus" class="control"><option value="all">Todos os status</option><option>Pendente</option><option>Confirmada</option><option>Convertida</option><option>Cancelada</option></select></div></div><div class="table-wrap"><table class="data-table"><thead><tr><th>Cliente</th><th>Data</th><th>Hora</th><th>Casa</th><th>Pessoas</th><th>Status</th><th>Ações</th></tr></thead><tbody id="reservationsBody"></tbody></table></div></div>
+   <div class="hero"><div><h2>Reservas</h2><p>Pré-check-in e acompanhamento das reservas.</p></div><button class="btn primary" id="btnOpenReservation" onclick="openReservation()">＋ Nova reserva</button></div><div id="reservationOfflineNotice" style="display:none;margin-bottom:14px"></div>
+<div class="table-card"><div class="table-head"><div class="search"><span>⌕</span><input id="reservationSearch" placeholder="Buscar reserva..."></div><div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><select id="reservationHouse" class="control" title="Filtrar reservas por casa" style="min-width:250px"></select><select id="reservationStatus" class="control"><option value="all">Todos os status</option><option>Pendente</option><option>Confirmada</option><option>Convertida</option><option>Cancelada</option></select></div></div><div class="table-wrap"><table class="data-table"><thead><tr><th>Cliente</th><th>Data</th><th>Hora</th><th>Casa</th><th>Pessoas</th><th>Status</th><th>Ações</th></tr></thead><tbody id="reservationsBody"></tbody></table></div></div>
   </section>
 
   <section class="view" id="view-waitlist">
@@ -636,7 +666,7 @@ body[data-house] .sidebar{background:linear-gradient(180deg,var(--nav),color-mix
 <div class="search"><span>⌕</span><input id="userSearchInput" placeholder="Buscar por nome, e-mail ou telefone..." oninput="renderUsers()"></div>
 <div class="actions-row">
 <select id="userFilterHouse" class="control" onchange="renderUsers()"><option value="all">Todas as casas</option><option value="Bravo Café">Bravo Café</option><option value="Café da Bravo Pousada">Café da Bravo Pousada</option><option value="Íconico">Iconiko</option><option value="Leña">Leña</option></select>
-<select id="userFilterRole" class="control" onchange="renderUsers()"><option value="all">Todos os perfis</option><option value="Master">Master</option><option value="Gerente">Gerente</option><option value="Atendimento">Atendimento</option></select>
+<select id="userFilterRole" class="control" onchange="renderUsers()"><option value="all">Todos os perfis</option><option value="Master">Master</option><option value="Gerente">Gerente</option><option value="Atendimento">Atendimento</option><option value="Agente de Reservas 01">Agente de Reservas 01 (Titular)</option><option value="Agente de Reservas 02">Agente de Reservas 02 (Secundário)</option></select>
 </div>
 </div>
 <div class="table-wrap">
@@ -717,168 +747,469 @@ async function dbSyncUser(user){
   }
 }
 
-async function dbSyncCustomer(c){
-  const sb = getSupabase();
-  if(!sb || !c) return;
+
+/* ==========================================================================
+   MOTOR OFFLINE-FIRST, INDEXEDDB, OUTBOX QUEUE E AUTO-CLEAN INTELIGENTE
+   ========================================================================== */
+
+let isOutboxProcessing = false;
+let deferredPwaPrompt = null;
+let outboxDbInstance = null;
+
+// Registro do Service Worker para suporte PWA Offline
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').then(reg => {
+      console.log('[PWA] Service Worker registrado:', reg.scope);
+    }).catch(err => {
+      console.warn('[PWA] Aviso registro SW:', err);
+    });
+  });
+}
+
+// Proteção contra limpeza automática do navegador (Desafio 3)
+if (navigator.storage && navigator.storage.persist) {
+  navigator.storage.persist().then(granted => {
+    if (granted) console.log('[Storage] Persistência concedida pelo navegador.');
+  });
+}
+
+// Captura evento de instalação PWA
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPwaPrompt = e;
+  const btn = el('btnPwaInstall');
+  if (btn) btn.style.display = 'flex';
+});
+
+function triggerPwaInstall(){
+  if (deferredPwaPrompt) {
+    deferredPwaPrompt.prompt();
+    deferredPwaPrompt.userChoice.then(choiceResult => {
+      if (choiceResult.outcome === 'accepted') {
+        const btn = el('btnPwaInstall');
+        if (btn) btn.style.display = 'none';
+      }
+      deferredPwaPrompt = null;
+    });
+  }
+}
+
+// Inicialização do IndexedDB para a Fila Outbox
+function openOutboxDB(){
+  return new Promise((resolve, reject) => {
+    if (outboxDbInstance) return resolve(outboxDbInstance);
+    if (!window.indexedDB) return resolve(null); // Fallback localStorage
+    const request = indexedDB.open('Qu4tro_Offline_DB', 1);
+    request.onupgradeneeded = e => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains('outbox')) {
+        db.createObjectStore('outbox', { keyPath: 'id' });
+      }
+      if (!db.objectStoreNames.contains('cache')) {
+        db.createObjectStore('cache', { keyPath: 'key' });
+      }
+    };
+    request.onsuccess = e => {
+      outboxDbInstance = e.target.result;
+      resolve(outboxDbInstance);
+    };
+    request.onerror = e => {
+      console.warn('[IndexedDB] Erro ao abrir banco:', e);
+      resolve(null);
+    };
+  });
+}
+
+// Enfileirar na Outbox
+async function addToOutbox(action, payload){
+  const item = {
+    id: generateUUID(),
+    action,
+    payload,
+    createdAt: new Date().toISOString(),
+    attempts: 0
+  };
   try {
-    if(!isUUID(c.id)){
-      const pDigits = digits(c.phone);
-      if(pDigits && pDigits.length >= 8){
-        const { data: existing } = await sb.from('customers').select('id, phone').eq('phone', pDigits).limit(1);
-        if(existing && existing.length > 0 && isUUID(existing[0].id)){
-          c.id = existing[0].id;
+    const db = await openOutboxDB();
+    if (db) {
+      return new Promise((resolve) => {
+        const tx = db.transaction('outbox', 'readwrite');
+        tx.objectStore('outbox').put(item);
+        tx.oncomplete = () => { updateSyncStatusUI(); resolve(item); };
+        tx.onerror = () => { fallbackAddLocalStorage(item); resolve(item); };
+      });
+    }
+  } catch(e){
+    console.warn('[IndexedDB] Fallback localStorage:', e);
+  }
+  fallbackAddLocalStorage(item);
+  updateSyncStatusUI();
+  return item;
+}
+
+function fallbackAddLocalStorage(item){
+  try {
+    const q = JSON.parse(localStorage.getItem('qu4tro_outbox_queue_v1') || '[]');
+    q.push(item);
+    localStorage.setItem('qu4tro_outbox_queue_v1', JSON.stringify(q));
+  } catch(e){}
+}
+
+// Obter itens da Outbox
+async function getOutboxItems(){
+  try {
+    const db = await openOutboxDB();
+    if (db) {
+      return new Promise((resolve) => {
+        const tx = db.transaction('outbox', 'readonly');
+        const req = tx.objectStore('outbox').getAll();
+        req.onsuccess = () => {
+          let items = req.result || [];
+          try {
+            const lsItems = JSON.parse(localStorage.getItem('qu4tro_outbox_queue_v1') || '[]');
+            if (lsItems.length > 0) items = [...items, ...lsItems];
+          } catch(e){}
+          resolve(items);
+        };
+        req.onerror = () => resolve(fallbackGetLocalStorage());
+      });
+    }
+  } catch(e){}
+  return fallbackGetLocalStorage();
+}
+
+function fallbackGetLocalStorage(){
+  try {
+    return JSON.parse(localStorage.getItem('qu4tro_outbox_queue_v1') || '[]');
+  } catch(e){ return []; }
+}
+
+// Auto-Clean: Excluir item confirmado da Outbox imediatamente
+async function deleteFromOutbox(id){
+  try {
+    const db = await openOutboxDB();
+    if (db) {
+      new Promise((resolve) => {
+        const tx = db.transaction('outbox', 'readwrite');
+        tx.objectStore('outbox').delete(id);
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => resolve();
+      });
+    }
+  } catch(e){}
+  try {
+    let lsItems = JSON.parse(localStorage.getItem('qu4tro_outbox_queue_v1') || '[]');
+    lsItems = lsItems.filter(i => i.id !== id);
+    localStorage.setItem('qu4tro_outbox_queue_v1', JSON.stringify(lsItems));
+  } catch(e){}
+  updateSyncStatusUI();
+}
+
+// Atualizar interface de sincronização
+async function updateSyncStatusUI(forcedStatus=null, count=null){
+  const dot = el('syncDot');
+  const text = el('syncStatusText');
+  const badge = el('syncPendingBadge');
+  if (!dot || !text || !badge) return;
+
+  const isOff = !navigator.onLine;
+  const items = count !== null ? count : (await getOutboxItems()).length;
+
+  if (forcedStatus === 'syncing') {
+    dot.className = 'sync-dot syncing';
+    text.textContent = 'Sincronizando...';
+    badge.style.display = items > 0 ? 'inline-block' : 'none';
+    badge.textContent = items;
+  } else if (isOff || forcedStatus === 'offline') {
+    dot.className = 'sync-dot offline';
+    text.textContent = items > 0 ? `Offline (${items})` : 'Modo Offline';
+    badge.style.display = items > 0 ? 'inline-block' : 'none';
+    badge.textContent = items;
+  } else {
+    dot.className = 'sync-dot online';
+    text.textContent = items > 0 ? `Pendente (${items})` : 'Conectado';
+    badge.style.display = items > 0 ? 'inline-block' : 'none';
+    badge.textContent = items;
+  }
+}
+
+function handleSyncChipClick(){
+  if (!navigator.onLine) {
+    getOutboxItems().then(items => {
+      toast(`⚠️ Dispositivo sem conexão. ${items.length} operação(ões) salvas localmente prontas para envio.`);
+    });
+  } else {
+    toast('🔄 Sincronizando dados com o Supabase...');
+    processOutboxQueue();
+    pullAllFromSupabase();
+  }
+}
+
+// Processador da Fila Outbox com Auto-Clean
+async function processOutboxQueue(){
+  if (isOutboxProcessing) return;
+  if (!navigator.onLine) {
+    updateSyncStatusUI('offline');
+    return;
+  }
+  const sb = getSupabase();
+  if (!sb) return;
+
+  const items = await getOutboxItems();
+  if (!items || items.length === 0) {
+    updateSyncStatusUI('online', 0);
+    return;
+  }
+
+  isOutboxProcessing = true;
+  updateSyncStatusUI('syncing', items.length);
+
+  let successCount = 0;
+  for (const item of items) {
+    try {
+      let resError = null;
+      if (item.action === 'UPSERT_CUSTOMER') {
+        const c = item.payload;
+        const payload = {
+          id: c.id,
+          name: c.name,
+          phone: digits(c.phone) || '0',
+          email: c.email || null,
+          first_house: c.firstHouse || '',
+          first_visit: c.firstVisit || null,
+          last_visit: c.lastVisit || null,
+          total_visits: +c.totalVisits || 1,
+          visits_lena: +c.lena || 0,
+          visits_iconiko: +c.iconico || 0,
+          visits_cafe: +c.cafe || 0,
+          source: c.source || 'Da casa',
+          registration_channel: c.registrationChannel || 'Recepção',
+          preferences: JSON.stringify({ priorities: c.priorities || [] }),
+          notes: c.notes || ''
+        };
+        const { error } = await sb.from('customers').upsert(payload, { onConflict: 'id' });
+        if (error && error.code === '23505' && error.message && error.message.includes('customers_phone_key')) {
+          delete payload.id;
+          const { error: uErr } = await sb.from('customers').update(payload).eq('phone', payload.phone);
+          resError = uErr;
         } else {
-          c.id = generateUUID();
+          resError = error;
         }
+      } else if (item.action === 'INSERT_VISIT') {
+        const v = item.payload;
+        const payload = {
+          id: v.id,
+          customer_id: isUUID(v.customerId || v.customer_id) ? (v.customerId || v.customer_id) : null,
+          customer_name: v.name || '',
+          customer_phone: digits(v.phone) || '',
+          house: v.house || '',
+          visit_date: v.date || today(),
+          arrival_time: v.arrival || '',
+          people_count: +v.people || 1,
+          table_number: String(v.table || ''),
+          source: v.source || 'Walk-in',
+          status: v.status || 'Atendido',
+          amount: +v.amount || 0,
+          notes: v.notes || '',
+          operator_reception: v.operatorReception || ''
+        };
+        const { error } = await sb.from('visits').upsert(payload, { onConflict: 'id' });
+        resError = error;
+      } else if (item.action === 'UPSERT_RESERVATION') {
+        const r = item.payload;
+        const payload = {
+          id: r.id,
+          customer_id: isUUID(r.customerId || r.customer_id) ? (r.customerId || r.customer_id) : null,
+          customer_name: r.name,
+          customer_phone: digits(r.phone) || '',
+          house: r.house,
+          reservation_date: r.date,
+          reservation_time: r.time || '',
+          people_count: +r.people || 1,
+          status: r.status || 'Pendente',
+          notes: r.notes || (r.exceptionReason ? `[EXCEÇÃO] ${r.exceptionReason}` : '')
+        };
+        const { error } = await sb.from('reservations').upsert(payload, { onConflict: 'id' });
+        resError = error;
+      } else if (item.action === 'DELETE_RESERVATION') {
+        const { error } = await sb.from('reservations').delete().eq('id', item.payload.id);
+        resError = error;
+      } else if (item.action === 'SYNC_FLOORPLANS') {
+        const payload = {
+          id: '00000000-0000-0000-0000-000000000001',
+          name: '__SYSTEM_FLOORPLANS__',
+          phone: 'SYSTEM_FLOORPLANS',
+          notes: JSON.stringify(item.payload)
+        };
+        const { error } = await sb.from('customers').upsert(payload, { onConflict: 'id' });
+        resError = error;
+      } else if (item.action === 'SYNC_WAITLIST') {
+        const payload = {
+          id: '00000000-0000-0000-0000-000000000002',
+          name: '__SYSTEM_WAITLIST__',
+          phone: 'SYSTEM_WAITLIST',
+          notes: JSON.stringify(item.payload)
+        };
+        const { error } = await sb.from('customers').upsert(payload, { onConflict: 'id' });
+        resError = error;
+      }
+
+      if (!resError) {
+        // AUTO-CLEAN: apaga o item confirmado da fila imediatamente!
+        await deleteFromOutbox(item.id);
+        successCount++;
       } else {
-        c.id = generateUUID();
+        console.warn('[Outbox] Erro no item:', item, resError);
+        if (!navigator.onLine) break;
+      }
+    } catch(err){
+      console.warn('[Outbox] Exceção:', err);
+      break;
+    }
+  }
+
+  isOutboxProcessing = false;
+  const remaining = await getOutboxItems();
+  updateSyncStatusUI(remaining.length === 0 ? 'online' : 'offline', remaining.length);
+  if (successCount > 0) {
+    toast(`✓ Sincronização em nuvem: ${successCount} operação(ões) gravada(s) no Supabase!`);
+  }
+}
+
+// Auto-Clean de cache de dados antigos (Retenção Leve)
+function runAutoCleanLocalCache(){
+  try {
+    // Mantém visitas dos últimos 30 dias em memória local; o restante fica arquivado no Supabase
+    const limitDate = new Date();
+    limitDate.setDate(limitDate.getDate() - 30);
+    const limitIso = limitDate.toISOString().slice(0,10);
+    if (state && Array.isArray(state.visits) && state.visits.length > 500) {
+      const recent = state.visits.filter(v => (v.date >= limitIso) || (v.date === today()) || (v.date === '2026-09-11'));
+      if (recent.length < state.visits.length) {
+        state.visits = recent;
+        save();
+        console.log(`[Auto-Clean] Cache limpo: mantidas ${recent.length} visitas recentes.`);
       }
     }
-    const payload = {
-      id: c.id,
-      name: c.name,
-      phone: digits(c.phone) || '0',
-      email: c.email || null,
-      first_house: c.firstHouse || '',
-      first_visit: c.firstVisit || null,
-      last_visit: c.lastVisit || null,
-      total_visits: +c.totalVisits || 1,
-      visits_lena: +c.lena || 0,
-      visits_iconiko: +c.iconico || 0,
-      visits_cafe: +c.cafe || 0,
-      source: c.source || 'Da casa',
-      registration_channel: c.registrationChannel || 'Recepção',
-      preferences: JSON.stringify({ priorities: c.priorities || [] }),
-      notes: c.notes || ''
-    };
-    const { error } = await sb.from('customers').upsert(payload, { onConflict: 'id' });
-    if(error){
-      if(error.code === '23505' && error.message && error.message.includes('customers_phone_key')){
-        delete payload.id;
-        await sb.from('customers').update(payload).eq('phone', payload.phone);
-      } else {
-        console.warn('dbSyncCustomer error:', error);
+  } catch(e){}
+}
+
+// Regras de Reserva Offline por Perfil (Agente 01 e Agente 02)
+function isUserAgente01(u){
+  if (!u) return false;
+  return u.role === 'Agente de Reservas 01' || u.role === 'Master' || u.role === 'Gerente';
+}
+
+function isUserAgente02(u){
+  if (!u) return false;
+  return u.role === 'Agente de Reservas 02';
+}
+
+function updateReservationOfflineControls(){
+  const isOff = !navigator.onLine;
+  const u = (typeof getCurrentUser === 'function') ? getCurrentUser() : null;
+  const btn = el('btnOpenReservation');
+  const banner = el('reservationOfflineNotice');
+
+  if (isOff) {
+    if (isUserAgente02(u)) {
+      if (btn) {
+        btn.disabled = true;
+        btn.classList.add('disabled');
+        btn.title = 'Inclusão de reservas bloqueada offline para Agente 02.';
+      }
+      if (banner) {
+        banner.style.display = 'block';
+        banner.className = 'offline-reservation-banner warn';
+        banner.innerHTML = `🔒 <b>Modo Offline Ativo:</b> Sem conexão com a internet. Para proteger a capacidade máxima e evitar reservas duplicadas, apenas o <b>Agente de Reservas 01 (Titular)</b> pode incluir reservas offline. A inclusão será liberada automaticamente assim que a conexão retornar.`;
       }
     } else {
-      console.log('✓ Customer synced to Supabase:', c.name, c.id);
+      if (btn) {
+        btn.disabled = false;
+        btn.classList.remove('disabled');
+        btn.title = 'Inclusão de reservas habilitada (Terminal Titular).';
+      }
+      if (banner) {
+        banner.style.display = 'block';
+        banner.className = 'offline-reservation-banner info';
+        banner.innerHTML = `🟡 <b>Modo Offline Ativo (Terminal Titular - Agente 01):</b> Sem internet. Você pode continuar cadastrando reservas normalmente. Elas serão salvas no aparelho e enviadas para a nuvem assim que a conexão voltar.`;
+      }
     }
-  } catch(err){
-    console.warn('dbSyncCustomer exception:', err);
+  } else {
+    if (btn) {
+      btn.disabled = false;
+      btn.classList.remove('disabled');
+      btn.title = '';
+    }
+    if (banner) {
+      banner.style.display = 'none';
+      banner.innerHTML = '';
+    }
   }
+}
+
+// Ouvintes de Conectividade de Rede
+window.addEventListener('online', () => {
+  updateSyncStatusUI('online');
+  updateReservationOfflineControls();
+  toast('✓ Conexão com a internet restabelecida! Sincronizando dados...');
+  processOutboxQueue();
+  setTimeout(pullAllFromSupabase, 1000);
+});
+
+window.addEventListener('offline', () => {
+  updateSyncStatusUI('offline');
+  updateReservationOfflineControls();
+  toast('⚠️ Conexão perdida. Modo Offline ativado (operações serão salvas no aparelho).', 'warn');
+});
+
+// Verificação periódica a cada 20s
+setInterval(() => {
+  updateSyncStatusUI();
+  updateReservationOfflineControls();
+  if (navigator.onLine) processOutboxQueue();
+}, 20000);
+
+async function dbSyncCustomer(c){
+  if(!c) return;
+  if(!isUUID(c.id)) c.id = generateUUID();
+  await addToOutbox('UPSERT_CUSTOMER', c);
+  if(navigator.onLine) processOutboxQueue();
 }
 
 async function dbSyncVisit(v){
-  const sb = getSupabase();
-  if(!sb || !v) return;
-  try {
-    if(!isUUID(v.id)){
-      v.id = generateUUID();
-    }
-    let custId = v.customer_id || v.clientId || null;
-    if(custId && !isUUID(custId)){
-      const cl = state.clients.find(x => x.id === custId || (digits(x.phone) && digits(x.phone) === digits(v.phone)));
-      if(cl && isUUID(cl.id)) custId = cl.id;
-      else custId = null;
-    }
-    const payload = {
-      id: v.id,
-      customer_id: custId,
-      customer_name: v.clientName || v.name || '',
-      customer_phone: digits(v.phone) || '0',
-      house: v.house || 'Leña',
-      visit_date: v.date || today(),
-      arrival_time: v.arrival || v.time || '12:00',
-      people_count: +v.people || 1,
-      table_number: String(v.table || ''),
-      source: v.source || 'Da casa',
-      status: v.status || 'Recorrente',
-      amount: +v.amount || 0,
-      notes: v.notes || '',
-      operator_reception: v.operatorReception || getSessionHouse() || ''
-    };
-    const { error } = await sb.from('visits').upsert(payload, { onConflict: 'id' });
-    if(error){
-      console.warn('dbSyncVisit error:', error);
-    } else {
-      console.log('✓ Visit synced to Supabase:', v.id, payload.visit_date, payload.customer_name, 'Mesa:', payload.table_number);
-    }
-  } catch(err){
-    console.warn('dbSyncVisit exception:', err);
-  }
+  if(!v) return;
+  if(!isUUID(v.id)) v.id = generateUUID();
+  await addToOutbox('INSERT_VISIT', v);
+  if(navigator.onLine) processOutboxQueue();
 }
 
 async function dbSyncReservation(r){
-  const sb = getSupabase();
-  if(!sb || !r) return;
-  try {
-    if(!isUUID(r.id)){
-      r.id = generateUUID();
-    }
-    const payload = {
-      id: r.id,
-      customer_id: isUUID(r.customerId) ? r.customerId : null,
-      customer_name: r.name,
-      customer_phone: digits(r.phone) || '0',
-      house: r.house,
-      reservation_date: r.date,
-      reservation_time: r.time,
-      people_count: +r.people || 1,
-      status: r.status || 'Confirmada',
-      notes: (r.notes || '') + (r.exceptionReason ? ` [EXCEÇÃO: ${r.exceptionReason}]` : '')
-    };
-    const { error } = await sb.from('reservations').upsert(payload, { onConflict: 'id' });
-    if(error){
-      console.warn('dbSyncReservation error:', error);
-    } else {
-      console.log('✓ Reservation synced to Supabase:', r.name, r.date);
-    }
-  } catch(err){
-    console.warn('dbSyncReservation exception:', err);
-  }
+  if(!r) return;
+  if(!isUUID(r.id)) r.id = generateUUID();
+  await addToOutbox('UPSERT_RESERVATION', r);
+  if(navigator.onLine) processOutboxQueue();
 }
 
 async function dbDeleteReservation(id){
-  const sb = getSupabase();
-  if(!sb || !id) return;
-  try {
-    await sb.from('reservations').delete().eq('id', id);
-    console.log('✓ Reservation deleted from Supabase:', id);
-  } catch(err){
-    console.warn('dbDeleteReservation error:', err);
-  }
+  if(!id) return;
+  await addToOutbox('DELETE_RESERVATION', { id });
+  if(navigator.onLine) processOutboxQueue();
 }
 
 async function dbSyncFloorplans(maps){
-  const sb = getSupabase();
-  if(!sb || !maps) return;
-  try {
-    await sb.from('customers').upsert({
-      id: SYSTEM_FLOORPLANS_ID,
-      name: '__SYSTEM_FLOORPLANS__',
-      phone: '00000000000',
-      notes: JSON.stringify(maps)
-    }, { onConflict: 'id' });
-    console.log('✓ Floorplan maps synced to Supabase');
-  } catch(err){
-    console.warn('dbSyncFloorplans error:', err);
-  }
+  if(!maps) return;
+  await addToOutbox('SYNC_FLOORPLANS', maps);
+  if(navigator.onLine) processOutboxQueue();
 }
 
 async function dbSyncWaitlist(wl){
-  const sb = getSupabase();
-  if(!sb || !wl) return;
-  try {
-    await sb.from('customers').upsert({
-      id: SYSTEM_WAITLIST_ID,
-      name: '__SYSTEM_WAITLIST__',
-      phone: '00000000001',
-      notes: JSON.stringify(wl)
-    }, { onConflict: 'id' });
-    console.log('✓ Waitlist synced to Supabase');
-  } catch(err){
-    console.warn('dbSyncWaitlist error:', err);
-  }
+  if(!wl) return;
+  await addToOutbox('SYNC_WAITLIST', wl);
+  if(navigator.onLine) processOutboxQueue();
 }
+
 
 async function runRescueSyncForBeatriz(force = false){
   const sb = getSupabase();
@@ -3247,6 +3578,8 @@ function openNewUserModal(){
           <label>Perfil de Acesso *</label>
           <select id="nuRole" class="control">
             <option value="Atendimento">Atendimento (Operação de Salão e Recepção)</option>
+            <option value="Agente de Reservas 01">Agente de Reservas 01 (Titular - Reservas Offline Habilitadas)</option>
+            <option value="Agente de Reservas 02">Agente de Reservas 02 (Secundário - Reservas Apenas Online)</option>
             <option value="Gerente">Gerente (Gestão Operacional da Casa)</option>
             <option value="Master">Master (Acesso Total Irrestrito)</option>
           </select>
@@ -3363,6 +3696,8 @@ function openEditUserModal(userId){
           <label>Perfil de Acesso *</label>
           <select id="euRole" class="control">
             <option value="Atendimento" ${u.role==='Atendimento'?'selected':''}>Atendimento (Operação de Salão e Recepção)</option>
+            <option value="Agente de Reservas 01" ${u.role==='Agente de Reservas 01'?'selected':''}>Agente de Reservas 01 (Titular - Reservas Offline Habilitadas)</option>
+            <option value="Agente de Reservas 02" ${u.role==='Agente de Reservas 02'?'selected':''}>Agente de Reservas 02 (Secundário - Reservas Apenas Online)</option>
             <option value="Gerente" ${u.role==='Gerente'?'selected':''}>Gerente (Gestão Operacional da Casa)</option>
             <option value="Master" ${u.role==='Master'?'selected':''}>Master (Acesso Total Irrestrito)</option>
           </select>
@@ -3707,6 +4042,11 @@ function clearSelectedReservationClient(){
 }
 
 function openReservation(prefill=null){
+
+  if (!navigator.onLine && isUserAgente02((typeof getCurrentUser === 'function') ? getCurrentUser() : null)) {
+    toast('🔒 Sem conexão. Para evitar duplicidades, apenas o Agente de Reservas 01 pode cadastrar reservas offline.', 'warn');
+    return;
+  }
   selectedReservationClientId = null;
   el('modalTitle').textContent = 'Nova reserva';
   el('modalBody').innerHTML = `
