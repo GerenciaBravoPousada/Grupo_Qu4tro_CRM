@@ -678,6 +678,25 @@ function getSupabase(){
    CAMADA DE SINCRONIZAÇÃO EM TEMPO REAL COM SUPABASE (REALTIME CLOUD DB)
    ========================================================================== */
 
+function generateUUID(){
+  try {
+    if(typeof crypto !== 'undefined' && crypto.randomUUID){
+      return crypto.randomUUID();
+    }
+  } catch(e){}
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+}
+
+function isUUID(str){
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(str || ''));
+}
+
+const SYSTEM_FLOORPLANS_ID = '00000000-0000-4000-8000-000000000001';
+const SYSTEM_WAITLIST_ID   = '00000000-0000-4000-8000-000000000002';
+
 async function dbSyncUser(user){
   const sb = getSupabase();
   if(!sb || !user) return;
@@ -702,20 +721,49 @@ async function dbSyncCustomer(c){
   const sb = getSupabase();
   if(!sb || !c) return;
   try {
+    if(!isUUID(c.id)){
+      const pDigits = digits(c.phone);
+      if(pDigits && pDigits.length >= 8){
+        const { data: existing } = await sb.from('customers').select('id, phone').eq('phone', pDigits).limit(1);
+        if(existing && existing.length > 0 && isUUID(existing[0].id)){
+          c.id = existing[0].id;
+        } else {
+          c.id = generateUUID();
+        }
+      } else {
+        c.id = generateUUID();
+      }
+    }
     const payload = {
       id: c.id,
       name: c.name,
-      phone: digits(c.phone),
+      phone: digits(c.phone) || '0',
+      email: c.email || null,
+      first_house: c.firstHouse || '',
       first_visit: c.firstVisit || null,
       last_visit: c.lastVisit || null,
-      total_visits: c.totalVisits || 1,
-      source: c.source || '',
-      first_house: c.firstHouse || '',
-      preferences: JSON.stringify({ priorities: c.priorities || [] })
+      total_visits: +c.totalVisits || 1,
+      visits_lena: +c.lena || 0,
+      visits_iconiko: +c.iconico || 0,
+      visits_cafe: +c.cafe || 0,
+      source: c.source || 'Da casa',
+      registration_channel: c.registrationChannel || 'Recepção',
+      preferences: JSON.stringify({ priorities: c.priorities || [] }),
+      notes: c.notes || ''
     };
-    await sb.from('customers').upsert(payload);
+    const { error } = await sb.from('customers').upsert(payload, { onConflict: 'id' });
+    if(error){
+      if(error.code === '23505' && error.message && error.message.includes('customers_phone_key')){
+        delete payload.id;
+        await sb.from('customers').update(payload).eq('phone', payload.phone);
+      } else {
+        console.warn('dbSyncCustomer error:', error);
+      }
+    } else {
+      console.log('✓ Customer synced to Supabase:', c.name, c.id);
+    }
   } catch(err){
-    console.warn('dbSyncCustomer error:', err);
+    console.warn('dbSyncCustomer exception:', err);
   }
 }
 
@@ -723,18 +771,39 @@ async function dbSyncVisit(v){
   const sb = getSupabase();
   if(!sb || !v) return;
   try {
-    await sb.from('visits').insert({
-      id: v.id || ('V-' + Date.now()),
-      customer_id: v.clientId || v.customer_id || null,
+    if(!isUUID(v.id)){
+      v.id = generateUUID();
+    }
+    let custId = v.customer_id || v.clientId || null;
+    if(custId && !isUUID(custId)){
+      const cl = state.clients.find(x => x.id === custId || (digits(x.phone) && digits(x.phone) === digits(v.phone)));
+      if(cl && isUUID(cl.id)) custId = cl.id;
+      else custId = null;
+    }
+    const payload = {
+      id: v.id,
+      customer_id: custId,
       customer_name: v.clientName || v.name || '',
-      customer_phone: digits(v.phone),
-      house: v.house,
-      date: v.date,
-      time: v.time || '12:00',
-      notes: v.notes || ''
-    });
+      customer_phone: digits(v.phone) || '0',
+      house: v.house || 'Leña',
+      visit_date: v.date || today(),
+      arrival_time: v.arrival || v.time || '12:00',
+      people_count: +v.people || 1,
+      table_number: String(v.table || ''),
+      source: v.source || 'Da casa',
+      status: v.status || 'Recorrente',
+      amount: +v.amount || 0,
+      notes: v.notes || '',
+      operator_reception: v.operatorReception || getSessionHouse() || ''
+    };
+    const { error } = await sb.from('visits').upsert(payload, { onConflict: 'id' });
+    if(error){
+      console.warn('dbSyncVisit error:', error);
+    } else {
+      console.log('✓ Visit synced to Supabase:', v.id, payload.visit_date, payload.customer_name, 'Mesa:', payload.table_number);
+    }
   } catch(err){
-    console.warn('dbSyncVisit error:', err);
+    console.warn('dbSyncVisit exception:', err);
   }
 }
 
@@ -742,20 +811,122 @@ async function dbSyncReservation(r){
   const sb = getSupabase();
   if(!sb || !r) return;
   try {
-    await sb.from('reservations').upsert({
+    if(!isUUID(r.id)){
+      r.id = generateUUID();
+    }
+    const payload = {
       id: r.id,
+      customer_id: isUUID(r.customerId) ? r.customerId : null,
       customer_name: r.name,
-      customer_phone: digits(r.phone),
+      customer_phone: digits(r.phone) || '0',
       house: r.house,
-      date: r.date,
-      time: r.time,
-      people: +r.people || 1,
+      reservation_date: r.date,
+      reservation_time: r.time,
+      people_count: +r.people || 1,
       status: r.status || 'Confirmada',
-      notes: r.notes || '',
-      exception_reason: r.exceptionReason || ''
-    });
+      notes: (r.notes || '') + (r.exceptionReason ? ` [EXCEÇÃO: ${r.exceptionReason}]` : '')
+    };
+    const { error } = await sb.from('reservations').upsert(payload, { onConflict: 'id' });
+    if(error){
+      console.warn('dbSyncReservation error:', error);
+    } else {
+      console.log('✓ Reservation synced to Supabase:', r.name, r.date);
+    }
   } catch(err){
-    console.warn('dbSyncReservation error:', err);
+    console.warn('dbSyncReservation exception:', err);
+  }
+}
+
+async function dbDeleteReservation(id){
+  const sb = getSupabase();
+  if(!sb || !id) return;
+  try {
+    await sb.from('reservations').delete().eq('id', id);
+    console.log('✓ Reservation deleted from Supabase:', id);
+  } catch(err){
+    console.warn('dbDeleteReservation error:', err);
+  }
+}
+
+async function dbSyncFloorplans(maps){
+  const sb = getSupabase();
+  if(!sb || !maps) return;
+  try {
+    await sb.from('customers').upsert({
+      id: SYSTEM_FLOORPLANS_ID,
+      name: '__SYSTEM_FLOORPLANS__',
+      phone: '00000000000',
+      notes: JSON.stringify(maps)
+    }, { onConflict: 'id' });
+    console.log('✓ Floorplan maps synced to Supabase');
+  } catch(err){
+    console.warn('dbSyncFloorplans error:', err);
+  }
+}
+
+async function dbSyncWaitlist(wl){
+  const sb = getSupabase();
+  if(!sb || !wl) return;
+  try {
+    await sb.from('customers').upsert({
+      id: SYSTEM_WAITLIST_ID,
+      name: '__SYSTEM_WAITLIST__',
+      phone: '00000000001',
+      notes: JSON.stringify(wl)
+    }, { onConflict: 'id' });
+    console.log('✓ Waitlist synced to Supabase');
+  } catch(err){
+    console.warn('dbSyncWaitlist error:', err);
+  }
+}
+
+async function runRescueSyncForBeatriz(force = false){
+  const sb = getSupabase();
+  if(!sb) return;
+
+  if(!force && localStorage.getItem('beatriz_rescue_2026_09_11_done') === 'true'){
+    return;
+  }
+
+  const cur = (typeof getCurrentUser === 'function') ? getCurrentUser() : null;
+  const isBeatriz = cur && (cur.email === 'beatriz.santos.g11@gmail.com' || (cur.name && cur.name.toLowerCase().includes('beatriz')));
+  const visits11 = (state.visits || []).filter(v => v.date === '2026-09-11' || (v.date === '2026-09-10' && normalizeHouseKey(v.house) === 'Leña'));
+  const unsyncedVisits = (state.visits || []).filter(v => (v.date === '2026-09-11') || (v.id && String(v.id).startsWith('V-') && v.date >= '2026-09-10'));
+
+  if(!isBeatriz && visits11.length === 0 && unsyncedVisits.length === 0 && !force){
+    return;
+  }
+
+  console.log('🔄 Executando rotina de resgate para o Supabase...', { isBeatriz, count11: visits11.length, unsynced: unsyncedVisits.length });
+  const listToSync = unsyncedVisits.length > 0 ? unsyncedVisits : visits11;
+  let syncedCount = 0;
+
+  for(const v of listToSync){
+    try {
+      const cust = state.clients.find(c => (digits(c.phone) && digits(c.phone) === digits(v.phone)) || c.id === v.clientId);
+      if(cust){
+        await dbSyncCustomer(cust);
+        if(cust.id && isUUID(cust.id)){
+          v.customer_id = cust.id;
+          v.clientId = cust.id;
+        }
+      }
+      await dbSyncVisit(v);
+      syncedCount++;
+    } catch(err){
+      console.warn('Erro ao resgatar visita:', v, err);
+    }
+  }
+
+  localStorage.setItem('beatriz_rescue_2026_09_11_done', 'true');
+  save();
+
+  if(syncedCount > 0){
+    toast(`✓ Resgate concluído: ${syncedCount} check-in(s) sincronizados com o Supabase!`);
+    console.log(`✓ Rotina de resgate concluída! ${syncedCount} check-ins gravados no Supabase.`);
+    renderCheckinStats();
+    renderDashboard();
+    renderClients();
   }
 }
 
@@ -777,7 +948,6 @@ async function pullAllFromSupabase(){
         active: ru.active !== false,
         createdAt: ru.created_at ? ru.created_at.slice(0,10) : '2026-09-10'
       }));
-      save();
       renderUsers();
       renderUserSessionBadge();
     }
@@ -796,51 +966,142 @@ async function pullAllFromSupabase(){
           if(r.restrict_weekends !== undefined) state.settingsByHouse[key].restrictWeekends = r.restrict_weekends;
         }
       });
-      save();
       renderSettings();
     }
 
     // 3. PULL RESERVATIONS
-    const { data: rRes, error: resErr } = await sb.from('reservations').select('*');
+    const { data: rRes, error: resErr } = await sb.from('reservations').select('*').order('reservation_date', { ascending: false }).limit(200);
     if(!resErr && rRes && rRes.length > 0){
       state.reservations = rRes.map(rr => ({
         id: rr.id,
         name: rr.customer_name,
         phone: rr.customer_phone,
-        people: rr.people,
-        date: rr.date,
-        time: rr.time,
+        people: rr.people_count,
+        date: rr.reservation_date,
+        time: rr.reservation_time,
         house: rr.house,
         status: rr.status,
         notes: rr.notes || '',
-        exceptionReason: rr.exception_reason || ''
+        exceptionReason: (rr.notes && rr.notes.includes('[EXCEÇÃO:')) ? (rr.notes.split('[EXCEÇÃO:')[1].split(']')[0].trim()) : ''
       }));
-      save();
       renderReservations();
     }
 
-    // 4. PULL CUSTOMERS (prioridades do preferences)
-    const { data: rCust, error: cErr } = await sb.from('customers').select('id, phone, preferences').limit(1000);
+    // 4. PULL CUSTOMERS (FULL SYNC)
+    const { data: rCust, error: cErr } = await sb.from('customers').select('*').limit(2000);
     if(!cErr && rCust && rCust.length > 0){
-      let changed = false;
+      let clientsUpdated = false;
       rCust.forEach(rc => {
-        if(!rc.preferences) return;
-        try {
-          const parsed = JSON.parse(rc.preferences);
-          if(parsed && Array.isArray(parsed.priorities)){
-            const local = state.clients.find(c => c.id === rc.id || (rc.phone && digits(c.phone) === digits(rc.phone)));
-            if(local && (!local.priorities || local.priorities.length === 0)){
-              local.priorities = parsed.priorities;
-              changed = true;
+        if(rc.name === '__SYSTEM_FLOORPLANS__'){
+          try {
+            const parsedMaps = JSON.parse(rc.notes);
+            if(parsedMaps && Array.isArray(parsedMaps.maps) && parsedMaps.maps.length === 2){
+              state.restaurantMaps = parsedMaps;
+              if(typeof renderFloorplan === 'function' && el('view-tables')?.classList.contains('active')) renderFloorplan();
             }
-          }
-        } catch(e){}
+          } catch(e){}
+          return;
+        }
+        if(rc.name === '__SYSTEM_WAITLIST__'){
+          try {
+            const parsedWL = JSON.parse(rc.notes);
+            if(parsedWL && Array.isArray(parsedWL)){
+              state.waitlist = parsedWL;
+              if(typeof renderWaitlist === 'function') renderWaitlist();
+              if(typeof updateOpWaitlistBadge === 'function') updateOpWaitlistBadge();
+            }
+          } catch(e){}
+          return;
+        }
+
+        let priorities = [];
+        if(rc.preferences){
+          try {
+            const pr = JSON.parse(rc.preferences);
+            if(pr && Array.isArray(pr.priorities)) priorities = pr.priorities;
+          } catch(e){}
+        }
+
+        const localIdx = state.clients.findIndex(c => c.id === rc.id || (rc.phone && digits(c.phone) === digits(rc.phone)));
+        const clientObj = {
+          id: rc.id,
+          name: rc.name,
+          phone: rc.phone,
+          email: rc.email || '',
+          firstVisit: rc.first_visit || '',
+          lastVisit: rc.last_visit || '',
+          iconico: rc.visits_iconiko || 0,
+          lena: rc.visits_lena || 0,
+          cafe: rc.visits_cafe || 0,
+          cafePousada: 0,
+          firstHouse: rc.first_house || '',
+          visitedIconico: (rc.visits_iconiko > 0) ? 'Sim' : 'Não',
+          visitedLena: (rc.visits_lena > 0) ? 'Sim' : 'Não',
+          visitedCafe: (rc.visits_cafe > 0) ? 'Sim' : 'Não',
+          visitedCafePousada: 'Não',
+          source: rc.source || 'Da casa',
+          totalVisits: rc.total_visits || 1,
+          priorities: priorities,
+          registrationChannel: rc.registration_channel || 'Recepção',
+          registeredAt: rc.created_at || new Date().toISOString()
+        };
+
+        if(localIdx !== -1){
+          state.clients[localIdx] = Object.assign(state.clients[localIdx], clientObj);
+        } else {
+          state.clients.unshift(clientObj);
+        }
+        clientsUpdated = true;
       });
-      if(changed){
-        save();
+      if(clientsUpdated){
         renderClients();
       }
     }
+
+    // 5. PULL VISITS (FULL SYNC)
+    const { data: rVisits, error: vErr } = await sb.from('visits').select('*').order('visit_date', { ascending: false }).limit(2000);
+    if(!vErr && rVisits && rVisits.length > 0){
+      let visitsUpdated = false;
+      rVisits.forEach(rv => {
+        const localIdx = state.visits.findIndex(v => v.id === rv.id || (digits(v.phone) === digits(rv.customer_phone) && v.date === rv.visit_date && v.arrival === rv.arrival_time));
+        const visitObj = {
+          id: rv.id,
+          customer_id: rv.customer_id,
+          clientId: rv.customer_id,
+          name: rv.customer_name,
+          phone: rv.customer_phone,
+          house: rv.house,
+          date: rv.visit_date,
+          arrival: rv.arrival_time || '12:00',
+          departure: '',
+          people: rv.people_count || 1,
+          table: rv.table_number || '',
+          source: rv.source || 'Da casa',
+          status: rv.status || 'Recorrente',
+          houseStatus: rv.status || 'Recorrente',
+          notes: rv.notes || '',
+          amount: rv.amount || 0,
+          operatorReception: rv.operator_reception || rv.house
+        };
+
+        if(localIdx !== -1){
+          state.visits[localIdx] = Object.assign(state.visits[localIdx], visitObj);
+        } else {
+          state.visits.unshift(visitObj);
+        }
+        visitsUpdated = true;
+      });
+      if(visitsUpdated){
+        renderCheckinStats();
+        renderDashboard();
+      }
+    }
+
+    save();
+
+    // 6. RUN RESCUE ROUTINE FOR BEATRIZ IF NEEDED
+    await runRescueSyncForBeatriz();
+
   } catch(err){
     console.warn('pullAllFromSupabase error:', err);
   }
@@ -2200,7 +2461,7 @@ function finalizeCheckin(pending){
   const selectedPriorities = Array.from(document.querySelectorAll('input[name="ciPriority"]:checked')).map(cb => cb.value);
   if(!c){
     c={
-      id:'C-'+Date.now(),
+      id: generateUUID(),
       name,
       phone:p,
       firstVisit:d,
@@ -2227,7 +2488,7 @@ function finalizeCheckin(pending){
     c.priorities = selectedPriorities;
     dbSyncCustomer(c);
   }
- const prior=calcClient(c).totalVisits;c.name=name||c.name;c.lastVisit=d;if(prior===0&&!c.firstHouse)c.firstHouse=house;c.totalVisits=Math.max(c.totalVisits||0,prior)+1;if(house==='Íconico'){c.iconico=(c.iconico||0)+1;c.visitedIconico='Sim'}else if(house==='Leña'){c.lena=(c.lena||0)+1;c.visitedLena='Sim'}else if(house==='Bravo Café'){c.cafe=(c.cafe||0)+1;c.visitedCafe='Sim'}else if(house==='Café da Bravo Pousada'){c.cafePousada=(c.cafePousada||0)+1;c.visitedCafePousada='Sim'};state.visits.unshift({id:'V-'+Date.now(),date:d,house,name:c.name,people:pending.people,phone:p,arrival:pending.arrival,departure:'',source:pending.source,status:isNew||prior===0?'Novo':'Recorrente',houseStatus:isNew||prior===0?'Novo':'Recorrente',table:pending.table,notes:pending.notes,amount:0,operatorReception:getSessionHouse(),duplicateReview:!!pending.duplicateReview});save();selectedCheckinClientId=null;el('checkinForm').reset();applySessionHouse();el('clientFound').className='checkin-status';toast(`Check-in confirmado • ${c.name} • ${pending.arrival}`);renderCheckinStats()}
+ const prior=calcClient(c).totalVisits;c.name=name||c.name;c.lastVisit=d;if(prior===0&&!c.firstHouse)c.firstHouse=house;c.totalVisits=Math.max(c.totalVisits||0,prior)+1;if(house==='Íconico'){c.iconico=(c.iconico||0)+1;c.visitedIconico='Sim'}else if(house==='Leña'){c.lena=(c.lena||0)+1;c.visitedLena='Sim'}else if(house==='Bravo Café'){c.cafe=(c.cafe||0)+1;c.visitedCafe='Sim'}else if(house==='Café da Bravo Pousada'){c.cafePousada=(c.cafePousada||0)+1;c.visitedCafePousada='Sim'};const newVisit={id:generateUUID(),customer_id:c.id,clientId:c.id,date:d,house,name:c.name,people:pending.people,phone:p,arrival:pending.arrival,departure:'',source:pending.source,status:isNew||prior===0?'Novo':'Recorrente',houseStatus:isNew||prior===0?'Novo':'Recorrente',table:pending.table,notes:pending.notes,amount:0,operatorReception:getSessionHouse(),duplicateReview:!!pending.duplicateReview};state.visits.unshift(newVisit);save();dbSyncVisit(newVisit);selectedCheckinClientId=null;el('checkinForm').reset();applySessionHouse();el('clientFound').className='checkin-status';toast(`Check-in confirmado • ${c.name} • ${pending.arrival}`);renderCheckinStats()}
 function lookupCheckinClient(){const p=normalizePhone(el('ciPhone').value);if(selectedCheckinClientId)return;const c=state.clients.find(x=>normalizePhone(x.phone)===p);const box=el('clientFound');if(p.length<10){box.className='checkin-status';box.innerHTML='';return}if(c){selectCheckinClient(c.id)}else{box.className='checkin-status show';box.innerHTML='<strong>Novo cliente</strong><div style="font-size:11px;color:var(--muted);margin-top:4px">Telefone não encontrado. O cadastro será criado ao confirmar o check-in.</div>'}}
 el('ciHouse').addEventListener('change',()=>{const h=el('ciHouse').value;applyHouseBranding(h);updateCheckinBranding(h)});
 el('ciLookup').addEventListener('input',()=>{if(selectedCheckinClientId&&foldText(el('ciLookup').value)!==foldText((state.clients.find(c=>c.id===selectedCheckinClientId)||{}).name))clearSelectedCheckinClient();renderCheckinLookup()});el('ciPhone').addEventListener('input',lookupCheckinClient);el('checkinForm').addEventListener('reset',()=>setTimeout(()=>{selectedCheckinClientId=null;el('clientFound').className='checkin-status';el('clientFound').innerHTML='';el('selectedClientCard').className='span2 selected-client-card';el('selectedClientCard').innerHTML='';el('ciLookupResults').className='lookup-results';el('ciLookupResults').innerHTML='';applySessionHouse()},0));
@@ -2242,10 +2503,10 @@ function renderCheckinStats(){
 function setupReservationHouseFilter(forceSession=false){const select=el('reservationHouse');if(!select)return;const session=normalizeHouseKey(getSessionHouse())||'Leña';const previous=select.value;const u=(typeof getCurrentUser==='function')?getCurrentUser():null;const userHouses=getUserHouses(u);const ordered=[session,...userHouses.filter(h=>h!==session)];select.innerHTML=ordered.map((h,i)=>`<option value="${esc(h)}">${i===0?'Esta recepção — ':''}${esc(houseLabel(h))}</option>`).join('')+'<option value="all">Todas as casas</option>';if(!forceSession&&previous&&select.options&&Array.from(select.options).some(o=>o.value===previous))select.value=previous;else select.value=session}
 function renderReservations(){setupReservationHouseFilter(false);const q=el('reservationSearch').value.toLowerCase().trim(),s=el('reservationStatus').value,h=el('reservationHouse')?.value||normalizeHouseKey(getSessionHouse())||'all';const a=state.reservations.filter(r=>(h==='all'||normalizeHouseKey(r.house)===h)&&(!q||r.name.toLowerCase().includes(q)||digits(r.phone).includes(digits(q)))&&(s==='all'||r.status===s));el('reservationsBody').innerHTML=a.map(r=>{const isExc=r.exceptionReason||(r.notes||'').includes('[EXCEÇÃO');return `<tr><td><div class="person"><div class="avatar">${initials(r.name)}</div><div><b>${esc(r.name)}</b><br><small>${fmtPhone(r.phone)}</small></div></div></td><td>${fmtDate(r.date)}</td><td>${esc(r.time||'—')}</td><td>${esc(houseLabel(normalizeHouseKey(r.house)))}</td><td>${r.people}</td><td><span class="badge ${r.status==='Confirmada'?'good':r.status==='Cancelada'?'warn':'blue'}">${esc(r.status)}</span>${isExc?`<span class="badge warn" style="background:#fef3c7;color:#92400e;border-color:#fde68a;font-size:10px;padding:2px 6px;margin-left:4px;cursor:pointer" title="${esc(r.exceptionReason||r.notes)}">Exceção</span>`:''}</td><td><div class="actions-row"><button class="iconbtn" onclick="convertReservation('${r.id}')">Check-in</button><button class="iconbtn" onclick="cycleReservation('${r.id}')">Status</button><button class="iconbtn danger" style="color:#b91c1c;background:#fef2f2;border:1px solid #fecaca" onclick="deleteReservation('${r.id}')" title="Excluir reserva">Excluir</button></div></td></tr>`}).join('')||'<tr><td colspan="7"><div class="empty">Nenhuma reserva encontrada para esta casa.</div></td></tr>'}
 el('reservationSearch').oninput=renderReservations;el('reservationStatus').onchange=renderReservations;el('reservationHouse').onchange=renderReservations;
-function deleteReservation(id){const r=state.reservations.find(x=>x.id===id);if(!r)return;if(!confirm(`Deseja realmente excluir a reserva de "${r.name}" (${fmtDate(r.date)})?`))return;state.reservations=state.reservations.filter(x=>x.id!==id);save();toast('Reserva excluída com sucesso.');renderReservations()}
+function deleteReservation(id){const r=state.reservations.find(x=>x.id===id);if(!r)return;if(!confirm(`Deseja realmente excluir a reserva de "${r.name}" (${fmtDate(r.date)})?`))return;state.reservations=state.reservations.filter(x=>x.id!==id);save();dbDeleteReservation(id);toast('Reserva excluída com sucesso.');renderReservations()}
 function isWeekendReservation(dateStr){if(!dateStr)return false;let y,m,d;const sep=dateStr.includes('/')?'/':(dateStr.includes('-')?'-':null);if(!sep)return false;const p=dateStr.split(sep).map(Number);if(p.length<3||p.some(isNaN))return false;if(p[0]>1000){y=p[0];m=p[1];d=p[2]}else if(p[2]>1000){d=p[0];m=p[1];y=p[2]}else{d=p[0];m=p[1];y=2000+p[2]}const dt=new Date(y,m-1,d);const day=dt.getDay();return day===5||day===6}
 function isRestrictedHouse(house){const n=String(house||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();return n.includes('lena')||n.includes('iconi')}
-function saveReservationDirectly(data){const resObj={id:'R-'+Date.now(),name:data.name,phone:digits(data.phone),people:+data.people,date:data.date,time:data.time,house:data.house,status:data.status,notes:data.notes,exceptionReason:data.exceptionReason||''};state.reservations.unshift(resObj);save();dbSyncReservation(resObj);closeModal();toast(data.exceptionReason?'Reserva cadastrada com exceção autorizada.':'Reserva cadastrada.');renderReservations()}
+function saveReservationDirectly(data){const resObj={id: generateUUID(),name:data.name,phone:digits(data.phone),people:+data.people,date:data.date,time:data.time,house:data.house,status:data.status,notes:data.notes,exceptionReason:data.exceptionReason||''};state.reservations.unshift(resObj);save();dbSyncReservation(resObj);closeModal();toast(data.exceptionReason?'Reserva cadastrada com exceção autorizada.':'Reserva cadastrada.');renderReservations()}
 
 /* ==========================================================================
    CONFIGURAÇÕES, USUÁRIOS, LOGIN E VALIDAÇÕES DE RESERVA
@@ -3570,7 +3831,7 @@ function openReservation(prefill=null){
     saveReservationDirectly(pending);
   };
 }
-function cycleReservation(id){const r=state.reservations.find(x=>x.id===id);if(!r)return;const a=['Pendente','Confirmada','Cancelada'];r.status=a[(a.indexOf(r.status)+1)%a.length];save();renderReservations()}
+function cycleReservation(id){const r=state.reservations.find(x=>x.id===id);if(!r)return;const a=['Pendente','Confirmada','Cancelada'];r.status=a[(a.indexOf(r.status)+1)%a.length];save();dbSyncReservation(r);renderReservations()}
 function convertReservation(id){const r=state.reservations.find(x=>x.id===id);if(!r)return;r.status='Convertida';save();go('checkin');el('ciPeople').value=r.people;el('ciHouse').value=r.house;if(r.notes)el('ciNotes').value=r.notes;const c=state.clients.find(x=>normalizePhone(x.phone)===normalizePhone(r.phone));if(c)selectCheckinClient(c.id);else{selectedCheckinClientId=null;el('ciLookup').value=r.name;el('ciPhone').value=fmtPhone(r.phone);el('ciName').value=r.name;lookupCheckinClient()}toast('Reserva carregada no check-in.')}
 function closeModal(){el('modal').classList.remove('show')}
 el('modal').onclick=e=>{if(e.target===el('modal'))closeModal()}
@@ -3604,7 +3865,7 @@ function openNewClient(){
     if(state.clients.some(c=>normalizePhone(c.phone)===p)){toast('Já existe cliente com este telefone.');return}
     const selectedPriorities = Array.from(document.querySelectorAll('input[name="ncPriority"]:checked')).map(cb => cb.value);
     const newCust = {
-      id:'C-'+Date.now(),
+      id: generateUUID(),
       name:nv.value,
       phone:p,
       firstVisit:'',
@@ -3686,7 +3947,7 @@ function submitPublicRegistration(e){
   }
   const d=today(),source=el('pubSource').value||'QR Code';
   const newCust = {
-    id:'C-'+Date.now(),
+    id: generateUUID(),
     name:nv.value,
     phone:pv.value,
     firstVisit:'',
@@ -3724,6 +3985,7 @@ ensureSession();
 if(typeof initSidebarState==='function') initSidebarState();
 checkAppAuthentication();
 setTimeout(pullAllFromSupabase,100);
+setInterval(pullAllFromSupabase, 30000);
 
 /* ==========================================================================
    MÓDULO FILA DE ESPERA OPERACIONAL COM TIMER EM TEMPO REAL
@@ -5241,6 +5503,7 @@ function handleFloorplanTableSubmit(e, tableId){
   if(t.shape === 'round') t.h = t.w;
 
   save();
+  dbSyncFloorplans(state.restaurantMaps);
   closeModal();
   renderFloorplan();
   toast('✓ Configuração da mesa atualizada com sucesso!');
