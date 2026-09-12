@@ -339,8 +339,9 @@ body[data-house] .sidebar{background:linear-gradient(180deg,var(--nav),color-mix
   <button class="active" data-view="dashboard" title="Visão Geral"><span class="ico">◫</span><span class="nav-text">Visão Geral</span></button>
   <button data-view="clients" title="Clientes"><span class="ico">◎</span><span class="nav-text">Clientes</span></button>
   <button data-view="checkin" title="Check-in"><span class="ico">✓</span><span class="nav-text">Check-in</span></button>
-  <button data-view="reservations" title="Reservas"><span class="ico">▣</span><span class="nav-text">Reservas</span></button>
   <button data-view="waitlist" title="Fila de Espera"><span class="ico">⏳</span><span class="nav-text">Fila de Espera</span></button>
+  <button data-view="reservations" title="Reservas"><span class="ico">▣</span><span class="nav-text">Reservas</span></button>
+  <button data-view="checkin-list" title="Lista de Check-ins"><span class="ico">📋</span><span class="nav-text">Lista de Check-ins</span></button>
   <button data-view="tables" title="Mapa de Mesas"><span class="ico">⊞</span><span class="nav-text">Mapa de Mesas</span></button>
   <button data-view="qrcodes" title="QR Codes"><span class="ico">⌁</span><span class="nav-text">QR Codes</span></button>
   <div class="navsep" id="navsep-intel">Inteligência</div>
@@ -378,27 +379,31 @@ body[data-house] .sidebar{background:linear-gradient(180deg,var(--nav),color-mix
     </div>
    </div>
    <nav class="op-nav-menu" aria-label="Menu Operacional Rápido">
+    <!-- 1. Novo Check-in -->
     <button type="button" class="op-nav-btn" data-opview="checkin" onclick="go('checkin')" title="Novo Check-in de Clientes">
      <span class="op-ico">✓</span>
      <span class="op-btn-text">Novo Check-in</span>
     </button>
-    <button type="button" class="op-nav-btn" data-opview="reservations" onclick="go('reservations')" title="Gestão de Reservas">
-     <span class="op-ico">▣</span>
-     <span class="op-btn-text">Reservas</span>
-    </button>
+    <!-- 2. Fila de Espera -->
     <button type="button" class="op-nav-btn" data-opview="waitlist" onclick="go('waitlist')" title="Fila de Espera em Tempo Real">
      <span class="op-ico">⏳</span>
      <span class="op-btn-text">Fila de Espera</span>
      <span class="op-counter-badge" id="opWaitlistBadge" style="display:none">0</span>
     </button>
+    <!-- 3. Reservas -->
+    <button type="button" class="op-nav-btn" data-opview="reservations" onclick="go('reservations')" title="Gestão de Reservas">
+     <span class="op-ico">▣</span>
+     <span class="op-btn-text">Reservas</span>
+    </button>
+    <!-- 4. Lista de Check-ins -->
+    <button type="button" class="op-nav-btn" id="opTabCheckinList" data-opview="checkin-list" onclick="go('checkin-list')" title="Lista de Check-ins do Salão">
+     <span class="op-ico">📋</span>
+     <span class="op-btn-text">Lista de Check-ins</span>
+    </button>
+    <!-- 5. Mapa de Mesas -->
     <button type="button" class="op-nav-btn" data-opview="tables" onclick="go('tables')" title="Mapa de Mesas e Ocupação">
      <span class="op-ico">⊞</span>
      <span class="op-btn-text">Mapa de Mesas</span>
-    </button>
-    <button type="button" class="op-nav-btn" id="opTabCheckinList" data-opview="checkin-list" onclick="go('checkin-list')" title="Lista de Check-ins do Salão" style="display:none">
-     <span class="op-ico">📋</span>
-     <span class="op-btn-text">Lista de Check-ins</span>
-     <span class="op-close-tab" onclick="closeCheckinListView(event)" title="Fechar esta guia e voltar">✕</span>
     </button>
    </nav>
   </div>
@@ -441,11 +446,7 @@ body[data-house] .sidebar{background:linear-gradient(180deg,var(--nav),color-mix
         <h2>📋 Lista de Check-ins do Salão</h2>
         <p>Acompanhamento e auditoria dos atendimentos do dia com filtros por data, busca e edição.</p>
       </div>
-      <div class="actions-row">
-        <button type="button" class="btn" onclick="closeCheckinListView(event)" style="background:#fff;border:1.5px solid #cbd5e1;font-weight:700;color:#000;display:inline-flex;align-items:center;gap:6px">
-          <span>✕</span> Fechar Lista (Voltar)
-        </button>
-      </div>
+
     </div>
 
     <!-- Filtros e Controles -->
@@ -504,9 +505,10 @@ body[data-house] .sidebar{background:linear-gradient(180deg,var(--nav),color-mix
           </tbody>
         </table>
       </div>
-      <div class="pager" style="justify-content:flex-end;padding:12px 16px;background:#f8fafc">
-        <button type="button" class="btn" onclick="closeCheckinListView(event)" style="background:#fff;border:1.5px solid #cbd5e1;font-weight:700;color:#000">
-          ✕ Fechar Lista de Check-ins
+      <div class="pager" style="justify-content:space-between;padding:12px 16px;background:#f8fafc">
+        <div style="font-size:12px;color:var(--muted)">Visualização contínua de check-ins registrados.</div>
+        <button type="button" class="btn" onclick="renderCheckinList()" style="background:#fff;border:1.5px solid #cbd5e1;font-weight:700;color:#000">
+          🔄 Atualizar Lista
         </button>
       </div>
     </div>
