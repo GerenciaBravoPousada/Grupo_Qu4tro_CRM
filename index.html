@@ -5211,35 +5211,54 @@ function makeRestaurantMaps(){
   const make = (id,name,width,height,structures) => ({id,name,width,height,structures,tables:[]});
 
   let seq = 0;
-  function table(m,x,y,number=null,seats=2,shape='rect',w=30,h=36,section='Salão'){
-    m.tables.push({id:m.id+'-'+(++seq),number:number?String(number):null,seats:Number(seats)||2,shape,x,y,w,h,rotation:0,section});
+  function table(m,x,y,number=null,seats=2,shape='rect',w=30,h=36,section='Salão',rotation=0){
+    m.tables.push({id:m.id+'-'+(++seq),number:number?String(number):null,seats:Number(seats)||2,shape,x,y,w,h,rotation,section});
   }
 
-  // --- LEÑA CASA ITALIANA (560 x 790) ---
-  const lena = make('lena','Leña Casa Italiana',560,790,[
-    rect(8,16,32,80),rect(40,16,155,16,'#443329'),rect(195,16,34,88),
-    rect(8,150,16,215,'#443329'),rect(8,365,114,416),rect(164,215,34,108),
-    rect(190,458,106,34),rect(380,428,168,181),rect(316,534,80,32),
-    {type:'outline',x:380,y:18,w:168,h:357},
-    label(464,122,'H'),label(464,167,'A'),label(464,212,'L'),label(464,257,'L')
+  // --- LEÑA CASA ITALIANA (790 x 560) ---
+  const lena = make('lena','Leña Casa Italiana',790,560,[
+    rect(694,8,80,32), rect(758,40,16,155,'#443329'), rect(686,195,88,34), rect(425,8,215,16,'#443329'), rect(9,8,416,114), rect(467,164,108,34), rect(298,190,34,106),
+    rect(181,380,181,168), rect(224,316,32,80), {type:'outline',x:415,y:380,w:357,h:168}, label(503,464,'H'), label(563,464,'A'), label(623,464,'L'), label(683,464,'L')
   ]);
 
-  const lenaMain = [
-    [58,65],[96,65],[176,65],[251,65],[289,65],[367,65],[405,65],
-    [58,164],[213,164],[251,164],[289,164],[367,164],[405,164],
-    [58,234],[58,272],[213,268],[367,268],[405,268],[58,342]
-  ];
-  lenaMain.forEach(([x,y], idx) => table(lena, x, y, String(idx + 1), 2, 'rect', 30, 36, 'Salão Principal'));
-  table(lena, 240, 380, '20', 6, 'rect', 62, 64, 'Salão Principal');
-
-  const lenaVaranda = [
-    [183,600],[221,600],[259,600],[330,584],[373,584],[416,584],
-    [330,624],[373,624],[416,624],[183,726],[224,726],[269,726],
-    [310,726],[354,726],[395,726],[441,726],[482,726],[500,686],
-    [183,765],[224,765],[269,765],[310,765],[354,765],[395,765],
-    [441,765],[500,765]
-  ];
-  lenaVaranda.forEach(([x,y], idx) => table(lena, x, y, String(21 + idx), 2, 'rect', 28, 28, 'Varanda / Deck'));
+  table(lena, 725, 58, '9', 2, 'rect', 30, 36, 'Salão Principal', 90);
+  table(lena, 725, 96, '9', 2, 'rect', 30, 36, 'Salão Principal', 90);
+  table(lena, 725, 176, '8', 2, 'rect', 30, 36, 'Salão Principal', 90);
+  table(lena, 725, 241, '4', 2, 'rect', 30, 36, 'Salão Principal', 90);
+  table(lena, 725, 269, '4', 2, 'rect', 30, 36, 'Salão Principal', 90);
+  table(lena, 725, 327, '3', 2, 'rect', 30, 36, 'Salão Principal', 90);
+  table(lena, 725, 355, '3', 2, 'rect', 30, 36, 'Salão Principal', 90);
+  table(lena, 626, 48, '10', 2, 'rect', 30, 36, 'Salão Principal', 0);
+  table(lena, 626, 213, '5', 2, 'rect', 30, 36, 'Salão Principal', 90);
+  table(lena, 626, 241, '5', 2, 'rect', 30, 36, 'Salão Principal', 90);
+  table(lena, 626, 269, '5', 2, 'rect', 30, 36, 'Salão Principal', 90);
+  table(lena, 626, 327, '2', 2, 'rect', 30, 36, 'Salão Principal', 90);
+  table(lena, 626, 355, '2', 2, 'rect', 30, 36, 'Salão Principal', 90);
+  table(lena, 556, 48, '11', 2, 'rect', 30, 36, 'Salão Principal', 0);
+  table(lena, 518, 48, '11', 2, 'rect', 30, 36, 'Salão Principal', 0);
+  table(lena, 522, 213, '6', 2, 'rect', 30, 36, 'Salão Principal', 90);
+  table(lena, 522, 327, '1', 2, 'rect', 30, 36, 'Salão Principal', 90);
+  table(lena, 522, 355, '1', 2, 'rect', 30, 36, 'Salão Principal', 90);
+  table(lena, 448, 48, '12', 2, 'rect', 30, 36, 'Salão Principal', 0);
+  table(lena, 410, 240, '7', 6, 'rect', 62, 64, 'Salão Principal', 90);
+  table(lena, 190, 183, '13', 2, 'rect', 28, 28, 'Varanda / Deck', 90);
+  table(lena, 190, 211, '13', 2, 'rect', 28, 28, 'Varanda / Deck', 90);
+  table(lena, 190, 239, '13', 2, 'rect', 28, 28, 'Varanda / Deck', 90);
+  table(lena, 206, 310, '12', 2, 'rect', 28, 28, 'Varanda / Deck', 0);
+  table(lena, 206, 373, '19', 2, 'rect', 28, 28, 'Varanda / Deck', 0);
+  table(lena, 166, 310, '12', 2, 'rect', 28, 28, 'Varanda / Deck', 0);
+  table(lena, 166, 373, '19', 2, 'rect', 28, 28, 'Varanda / Deck', 0);
+  table(lena, 64, 183, '14', 2, 'rect', 28, 28, 'Varanda / Deck', 0);
+  table(lena, 64, 244, '15', 2, 'rect', 28, 28, 'Varanda / Deck', 0);
+  table(lena, 64, 309, '16', 2, 'rect', 28, 28, 'Varanda / Deck', 0);
+  table(lena, 64, 370, '17', 2, 'rect', 28, 28, 'Varanda / Deck', 0);
+  table(lena, 64, 432, '18', 2, 'rect', 28, 28, 'Varanda / Deck', 0);
+  table(lena, 104, 430, '18', 2, 'rect', 28, 28, 'Varanda / Deck', 0);
+  table(lena, 25, 183, '14', 2, 'rect', 28, 28, 'Varanda / Deck', 0);
+  table(lena, 25, 244, '15', 2, 'rect', 28, 28, 'Varanda / Deck', 0);
+  table(lena, 25, 309, '16', 2, 'rect', 28, 28, 'Varanda / Deck', 0);
+  table(lena, 25, 370, '17', 2, 'rect', 28, 28, 'Varanda / Deck', 0);
+  table(lena, 25, 430, '18', 2, 'rect', 28, 28, 'Varanda / Deck', 0);
 
   // --- ICONIKO COZINHA JAPONESA (900 x 1030) ---
   const iconiko = make('iconiko','Iconiko Cozinha Japonesa',900,1030,[
@@ -5468,15 +5487,20 @@ function structureSvgNode(s){
     });
   }
   if(s.type === 'label'){
-    return createSvgElement('text', {
+    const labelAttrs = {
       x: s.x,
       y: s.y,
       'text-anchor': 'middle',
+      'dominant-baseline': 'central',
       fill: '#475569',
       'font-family': 'system-ui, sans-serif',
       'font-size': 18,
       'font-weight': 700
-    }, s.text);
+    };
+    if(floorplanRotation){
+      labelAttrs.transform = `rotate(${-floorplanRotation} ${s.x} ${s.y})`;
+    }
+    return createSvgElement('text', labelAttrs, s.text);
   }
   if(s.type === 'stairs'){
     const g = createSvgElement('g');
@@ -5622,12 +5646,16 @@ function tableSvgNode(t, isOccupied, occupant){
   const textFill = isOccupied ? '#7f1d1d' : '#14532d';
   const fontSize = labelText.length > 2 ? 12 : 14;
 
-  const labelNode = createSvgElement('text', {
+  const labelAttrs = {
     'text-anchor': 'middle',
     'dominant-baseline': 'central',
     'font-size': fontSize,
     fill: textFill
-  }, labelText);
+  };
+  if(floorplanRotation){
+    labelAttrs.transform = `rotate(${-floorplanRotation})`;
+  }
+  const labelNode = createSvgElement('text', labelAttrs, labelText);
 
   if(labelText.length > 3){
     labelNode.setAttribute('textLength', Math.max(w, h) - 6);
