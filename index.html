@@ -5215,10 +5215,10 @@ function makeRestaurantMaps(){
     m.tables.push({id:m.id+'-'+(++seq),number:number?String(number):null,seats:Number(seats)||2,shape,x,y,w,h,rotation,section});
   }
 
-  // --- LEÑA CASA ITALIANA (790 x 560) ---
-  const lena = make('lena','Leña Casa Italiana',790,560,[
+  // --- LEÑA CASA ITALIANA (790 x 460) ---
+  const lena = make('lena','Leña Casa Italiana',790,460,[
     rect(694,8,80,32), rect(758,40,16,155,'#443329'), rect(686,195,88,34), rect(425,8,215,16,'#443329'), rect(9,8,416,114), rect(467,164,108,34), rect(298,190,34,106),
-    rect(181,380,181,168), rect(224,316,32,80), {type:'outline',x:415,y:380,w:357,h:168}, label(503,464,'H'), label(563,464,'A'), label(623,464,'L'), label(683,464,'L')
+    rect(181,380,181,78), rect(224,316,32,80), {type:'outline',x:415,y:380,w:357,h:78}, label(503,419,'H'), label(563,419,'A'), label(623,419,'L'), label(683,419,'L')
   ]);
 
   table(lena, 725, 58, '9', 2, 'rect', 30, 36, 'Salão Principal', 90);
