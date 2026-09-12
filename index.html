@@ -1486,7 +1486,7 @@ async function pullAllFromSupabase(){
     }
 
     // 4. PULL CUSTOMERS (FULL SYNC)
-    const { data: rCust, error: cErr } = await sb.from('customers').select('*').limit(2000);
+    const { data: rCust, error: cErr } = await sb.from('customers').select('*').limit(5000);
     if(!cErr && rCust && rCust.length > 0){
       let clientsUpdated = false;
       rCust.forEach(rc => {
@@ -1557,7 +1557,7 @@ async function pullAllFromSupabase(){
     }
 
     // 5. PULL VISITS (FULL SYNC)
-    const { data: rVisits, error: vErr } = await sb.from('visits').select('*').order('visit_date', { ascending: false }).limit(2000);
+    const { data: rVisits, error: vErr } = await sb.from('visits').select('*').order('visit_date', { ascending: false }).limit(5000);
     if(!vErr && rVisits && rVisits.length > 0){
       let visitsUpdated = false;
       rVisits.forEach(rv => {
