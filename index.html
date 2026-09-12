@@ -1281,11 +1281,22 @@ async function processOutboxQueue(){
         }
       } else if (item.action === 'INSERT_VISIT') {
         const v = item.payload;
+        if(!v){
+          await deleteFromOutbox(item.id);
+          continue;
+        }
+        const vDateIso = normalizeDateIso(v.date) || v.date;
+        const vHouseKey = normalizeHouseKey(v.house);
+        if(vDateIso === '2026-09-11' && (vHouseKey === 'Leña' || vHouseKey === 'Lena')){
+          await deleteFromOutbox(item.id);
+          successCount++;
+          continue;
+        }
         const payload = {
           id: v.id,
           customer_id: isUUID(v.customerId || v.customer_id) ? (v.customerId || v.customer_id) : null,
           customer_name: v.name || '',
-          customer_phone: digits(v.phone) || '',
+          customer_phone: normalizePhone(v.phone) || digits(v.phone) || '',
           house: v.house || '',
           visit_date: v.date || today(),
           arrival_time: v.arrival || '',
@@ -2018,6 +2029,23 @@ function loadState(){let s;try{const raw=localStorage.getItem(STORE);s=raw?JSON.
       return true;
     });
   }
+  try {
+    let lsItems = JSON.parse(localStorage.getItem('qu4tro_outbox_queue_v1') || '[]');
+    if(Array.isArray(lsItems) && lsItems.length > 0){
+      const beforeLen = lsItems.length;
+      lsItems = lsItems.filter(item => {
+        if(item && item.action === 'INSERT_VISIT' && item.payload){
+          const d = normalizeDateIso(item.payload.date) || item.payload.date;
+          const h = normalizeHouseKey(item.payload.house);
+          if(d === '2026-09-11' && (h === 'Leña' || h === 'Lena')) return false;
+        }
+        return true;
+      });
+      if(lsItems.length !== beforeLen){
+        localStorage.setItem('qu4tro_outbox_queue_v1', JSON.stringify(lsItems));
+      }
+    }
+  } catch(e){}
   if(!s.users||!Array.isArray(s.users)||s.users.length===0)s.users=structuredClone(SEED_USERS);// s.currentUser initialized via authentication
 return s}
 function save(){localStorage.setItem(STORE,JSON.stringify(state));refreshAll()}
