@@ -536,6 +536,7 @@ body[data-house] .sidebar{background:linear-gradient(180deg,var(--nav),color-mix
 
   <section class="view" id="view-checkin">
    <div class="hero"><div><h2>Novo Check-in</h2><p>Localize primeiro quem já é cliente. Busque por nome, sobrenome, telefone completo ou últimos dígitos.</p></div><div class="kpi-strip"><div class="kpi-chip"><span>Check-ins hoje</span><strong id="todayCheckins">0</strong></div><div class="kpi-chip"><span>Pessoas hoje</span><strong id="todayPeople">0</strong></div></div></div>
+   <div id="lenaSyncBanner" style="display:none;background:#fef3c7;border:1.5px solid #f59e0b;border-radius:12px;padding:12px 16px;margin-bottom:14px;align-items:center;justify-content:space-between;gap:12px"><div style="display:flex;align-items:center;gap:8px"><span style="font-size:18px">⚠️</span><div><strong style="color:#92400e;font-size:13px">Check-ins de Leña aguardando sincronização:</strong><span id="lenaSyncBannerText" style="color:#78350f;font-size:12px;display:block;margin-top:2px">Existem atendimentos salvos na memória deste computador que ainda não foram gravados no Supabase.</span></div></div><button type="button" class="btn gold" style="white-space:nowrap;font-size:12px;font-weight:700;padding:7px 14px;background:#b45309;color:#fff" onclick="runRescueSyncForBeatriz(true)">Sincronizar Agora 🚀</button></div>
    <div class="card form-shell checkin-shell"><div class="checkin-brand-banner" id="checkinBrandBanner"><img id="checkinHouseLogo" alt="Casa do check-in" onerror="this.style.display='none'" onload="this.style.display=''"><div class="checkin-brand-copy"><strong id="checkinHouseName">Check-in</strong><span id="checkinHouseSubtitle">Recepção selecionada para este atendimento</span></div><div class="checkin-brand-side">A casa acompanha a seleção abaixo<br>e pode ser alterada antes da confirmação.</div></div><form id="checkinForm"><div class="form-grid"><div class="field span2 client-lookup"><label>Localizar cliente existente</label><input id="ciLookup" autocomplete="off" placeholder="Ex.: Jean Balan, Balan, 3106 ou telefone completo"><div class="lookup-help">Nome/sobrenome: digite pelo menos 2 caracteres. Telefone parcial: digite pelo menos os 4 últimos números.</div><div class="lookup-results" id="ciLookupResults"></div></div><div class="span2 selected-client-card" id="selectedClientCard"></div><div class="checkin-status span2" id="clientFound"></div><!-- Linha 01: Nome do cliente * (50%) + Telefone * (50%) -->
 <div class="field"><label>Nome do cliente *</label><input id="ciName" required placeholder="Nome e sobrenome"></div>
 <div class="field"><label>Telefone *</label><input id="ciPhone" inputmode="tel" placeholder="(22) 99999-9999" required></div>
@@ -557,7 +558,9 @@ body[data-house] .sidebar{background:linear-gradient(180deg,var(--nav),color-mix
         <h2>📋 Lista de Check-ins do Salão</h2>
         <p>Acompanhamento e auditoria dos atendimentos do dia com filtros por data, busca e edição.</p>
       </div>
-
+      <div class="actions-row">
+        <button class="btn gold" style="font-size:12px;padding:8px 14px;background:#b45309;color:#fff;font-weight:700;display:flex;align-items:center;gap:6px" onclick="runRescueSyncForBeatriz(true)" title="Forçar envio de check-ins locais de Leña para o Supabase"><span>🚀</span> Enviar Check-ins de Leña para Supabase</button>
+      </div>
     </div>
 
     <!-- Filtros e Controles -->
@@ -848,7 +851,7 @@ body[data-house] .sidebar{background:linear-gradient(180deg,var(--nav),color-mix
   </section>
 
   <section class="view" id="view-data">
-   <div class="hero"><div><h2>Dados & Backup</h2><p>Gestão da base de clientes e opções de sincronização.</p></div></div><div class="grid2"><div class="card"><div class="section-title"><h3>Armazenamento local</h3></div><p style="font-size:12px;color:var(--muted)">Alterações realizadas no aplicativo ficam salvas com segurança no navegador ou sincronizadas com o novo banco Supabase do Grupo Qu4tro.</p><div class="actions-row"><button class="btn" onclick="exportBackup()">⇩ Exportar backup JSON</button><label class="btn">⇧ Importar backup<input id="backupInput" type="file" accept=".json" hidden></label><button class="btn danger" onclick="resetData()">↺ Restaurar base inicial</button></div><div class="source-note" id="dataStats"></div></div><div class="card"><div class="section-title"><h3>Banco de Dados Supabase (Nuvem)</h3><span class="badge-status-active">● Conectado</span></div><div class="insight"><strong style="color:#0f766e">Projeto Oficial: Grupo_Qu4tro</strong><p style="font-family:monospace;font-size:11px;color:var(--muted);word-break:break-all">https://xdtgqcldrswvinnovxbg.supabase.co</p><div style="margin-top:8px"><button class="btn primary" style="font-size:12px;padding:6px 12px" onclick="syncWithSupabase()">☁️ Sincronizar Agora com a Nuvem</button></div></div><div class="insight"><strong>Segurança & Acesso Remoto</strong><p>Compatível com PostgreSQL 15+, Row Level Security (RLS) e sincronização contínua com os tablets e computadores de cada recepção.</p></div></div></div>
+   <div class="hero"><div><h2>Dados & Backup</h2><p>Gestão da base de clientes e opções de sincronização.</p></div></div><div class="grid2"><div class="card"><div class="section-title"><h3>Armazenamento local</h3></div><p style="font-size:12px;color:var(--muted)">Alterações realizadas no aplicativo ficam salvas com segurança no navegador ou sincronizadas com o novo banco Supabase do Grupo Qu4tro.</p><div class="actions-row"><button class="btn" onclick="exportBackup()">⇩ Exportar backup JSON</button><label class="btn">⇧ Importar backup<input id="backupInput" type="file" accept=".json" hidden></label><button class="btn danger" onclick="resetData()">↺ Restaurar base inicial</button></div><div class="source-note" id="dataStats"></div></div><div class="card"><div class="section-title"><h3>Banco de Dados Supabase (Nuvem)</h3><span class="badge-status-active">● Conectado</span></div><div class="insight"><strong style="color:#0f766e">Projeto Oficial: Grupo_Qu4tro</strong><p style="font-family:monospace;font-size:11px;color:var(--muted);word-break:break-all">https://xdtgqcldrswvinnovxbg.supabase.co</p><div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn primary" style="font-size:12px;padding:6px 12px" onclick="syncWithSupabase()">☁️ Sincronizar Agora com a Nuvem</button><button class="btn gold" style="font-size:12px;padding:6px 12px;background:#b45309;color:#fff;font-weight:700" onclick="runRescueSyncForBeatriz(true)" id="btnRescueLena">🚀 Enviar Check-ins Locais de Leña para Supabase</button></div></div><div class="insight"><strong>Segurança & Acesso Remoto</strong><p>Compatível com PostgreSQL 15+, Row Level Security (RLS) e sincronização contínua com os tablets e computadores de cada recepção.</p></div></div></div>
   </section>
 
 <section class="view" id="view-settings">
@@ -1218,6 +1221,7 @@ function handleSyncChipClick(){
   } else {
     toast('🔄 Sincronizando dados com o Supabase...');
     processOutboxQueue();
+    runRescueSyncForBeatriz(true);
     pullAllFromSupabase();
   }
 }
@@ -1290,7 +1294,12 @@ async function processOutboxQueue(){
           notes: v.notes || '',
           operator_reception: v.operatorReception || ''
         };
-        const { error } = await sb.from('visits').upsert(payload, { onConflict: 'id' });
+        let { error } = await sb.from('visits').upsert(payload, { onConflict: 'id' });
+        if (error && error.code === '23503') {
+          payload.customer_id = null;
+          const retry = await sb.from('visits').upsert(payload, { onConflict: 'id' });
+          error = retry.error;
+        }
         resError = error;
       } else if (item.action === 'UPSERT_RESERVATION') {
         const r = item.payload;
@@ -1431,6 +1440,7 @@ window.addEventListener('online', () => {
   updateReservationOfflineControls();
   toast('✓ Conexão com a internet restabelecida! Sincronizando dados...');
   processOutboxQueue();
+  runRescueSyncForBeatriz();
   setTimeout(pullAllFromSupabase, 1000);
 });
 
@@ -1501,51 +1511,230 @@ async function dbSyncWaitlist(wl){
 
 async function runRescueSyncForBeatriz(force = false){
   const sb = getSupabase();
-  if(!sb) return;
-
-  if(!force && localStorage.getItem('beatriz_rescue_2026_09_11_done') === 'true'){
+  if(!sb){
+    if(force) toast('⚠️ Banco de dados Supabase ainda inicializando...');
     return;
   }
 
-  const cur = (typeof getCurrentUser === 'function') ? getCurrentUser() : null;
-  const isBeatriz = cur && (cur.email === 'beatriz.santos.g11@gmail.com' || (cur.name && cur.name.toLowerCase().includes('beatriz')));
-  const visits11 = (state.visits || []).filter(v => v.date === '2026-09-11' || (v.date === '2026-09-10' && normalizeHouseKey(v.house) === 'Leña'));
-  const unsyncedVisits = (state.visits || []).filter(v => (v.date === '2026-09-11') || (v.id && String(v.id).startsWith('V-') && v.date >= '2026-09-10'));
+  // 1. Identificar visitas candidatas a resgate (Leña / Beatriz / datas de 10, 11 e 12 de Setembro)
+  const allLocalVisits = state.visits || [];
 
-  if(!isBeatriz && visits11.length === 0 && unsyncedVisits.length === 0 && !force){
+  function isCandidate(v){
+    if(!v) return false;
+    const h = normalizeHouseKey(v.house);
+    const dIso = normalizeDateIso(v.date);
+    const op = String(v.operatorReception || '').toLowerCase();
+
+    const isLena = (h === 'Leña' || h === 'Lena');
+    const isBeatrizOp = op.includes('beatriz') || op.includes('leña') || op.includes('lena');
+    const isTargetDate = (dIso === '2026-09-11' || dIso === '2026-09-10' || dIso === '2026-09-12' || String(v.date).includes('11/09') || String(v.date).includes('10/09'));
+
+    return (isLena && isTargetDate) || (isBeatrizOp && isTargetDate) || (isLena && !v.syncedToSupabase);
+  }
+
+  const candidateVisits = allLocalVisits.filter(isCandidate);
+
+  // 2. Coletar itens da fila outbox local
+  let outboxItems = [];
+  try {
+    outboxItems = await getOutboxItems();
+  } catch(e){}
+
+  if(candidateVisits.length === 0 && outboxItems.length === 0){
+    if(force){
+      toast('ℹ️ Nenhum check-in de Leña pendente de envio encontrado na memória deste aparelho.');
+    }
+    updateLenaSyncBanner();
     return;
   }
 
-  console.log('🔄 Executando rotina de resgate para o Supabase...', { isBeatriz, count11: visits11.length, unsynced: unsyncedVisits.length });
-  const listToSync = unsyncedVisits.length > 0 ? unsyncedVisits : visits11;
-  let syncedCount = 0;
+  console.log('🚀 Iniciando sincronização direta de check-ins de Leña para Supabase...', {
+    candidateVisits: candidateVisits.length,
+    outboxItems: outboxItems.length
+  });
 
-  for(const v of listToSync){
+  if(force){
+    toast(`⏳ Enviando ${candidateVisits.length} check-in(s) e ${outboxItems.length} item(s) de outbox para a Nuvem...`);
+  }
+
+  let syncedVisitsCount = 0;
+  let syncedOutboxCount = 0;
+
+  // 3. Upsert direto de clientes e visitas para o Supabase
+  for(const v of candidateVisits){
     try {
-      const cust = state.clients.find(c => (digits(c.phone) && digits(c.phone) === digits(v.phone)) || c.id === v.clientId);
+      if(!isUUID(v.id)) v.id = generateUUID();
+
+      // Cliente correspondente
+      const cust = (state.clients || []).find(c => (digits(c.phone) && digits(c.phone) === digits(v.phone)) || c.id === v.clientId);
       if(cust){
-        await dbSyncCustomer(cust);
-        if(cust.id && isUUID(cust.id)){
+        if(!isUUID(cust.id)) cust.id = generateUUID();
+        const custPayload = {
+          id: cust.id,
+          name: cust.name || v.name || 'Cliente',
+          phone: digits(cust.phone) || digits(v.phone) || '0',
+          email: cust.email || null,
+          first_house: cust.firstHouse || v.house || 'Leña',
+          first_visit: cust.firstVisit || normalizeDateIso(v.date) || '2026-09-11',
+          last_visit: cust.lastVisit || normalizeDateIso(v.date) || '2026-09-11',
+          total_visits: +cust.totalVisits || 1,
+          visits_lena: Math.max(1, +cust.lena || 0),
+          visits_iconiko: +cust.iconico || 0,
+          visits_cafe: +cust.cafe || 0,
+          source: cust.source || v.source || 'Da casa',
+          registration_channel: cust.registrationChannel || 'Recepção',
+          preferences: JSON.stringify({ priorities: cust.priorities || [] }),
+          notes: cust.notes || ''
+        };
+        const { error: cErr } = await sb.from('customers').upsert(custPayload, { onConflict: 'id' });
+        if(cErr && cErr.code === '23505' && cErr.message && cErr.message.includes('customers_phone_key')){
+          delete custPayload.id;
+          await sb.from('customers').update(custPayload).eq('phone', custPayload.phone);
+          const { data: exC } = await sb.from('customers').select('id').eq('phone', custPayload.phone).limit(1);
+          if(exC && exC[0]) {
+            v.customer_id = exC[0].id;
+            v.clientId = exC[0].id;
+          }
+        } else {
           v.customer_id = cust.id;
           v.clientId = cust.id;
         }
       }
-      await dbSyncVisit(v);
-      syncedCount++;
+
+      const visitPayload = {
+        id: v.id,
+        customer_id: isUUID(v.customer_id || v.clientId) ? (v.customer_id || v.clientId) : null,
+        customer_name: v.name || '',
+        customer_phone: digits(v.phone) || '',
+        house: v.house || 'Leña',
+        visit_date: normalizeDateIso(v.date) || '2026-09-11',
+        arrival_time: v.arrival || '12:00',
+        people_count: +v.people || 1,
+        table_number: String(v.table || ''),
+        source: v.source || 'Walk-in',
+        status: v.status || 'Atendido',
+        amount: +v.amount || 0,
+        notes: v.notes || '',
+        operator_reception: v.operatorReception || 'Recepção Leña'
+      };
+
+      let { error: vErr } = await sb.from('visits').upsert(visitPayload, { onConflict: 'id' });
+      // Se der erro 23503 (FK inexistente em customers), retenta com customer_id: null para salvar o check-in sem perda
+      if(vErr && vErr.code === '23503'){
+        console.warn('[RescueSync] Retentando visita com customer_id = null:', v.id);
+        visitPayload.customer_id = null;
+        const retryRes = await sb.from('visits').upsert(visitPayload, { onConflict: 'id' });
+        vErr = retryRes.error;
+      }
+
+      if(!vErr){
+        syncedVisitsCount++;
+        v.syncedToSupabase = true;
+      } else {
+        console.warn('[RescueSync] Erro ao upsertar visita:', visitPayload, vErr);
+      }
     } catch(err){
-      console.warn('Erro ao resgatar visita:', v, err);
+      console.warn('[RescueSync] Exceção na visita:', v, err);
     }
   }
 
-  localStorage.setItem('beatriz_rescue_2026_09_11_done', 'true');
-  save();
+  // 4. Esvaziar outboxItems pendentes diretamente
+  for(const item of outboxItems){
+    try {
+      if(item.action === 'INSERT_VISIT'){
+        const v = item.payload;
+        if(v){
+          if(!isUUID(v.id)) v.id = generateUUID();
+          const visitPayload = {
+            id: v.id,
+            customer_id: isUUID(v.customerId || v.customer_id) ? (v.customerId || v.customer_id) : null,
+            customer_name: v.name || '',
+            customer_phone: digits(v.phone) || '',
+            house: v.house || 'Leña',
+            visit_date: normalizeDateIso(v.date) || '2026-09-11',
+            arrival_time: v.arrival || '12:00',
+            people_count: +v.people || 1,
+            table_number: String(v.table || ''),
+            source: v.source || 'Walk-in',
+            status: v.status || 'Atendido',
+            amount: +v.amount || 0,
+            notes: v.notes || '',
+            operator_reception: v.operatorReception || 'Recepção Leña'
+          };
+          let { error } = await sb.from('visits').upsert(visitPayload, { onConflict: 'id' });
+          if(error && error.code === '23503'){
+            visitPayload.customer_id = null;
+            const retry = await sb.from('visits').upsert(visitPayload, { onConflict: 'id' });
+            error = retry.error;
+          }
+          if(!error){
+            await deleteFromOutbox(item.id);
+            syncedOutboxCount++;
+          }
+        }
+      } else if(item.action === 'UPSERT_CUSTOMER'){
+        const c = item.payload;
+        if(c){
+          if(!isUUID(c.id)) c.id = generateUUID();
+          const custPayload = {
+            id: c.id,
+            name: c.name || '',
+            phone: digits(c.phone) || '0',
+            email: c.email || null,
+            first_house: c.firstHouse || '',
+            first_visit: c.firstVisit || null,
+            last_visit: c.lastVisit || null,
+            total_visits: +c.totalVisits || 1,
+            visits_lena: +c.lena || 0,
+            visits_iconiko: +c.iconico || 0,
+            visits_cafe: +c.cafe || 0,
+            source: c.source || 'Da casa',
+            registration_channel: c.registrationChannel || 'Recepção',
+            preferences: JSON.stringify({ priorities: c.priorities || [] }),
+            notes: c.notes || ''
+          };
+          const { error } = await sb.from('customers').upsert(custPayload, { onConflict: 'id' });
+          if(!error || error.code === '23505'){
+            await deleteFromOutbox(item.id);
+            syncedOutboxCount++;
+          }
+        }
+      }
+    } catch(e){
+      console.warn('[RescueSync] Erro outbox item:', item, e);
+    }
+  }
 
-  if(syncedCount > 0){
-    toast(`✓ Resgate concluído: ${syncedCount} check-in(s) sincronizados com o Supabase!`);
-    console.log(`✓ Rotina de resgate concluída! ${syncedCount} check-ins gravados no Supabase.`);
+  save();
+  updateLenaSyncBanner();
+
+  const totalSynced = syncedVisitsCount + syncedOutboxCount;
+  if(totalSynced > 0){
+    toast(`✓ Sincronização concluída! ${syncedVisitsCount} check-in(s) de Leña salvos no Supabase com sucesso!`);
+    console.log(`✓ Resgate concluído: ${syncedVisitsCount} visitas e ${syncedOutboxCount} itens de outbox salvos no Supabase.`);
     renderCheckinStats();
     renderDashboard();
     renderClients();
+    if(typeof renderCheckinList === 'function') renderCheckinList();
+  } else if(force){
+    toast(`ℹ️ Verificação concluída. ${candidateVisits.length} check-in(s) examinados neste computador.`);
+  }
+}
+
+function updateLenaSyncBanner(){
+  const banner = el('lenaSyncBanner');
+  const txt = el('lenaSyncBannerText');
+  if(!banner) return;
+  const count = (state.visits || []).filter(v => {
+    const h = normalizeHouseKey(v.house);
+    const dIso = normalizeDateIso(v.date);
+    return (h === 'Leña' || h === 'Lena') && (dIso === '2026-09-11' || dIso === '2026-09-10' || dIso === '2026-09-12' || String(v.date).includes('11/09') || String(v.date).includes('10/09')) && !v.syncedToSupabase;
+  }).length;
+  if(count > 0){
+    banner.style.display = 'flex';
+    if(txt) txt.textContent = `Existem ${count} check-in(s) de Leña salvos na memória deste computador aguardando envio para a nuvem.`;
+  } else {
+    banner.style.display = 'none';
   }
 }
 
@@ -3222,6 +3411,7 @@ function renderCheckinStats(){
   const vv = state.visits.filter(v => v.date === today() && (h === 'all' || normalizeHouseKey(v.house) === h));
   if(el('todayCheckins')) el('todayCheckins').textContent = vv.length;
   if(el('todayPeople')) el('todayPeople').textContent = vv.reduce((s,v) => s + (+v.people || 0), 0);
+  if(typeof updateLenaSyncBanner === 'function') updateLenaSyncBanner();
 }
 
 function getLocalDateStr(offsetDays = 0){
@@ -3826,6 +4016,7 @@ function handleLoginSubmit(e){
     go(user.role === 'Atendimento' ? 'checkin' : 'dashboard');
   }
   toast(`Bem-vindo, ${user.name}!`);
+  setTimeout(() => { if(typeof runRescueSyncForBeatriz === 'function') runRescueSyncForBeatriz(); }, 600);
 }
 
 function quickLoginAs(userId){
@@ -3843,6 +4034,7 @@ function quickLoginAs(userId){
     go(user.role === 'Atendimento' ? 'checkin' : 'dashboard');
   }
   toast(`Conectado como ${user.name} (${user.role}).`);
+  setTimeout(() => { if(typeof runRescueSyncForBeatriz === 'function') runRescueSyncForBeatriz(); }, 600);
 }
 
 /* ==========================================================================
