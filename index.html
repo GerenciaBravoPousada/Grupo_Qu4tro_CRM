@@ -576,7 +576,7 @@ body[data-house] .sidebar{background:linear-gradient(180deg,var(--nav),color-mix
 
         <div style="display:flex;flex-direction:column;gap:5px">
           <label style="font-size:12px;font-weight:750;color:#000">Casa / Recepção:</label>
-          <select id="checkinListHouseFilter" class="control" style="font-size:13px;font-weight:700;padding:9px 12px;color:#000;border:1.5px solid #cbd5e1" onchange="renderCheckinList()">
+          <select id="checkinListHouseFilter" class="control" style="font-size:13px;font-weight:700;padding:9px 12px;color:#000;border:1.5px solid #cbd5e1" onchange="handleCheckinListHouseFilterChange()">
           </select>
         </div>
 
@@ -1849,6 +1849,7 @@ async function pullAllFromSupabase(){
         renderCheckinStats();
         renderDashboard();
         renderClients();
+        if(typeof renderCheckinList === 'function') renderCheckinList();
       }
     }
 
@@ -2155,9 +2156,7 @@ function getLocalDateStr(arg = 0){
 
 function getPastDateStr(daysAgo = 1){
   const num = typeof daysAgo === 'number' ? daysAgo : 1;
-  const d = new Date();
-  d.setDate(d.getDate() - num);
-  return getLocalDateStr(d);
+  return getLocalDateStr(-num);
 }
 
 function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
@@ -2629,6 +2628,14 @@ function getEffectiveCheckinListDate(){
    CONTROLE DA GUIA 'LISTA DE CHECK-INS' NO KAMBAN DE OPERAÇÃO
    ========================================================================== */
 
+function handleCheckinListHouseFilterChange(){
+  const sel = el('checkinListHouseFilter');
+  if(sel && sel.value){
+    localStorage.setItem('qu4tro_checkin_list_house', sel.value);
+  }
+  renderCheckinList();
+}
+
 function setupCheckinListHouseFilter(){
   const select = el('checkinListHouseFilter');
   if(!select) return;
@@ -2636,7 +2643,17 @@ function setupCheckinListHouseFilter(){
   const u = (typeof getCurrentUser === 'function') ? getCurrentUser() : null;
   const userHouses = getUserHouses(u);
   const ordered = [curHouse, ...userHouses.filter(h => h !== curHouse)];
-  select.innerHTML = ordered.map((h, i) => `<option value="${esc(h)}">${i === 0 ? 'Esta recepção — ' : ''}${esc(houseLabel(h))}</option>`).join('') + '<option value="all">Todas as casas</option>';
+  const savedHouse = localStorage.getItem('qu4tro_checkin_list_house');
+  
+  select.innerHTML = '<option value="all">Todas as casas</option>' + ordered.map((h, i) => `<option value="${esc(h)}">${i === 0 ? 'Esta recepção — ' : ''}${esc(houseLabel(h))}</option>`).join('');
+  
+  if(savedHouse && Array.from(select.options).some(o => o.value === savedHouse)){
+    select.value = savedHouse;
+  } else if(ordered.includes('Leña')){
+    select.value = 'Leña';
+  } else if(ordered.length > 0){
+    select.value = ordered[0];
+  }
 }
 
 function openCheckinListView(){
@@ -2833,6 +2850,8 @@ function renderCheckinList(){
     kpiEl.innerHTML = `
       <span>📅 Data: <strong>${fmtDate(targetDate)}</strong></span>
       <span>•</span>
+      <span>Casa: <strong>${houseFilter === 'all' ? 'Todas as Casas' : houseLabel(houseFilter)}</strong></span>
+      <span>•</span>
       <span>Total Check-ins: <strong style="color:var(--accent)">${list.length}</strong></span>
       <span>•</span>
       <span>Pessoas Atendidas: <strong style="color:#15803d">${totalPeople}</strong></span>
@@ -2840,7 +2859,8 @@ function renderCheckinList(){
   }
 
   if(!list.length){
-    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:32px 14px;color:var(--muted)">Nenhum check-in registrado para <strong>${fmtDate(targetDate)}</strong>.</td></tr>`;
+    const hLabel = houseFilter === 'all' ? 'em todas as casas' : `no ${houseLabel(houseFilter)}`;
+    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:32px 14px;color:var(--muted)">Nenhum check-in registrado para <strong>${fmtDate(targetDate)}</strong> ${hLabel}.</td></tr>`;
     return;
   }
 
@@ -2849,6 +2869,7 @@ function renderCheckinList(){
     const phoneVal = v.phone ? String(v.phone).trim() : '';
     const phoneDisplay = (!phoneVal || phoneVal === '0' || /^0+$/.test(phoneVal)) ? '<span style="color:#94a3b8">—</span>' : fmtPhone(phoneVal);
     const houseName = houseLabel(v.house);
+    const opDisplay = v.operatorReception ? `<div style="font-size:10px;color:#475569;margin-top:3px;font-weight:600" title="Atendente responsável">👤 ${esc(v.operatorReception)}</div>` : '';
     return `
       <tr>
         <td class="col-time">${esc(v.arrival || '—')}</td>
@@ -2858,7 +2879,10 @@ function renderCheckinList(){
         <td class="col-phone">${phoneDisplay}</td>
         <td class="col-people">${v.people}</td>
         <td class="col-table">${v.table ? `<span style="background:#f1f5f9;padding:1px 6px;border-radius:5px;font-weight:700;color:#0f172a">${esc(v.table)}</span>` : '<span style="color:#94a3b8">—</span>'}</td>
-        <td class="col-house" title="${esc(houseName)}">${esc(houseName)}</td>
+        <td class="col-house" title="${esc(houseName)}">
+          <div>${esc(houseName)}</div>
+          ${opDisplay}
+        </td>
         <td class="col-source" title="${esc(v.source || '—')}">${esc(v.source || '—')}</td>
         <td class="col-status">
           <div style="display:inline-flex;align-items:center;gap:6px;max-width:100%">

@@ -1,5 +1,5 @@
 /* Service Worker para GRUPO QU4TRO CRM - PWA Offline-First */
-const CACHE_NAME = 'qu4tro-crm-v1.0.29';
+const CACHE_NAME = 'qu4tro-crm-v1.0.31';
 const PRECACHE_ASSETS = [
   './',
   './index.html',
@@ -83,7 +83,21 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // 3. Arquivos locais do CRM (index.html, imagens, etc.): Stale-While-Revalidate
+  // 3. Navegação e HTML shell: Network-First (sempre obtém a versão mais recente quando online)
+  if (event.request.mode === 'navigate' || url.pathname === '/' || url.pathname.endsWith('/index.html')) {
+    event.respondWith(
+      fetch(event.request).then(networkResponse => {
+        if (networkResponse && networkResponse.status === 200) {
+          const respClone = networkResponse.clone();
+          caches.open(CACHE_NAME).then(c => c.put(event.request, respClone));
+        }
+        return networkResponse;
+      }).catch(() => caches.match('./index.html') || caches.match('./'))
+    );
+    return;
+  }
+
+  // 4. Arquivos estáticos locais (imagens, qrcode, ícones): Stale-While-Revalidate
   event.respondWith(
     caches.match(event.request).then(cachedResponse => {
       const fetchPromise = fetch(event.request).then(networkResponse => {
@@ -92,12 +106,7 @@ self.addEventListener('fetch', event => {
           caches.open(CACHE_NAME).then(c => c.put(event.request, respClone));
         }
         return networkResponse;
-      }).catch(() => {
-        // Se falhou e não temos cachedResponse, fallback para index.html para SPAs
-        if (!cachedResponse && event.request.mode === 'navigate') {
-          return caches.match('./index.html');
-        }
-      });
+      }).catch(() => {});
 
       return cachedResponse || fetchPromise;
     })
