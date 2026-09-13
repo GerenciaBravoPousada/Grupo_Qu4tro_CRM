@@ -1035,6 +1035,7 @@ async function dbSyncUser(user){
    ========================================================================== */
 
 let isOutboxProcessing = false;
+let _outboxPendingRerun = false;
 let deferredPwaPrompt = null;
 let outboxDbInstance = null;
 
@@ -1231,7 +1232,10 @@ function handleSyncChipClick(){
 
 // Processador da Fila Outbox com Auto-Clean
 async function processOutboxQueue(){
-  if (isOutboxProcessing) return;
+  if (isOutboxProcessing) {
+    _outboxPendingRerun = true;
+    return;
+  }
   if (!navigator.onLine) {
     updateSyncStatusUI('offline');
     return;
@@ -1239,141 +1243,137 @@ async function processOutboxQueue(){
   const sb = getSupabase();
   if (!sb) return;
 
-  const items = await getOutboxItems();
-  if (!items || items.length === 0) {
-    updateSyncStatusUI('online', 0);
-    return;
-  }
-
   isOutboxProcessing = true;
-  updateSyncStatusUI('syncing', items.length);
-
   let successCount = 0;
-  for (const item of items) {
-    try {
-      let resError = null;
-      if (item.action === 'UPSERT_CUSTOMER') {
-        const c = item.payload;
-        const payload = {
-          id: c.id,
-          name: c.name,
-          phone: digits(c.phone) || '0',
-          email: c.email || null,
-          first_house: c.firstHouse || '',
-          first_visit: c.firstVisit || null,
-          last_visit: c.lastVisit || null,
-          total_visits: +c.totalVisits || 1,
-          visits_lena: +c.lena || 0,
-          visits_iconiko: +c.iconico || 0,
-          visits_cafe: +c.cafe || 0,
-          source: c.source || 'Da casa',
-          registration_channel: c.registrationChannel || 'Recepção',
-          preferences: JSON.stringify({ priorities: c.priorities || [] }),
-          notes: c.notes || ''
-        };
-        const { error } = await sb.from('customers').upsert(payload, { onConflict: 'id' });
-        if (error && error.code === '23505' && error.message && error.message.includes('customers_phone_key')) {
-          delete payload.id;
-          const { error: uErr } = await sb.from('customers').update(payload).eq('phone', payload.phone);
-          resError = uErr;
-        } else {
-          resError = error;
-        }
-      } else if (item.action === 'INSERT_VISIT') {
-        const v = item.payload;
-        if(!v){
-          await deleteFromOutbox(item.id);
-          continue;
-        }
-        const vDateIso = normalizeDateIso(v.date) || v.date;
-        const vHouseKey = normalizeHouseKey(v.house);
-        if(vDateIso === '2026-09-11' && (vHouseKey === 'Leña' || vHouseKey === 'Lena')){
-          await deleteFromOutbox(item.id);
-          successCount++;
-          continue;
-        }
-        const payload = {
-          id: v.id,
-          customer_id: isUUID(v.customerId || v.customer_id) ? (v.customerId || v.customer_id) : null,
-          customer_name: v.name || '',
-          customer_phone: normalizePhone(v.phone) || digits(v.phone) || '',
-          house: v.house || '',
-          visit_date: v.date || today(),
-          arrival_time: v.arrival || '',
-          people_count: +v.people || 1,
-          table_number: String(v.table || ''),
-          source: v.source || 'Walk-in',
-          status: v.status || 'Atendido',
-          amount: +v.amount || 0,
-          notes: v.notes || '',
-          operator_reception: v.operatorReception || ''
-        };
-        let { error } = await sb.from('visits').upsert(payload, { onConflict: 'id' });
-        if (error && error.code === '23503') {
-          payload.customer_id = null;
-          const retry = await sb.from('visits').upsert(payload, { onConflict: 'id' });
-          error = retry.error;
-        }
-        resError = error;
-      } else if (item.action === 'UPSERT_RESERVATION') {
-        const r = item.payload;
-        let finalNotes = r.notes || '';
-        if(r.exceptionReason && !finalNotes.includes('[EXCEÇÃO')) {
-          finalNotes = `[EXCEÇÃO: ${r.exceptionReason}] ` + finalNotes;
-        }
-        if(r.priorities && r.priorities.length && !finalNotes.includes('[PRIORIDADE:')) {
-          finalNotes = `[PRIORIDADE: ${r.priorities.join(', ')}] ` + finalNotes;
-        }
-        const payload = {
-          id: r.id,
-          customer_id: isUUID(r.customerId || r.customer_id) ? (r.customerId || r.customer_id) : null,
-          customer_name: r.name,
-          customer_phone: digits(r.phone) || '',
-          house: r.house,
-          reservation_date: r.date,
-          reservation_time: r.time || '',
-          people_count: +r.people || 1,
-          status: r.status || 'Pendente',
-          notes: finalNotes
-        };
-        const { error } = await sb.from('reservations').upsert(payload, { onConflict: 'id' });
-        resError = error;
-      } else if (item.action === 'DELETE_RESERVATION') {
-        const { error } = await sb.from('reservations').delete().eq('id', item.payload.id);
-        resError = error;
-      } else if (item.action === 'SYNC_FLOORPLANS') {
-        const payload = {
-          id: '00000000-0000-0000-0000-000000000001',
-          name: '__SYSTEM_FLOORPLANS__',
-          phone: 'SYSTEM_FLOORPLANS',
-          notes: JSON.stringify(item.payload)
-        };
-        const { error } = await sb.from('customers').upsert(payload, { onConflict: 'id' });
-        resError = error;
-      } else if (item.action === 'SYNC_WAITLIST') {
-        const payload = {
-          id: '00000000-0000-0000-0000-000000000002',
-          name: '__SYSTEM_WAITLIST__',
-          phone: 'SYSTEM_WAITLIST',
-          notes: JSON.stringify(item.payload)
-        };
-        const { error } = await sb.from('customers').upsert(payload, { onConflict: 'id' });
-        resError = error;
-      }
 
-      if (!resError) {
-        // AUTO-CLEAN: apaga o item confirmado da fila imediatamente!
-        await deleteFromOutbox(item.id);
-        successCount++;
-      } else {
-        console.warn('[Outbox] Erro no item:', item, resError);
-        if (!navigator.onLine) break;
-      }
-    } catch(err){
-      console.warn('[Outbox] Exceção:', err);
+  do {
+    _outboxPendingRerun = false;
+    const items = await getOutboxItems();
+    if (!items || items.length === 0) {
       break;
     }
-  }
+
+    updateSyncStatusUI('syncing', items.length);
+
+    for (const item of items) {
+      try {
+        let resError = null;
+        if (item.action === 'UPSERT_CUSTOMER') {
+          const c = item.payload;
+          const payload = {
+            id: c.id,
+            name: c.name,
+            phone: digits(c.phone) || '0',
+            email: c.email || null,
+            first_house: c.firstHouse || '',
+            first_visit: c.firstVisit || null,
+            last_visit: c.lastVisit || null,
+            total_visits: +c.totalVisits || 1,
+            visits_lena: +c.lena || 0,
+            visits_iconiko: +c.iconico || 0,
+            visits_cafe: +c.cafe || 0,
+            source: c.source || 'Da casa',
+            registration_channel: c.registrationChannel || 'Recepção',
+            preferences: JSON.stringify({ priorities: c.priorities || [] }),
+            notes: c.notes || ''
+          };
+          const { error } = await sb.from('customers').upsert(payload, { onConflict: 'id' });
+          if (error && error.code === '23505' && error.message && error.message.includes('customers_phone_key')) {
+            delete payload.id;
+            const { error: uErr } = await sb.from('customers').update(payload).eq('phone', payload.phone);
+            resError = uErr;
+          } else {
+            resError = error;
+          }
+        } else if (item.action === 'INSERT_VISIT') {
+          const v = item.payload;
+          if(!v){
+            await deleteFromOutbox(item.id);
+            continue;
+          }
+          const payload = {
+            id: v.id,
+            customer_id: isUUID(v.customerId || v.customer_id) ? (v.customerId || v.customer_id) : null,
+            customer_name: v.name || '',
+            customer_phone: normalizePhone(v.phone) || digits(v.phone) || '',
+            house: v.house || '',
+            visit_date: normalizeDateIso(v.date) || v.date || today(),
+            arrival_time: v.arrival || '',
+            people_count: +v.people || 1,
+            table_number: String(v.table || ''),
+            source: v.source || 'Walk-in',
+            status: v.status || 'Atendido',
+            amount: +v.amount || 0,
+            notes: v.notes || '',
+            operator_reception: v.operatorReception || ''
+          };
+          let { error } = await sb.from('visits').upsert(payload, { onConflict: 'id' });
+          if (error && error.code === '23503') {
+            payload.customer_id = null;
+            const retry = await sb.from('visits').upsert(payload, { onConflict: 'id' });
+            error = retry.error;
+          }
+          resError = error;
+        } else if (item.action === 'UPSERT_RESERVATION') {
+          const r = item.payload;
+          let finalNotes = r.notes || '';
+          if(r.exceptionReason && !finalNotes.includes('[EXCEÇÃO')) {
+            finalNotes = `[EXCEÇÃO: ${r.exceptionReason}] ` + finalNotes;
+          }
+          if(r.priorities && r.priorities.length && !finalNotes.includes('[PRIORIDADE:')) {
+            finalNotes = `[PRIORIDADE: ${r.priorities.join(', ')}] ` + finalNotes;
+          }
+          const payload = {
+            id: r.id,
+            customer_id: isUUID(r.customerId || r.customer_id) ? (r.customerId || r.customer_id) : null,
+            customer_name: r.name,
+            customer_phone: digits(r.phone) || '',
+            house: r.house,
+            reservation_date: r.date,
+            reservation_time: r.time || '',
+            people_count: +r.people || 1,
+            status: r.status || 'Pendente',
+            notes: finalNotes
+          };
+          const { error } = await sb.from('reservations').upsert(payload, { onConflict: 'id' });
+          resError = error;
+        } else if (item.action === 'DELETE_RESERVATION') {
+          const { error } = await sb.from('reservations').delete().eq('id', item.payload.id);
+          resError = error;
+        } else if (item.action === 'SYNC_FLOORPLANS') {
+          const payload = {
+            id: '00000000-0000-0000-0000-000000000001',
+            name: '__SYSTEM_FLOORPLANS__',
+            phone: 'SYSTEM_FLOORPLANS',
+            notes: JSON.stringify(item.payload)
+          };
+          const { error } = await sb.from('customers').upsert(payload, { onConflict: 'id' });
+          resError = error;
+        } else if (item.action === 'SYNC_WAITLIST') {
+          const payload = {
+            id: '00000000-0000-0000-0000-000000000002',
+            name: '__SYSTEM_WAITLIST__',
+            phone: 'SYSTEM_WAITLIST',
+            notes: JSON.stringify(item.payload)
+          };
+          const { error } = await sb.from('customers').upsert(payload, { onConflict: 'id' });
+          resError = error;
+        }
+
+        if (!resError) {
+          // AUTO-CLEAN: apaga o item confirmado da fila imediatamente!
+          await deleteFromOutbox(item.id);
+          successCount++;
+        } else {
+          console.warn('[Outbox] Erro no item:', item, resError);
+          if (!navigator.onLine) break;
+        }
+      } catch(err){
+        console.warn('[Outbox] Exceção:', err);
+        break;
+      }
+    }
+  } while (_outboxPendingRerun && navigator.onLine);
 
   isOutboxProcessing = false;
   const remaining = await getOutboxItems();
@@ -1480,6 +1480,40 @@ setInterval(() => {
 async function dbSyncCustomer(c){
   if(!c) return;
   if(!isUUID(c.id)) c.id = generateUUID();
+  const sb = getSupabase();
+  if(navigator.onLine && sb){
+    try {
+      const payload = {
+        id: c.id,
+        name: c.name,
+        phone: digits(c.phone) || '0',
+        email: c.email || null,
+        first_house: c.firstHouse || '',
+        first_visit: c.firstVisit || null,
+        last_visit: c.lastVisit || null,
+        total_visits: +c.totalVisits || 1,
+        visits_lena: +c.lena || 0,
+        visits_iconiko: +c.iconico || 0,
+        visits_cafe: +c.cafe || 0,
+        source: c.source || 'Da casa',
+        registration_channel: c.registrationChannel || 'Recepção',
+        preferences: JSON.stringify({ priorities: c.priorities || [] }),
+        notes: c.notes || ''
+      };
+      let { error } = await sb.from('customers').upsert(payload, { onConflict: 'id' });
+      if (error && error.code === '23505' && error.message && error.message.includes('customers_phone_key')) {
+        delete payload.id;
+        const { error: uErr } = await sb.from('customers').update(payload).eq('phone', payload.phone);
+        error = uErr;
+      }
+      if(!error){
+        updateSyncStatusUI('online', 0);
+        return;
+      }
+    } catch(e){
+      console.warn('[Supabase Direct] Erro na tentativa direta de cliente, salvando na outbox:', e);
+    }
+  }
   await addToOutbox('UPSERT_CUSTOMER', c);
   if(navigator.onLine) processOutboxQueue();
 }
@@ -1487,6 +1521,39 @@ async function dbSyncCustomer(c){
 async function dbSyncVisit(v){
   if(!v) return;
   if(!isUUID(v.id)) v.id = generateUUID();
+  const sb = getSupabase();
+  if(navigator.onLine && sb){
+    try {
+      const payload = {
+        id: v.id,
+        customer_id: isUUID(v.customerId || v.customer_id) ? (v.customerId || v.customer_id) : null,
+        customer_name: v.name || '',
+        customer_phone: normalizePhone(v.phone) || digits(v.phone) || '',
+        house: v.house || '',
+        visit_date: normalizeDateIso(v.date) || v.date || today(),
+        arrival_time: v.arrival || '',
+        people_count: +v.people || 1,
+        table_number: String(v.table || ''),
+        source: v.source || 'Walk-in',
+        status: v.status || 'Atendido',
+        amount: +v.amount || 0,
+        notes: v.notes || '',
+        operator_reception: v.operatorReception || ''
+      };
+      let { error } = await sb.from('visits').upsert(payload, { onConflict: 'id' });
+      if (error && error.code === '23503') {
+        payload.customer_id = null;
+        const retry = await sb.from('visits').upsert(payload, { onConflict: 'id' });
+        error = retry.error;
+      }
+      if(!error){
+        updateSyncStatusUI('online', 0);
+        return;
+      }
+    } catch(e){
+      console.warn('[Supabase Direct] Erro na tentativa direta de visita, salvando na outbox:', e);
+    }
+  }
   await addToOutbox('INSERT_VISIT', v);
   if(navigator.onLine) processOutboxQueue();
 }
@@ -1787,23 +1854,6 @@ async function pullAllFromSupabase(){
 
     save();
 
-    // Auto-correção de fuso horário para check-ins noturnos de Leña em 11/09
-    if(Array.isArray(state.visits)){
-      let tzCorrected = false;
-      state.visits.forEach(v => {
-        if((v.house === 'Leña' || normalizeHouseKey(v.house) === 'Leña') && v.date === '2026-09-12' && (v.arrival >= '18:00' || !v.arrival)){
-          v.date = '2026-09-11';
-          tzCorrected = true;
-        }
-      });
-      if(tzCorrected){
-        console.log('[Timezone Fix] Check-ins noturnos do Leña corrigidos para 11/09/2026.');
-        save();
-      }
-    }
-
-
-
   } catch(err){
     console.warn('pullAllFromSupabase error:', err);
   }
@@ -2029,23 +2079,6 @@ function loadState(){let s;try{const raw=localStorage.getItem(STORE);s=raw?JSON.
       return true;
     });
   }
-  try {
-    let lsItems = JSON.parse(localStorage.getItem('qu4tro_outbox_queue_v1') || '[]');
-    if(Array.isArray(lsItems) && lsItems.length > 0){
-      const beforeLen = lsItems.length;
-      lsItems = lsItems.filter(item => {
-        if(item && item.action === 'INSERT_VISIT' && item.payload){
-          const d = normalizeDateIso(item.payload.date) || item.payload.date;
-          const h = normalizeHouseKey(item.payload.house);
-          if(d === '2026-09-11' && (h === 'Leña' || h === 'Lena')) return false;
-        }
-        return true;
-      });
-      if(lsItems.length !== beforeLen){
-        localStorage.setItem('qu4tro_outbox_queue_v1', JSON.stringify(lsItems));
-      }
-    }
-  } catch(e){}
   if(!s.users||!Array.isArray(s.users)||s.users.length===0)s.users=structuredClone(SEED_USERS);// s.currentUser initialized via authentication
 return s}
 function save(){localStorage.setItem(STORE,JSON.stringify(state));refreshAll()}
