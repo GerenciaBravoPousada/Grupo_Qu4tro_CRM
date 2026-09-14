@@ -225,66 +225,194 @@ body[data-house] .sidebar{background:linear-gradient(180deg,var(--nav),color-mix
 .btn-pwa-install:hover{background:rgba(217,119,6,.3);color:#fff;border-color:rgba(217,119,6,.4)}
 
 
-/* OTIMIZAÇÃO DO FORMULÁRIO DE CHECK-IN: FONTES 100% PRETAS E LINHA 02 COMPACTA (4 COLUNAS) */
-.checkin-row-4{grid-column:span 2;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:13px}
-@media(max-width:860px){.checkin-row-4{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:480px){.checkin-row-4{grid-template-columns:1fr}}
+/* OTIMIZAÇÃO ERGONÔMICA E DESIGN TOUCH PARA TABLETS NO FORMULÁRIO DE CHECK-IN */
+.checkin-row-4 {
+  grid-column: span 2;
+  display: grid;
+  grid-template-columns: 1.2fr 1.6fr 0.9fr 1.3fr;
+  gap: 13px;
+  align-items: flex-start;
+}
+@media(max-width:960px){
+  .checkin-row-4 {
+    grid-template-columns: repeat(2, minmax(0,1fr));
+    gap: 14px;
+  }
+}
+@media(max-width:520px){
+  .checkin-row-4 {
+    grid-template-columns: 1fr;
+  }
+}
 
 #checkinForm label,
-#checkinForm .field label{
-  color:#000000!important;
-  font-weight:750!important;
-  font-size:12px;
-  margin-bottom:5px;
-  letter-spacing:0.1px;
+#checkinForm .field label {
+  color: #0f172a !important;
+  font-weight: 750 !important;
+  font-size: 12.5px;
+  margin-bottom: 6px;
+  display: block;
+  letter-spacing: 0.1px;
 }
 #checkinForm input,
 #checkinForm select,
-#checkinForm textarea{
-  color:#000000!important;
-  font-weight:600!important;
-  border:1.5px solid #cbd5e1;
-  border-radius:10px;
-  background:#ffffff;
+#checkinForm textarea {
+  color: #000000 !important;
+  font-weight: 600 !important;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 12px;
+  background: #ffffff;
+  padding: 10px 14px;
+  font-size: 15px;
+  transition: all 0.15s ease;
 }
 #checkinForm input:focus,
 #checkinForm select:focus,
-#checkinForm textarea:focus{
-  border-color:#000000!important;
-  outline:none;
-  box-shadow:0 0 0 2px rgba(0,0,0,.12);
+#checkinForm textarea:focus {
+  border-color: #0f172a !important;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.12);
 }
 #checkinForm input::placeholder,
-#checkinForm textarea::placeholder{
-  color:#475569!important;
-  font-weight:450!important;
+#checkinForm textarea::placeholder {
+  color: #64748b !important;
+  font-weight: 450 !important;
 }
 #checkinForm .lookup-help,
 #checkinForm .field-help,
-#checkinForm .reception-note{
-  color:#000000!important;
-  font-weight:550!important;
-  font-size:11px;
+#checkinForm .reception-note {
+  color: #475569 !important;
+  font-weight: 550 !important;
+  font-size: 11px;
+  line-height: 1.35;
+  margin-top: 4px;
 }
-#checkinForm .priority-pill-toggle{
-  border:1.5px solid #94a3b8;
-  background:#ffffff;
+
+/* SELETOR RÁPIDO DE PESSOAS COM 1 TOQUE */
+.people-input-wrapper {
+  display: flex;
+  gap: 6px;
+  align-items: center;
 }
-#checkinForm .priority-pill-toggle span{
-  color:#000000!important;
-  font-weight:750!important;
-  font-size:12px;
+.people-quick-chips {
+  display: flex;
+  gap: 4px;
+  flex: 1;
 }
-#checkinForm .priority-pill-toggle input:checked + span{
-  color:#ffffff!important;
+.people-chip {
+  flex: 1;
+  min-width: 32px;
+  height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #f1f5f9;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 10px;
+  font-size: 13.5px;
+  font-weight: 750;
+  color: #1e293b;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
 }
-#checkinForm .selected-client-card,
+.people-chip:hover {
+  background: #e2e8f0;
+  border-color: #94a3b8;
+}
+.people-chip.active {
+  background: #0f172a;
+  border-color: #0f172a;
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(15,23,42,0.25);
+}
+
+/* PRIORIDADES - ATENDIMENTO PREFERENCIAL EM TABLETS */
+#checkinForm .priority-pill-toggle {
+  border: 1.5px solid #cbd5e1;
+  border-radius: 22px;
+  background: #ffffff;
+  padding: 8px 14px;
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+#checkinForm .priority-pill-toggle span {
+  color: #0f172a !important;
+  font-weight: 700 !important;
+  font-size: 12.5px;
+}
+#checkinForm .priority-pill-toggle input:checked + span {
+  color: #92400e !important;
+}
+#checkinForm .priority-pill-toggle:has(input:checked) {
+  background: #fef3c7;
+  border-color: #f59e0b;
+  box-shadow: 0 2px 6px rgba(245, 158, 11, 0.2);
+}
+
+/* CARTÃO DO CLIENTE SELECIONADO */
+#checkinForm .selected-client-card {
+  border: 1.5px solid #86efac;
+  background: #f0fdf4;
+  border-radius: 14px;
+  padding: 14px 18px;
+}
 #checkinForm .selected-client-card b,
-#checkinForm .selected-client-card span{
-  color:#000000!important;
+#checkinForm .selected-client-card strong {
+  color: #166534 !important;
 }
-#checkinForm .checkin-status{
-  color:#000000!important;
+#checkinForm .selected-client-card span {
+  color: #15803d !important;
+}
+#checkinForm .checkin-status {
+  color: #0f172a !important;
+}
+
+/* REGRAS ESPECÍFICAS PARA TABLETS E DISPOSITIVOS TOUCH */
+@media (max-width: 1024px) {
+  #checkinForm input,
+  #checkinForm select,
+  #checkinForm textarea {
+    font-size: 16px !important; /* Previne auto-zoom no Safari iOS/iPadOS */
+    min-height: 46px;
+    padding: 10px 14px !important;
+  }
+  #checkinForm textarea {
+    min-height: 65px;
+  }
+  #ciPeople {
+    width: 65px !important;
+    text-align: center;
+  }
+  .form-actions {
+    margin-top: 18px;
+    display: flex;
+    gap: 12px;
+  }
+  .form-actions .btn {
+    min-height: 48px;
+    font-size: 15px;
+    font-weight: 750;
+    border-radius: 12px;
+  }
+  .form-actions .btn.gold {
+    flex: 2;
+    background: #c2410c;
+    color: #ffffff;
+    box-shadow: 0 3px 12px rgba(194,65,12,0.3);
+  }
+  .form-actions .btn:not(.gold) {
+    flex: 1;
+  }
+  .checkin-brand-banner {
+    padding: 10px 14px;
+    border-radius: 12px;
+    margin-bottom: 14px;
+  }
 }
 
 
@@ -543,7 +671,7 @@ body[data-house] .sidebar{background:linear-gradient(180deg,var(--nav),color-mix
 <!-- Nova Linha 02 Compacta: Casa * (25%) + Nº de pessoas * (25%) + Mesa (25%) + Como nos conheceu? (25%) -->
 <div class="checkin-row-4">
   <div class="field"><label>Casa *</label><select id="ciHouse" required><option value="Bravo Café">Bravo Café</option><option value="Café da Bravo Pousada">Café da Bravo Pousada</option><option value="Íconico">Iconiko Cozinha Japonesa</option><option value="Leña">Leña Casa Italiana</option></select></div>
-  <div class="field"><label>Nº de pessoas *</label><input id="ciPeople" type="number" min="1" value="2" required></div>
+  <div class="field"><label>Nº de pessoas *</label><div class="people-input-wrapper"><input id="ciPeople" type="number" min="1" max="60" value="2" required><div class="people-quick-chips" id="ciPeopleQuickChips"><button type="button" class="people-chip" onclick="setQuickPeople(1)">1</button><button type="button" class="people-chip active" onclick="setQuickPeople(2)">2</button><button type="button" class="people-chip" onclick="setQuickPeople(3)">3</button><button type="button" class="people-chip" onclick="setQuickPeople(4)">4</button><button type="button" class="people-chip" onclick="setQuickPeople(5)">5</button><button type="button" class="people-chip" onclick="setQuickPeople(6)">6+</button></div></div></div>
   <div class="field"><label>Mesa</label><input id="ciTable" inputmode="numeric" placeholder="Nº mesa"></div>
   <div class="field"><label>Como nos conheceu?</label><select id="ciSource"><option>Da casa</option><option>Instagram</option><option>Google</option><option>Indicação</option><option>Passagem/Passante</option><option>TikTok</option><option>Outro</option></select></div>
 </div><div class="field span2"><label>Prioridade (Atendimento Preferencial)</label><div class="priority-checkbox-group" id="ciPriorityGroup"><label class="priority-pill-toggle"><input type="checkbox" name="ciPriority" value="Gestante"> <span>🤰 Gestante</span></label><label class="priority-pill-toggle"><input type="checkbox" name="ciPriority" value="Idoso"> <span>🧓 Idoso</span></label><label class="priority-pill-toggle"><input type="checkbox" name="ciPriority" value="PCD"> <span>♿ PCD</span></label><label class="priority-pill-toggle"><input type="checkbox" name="ciPriority" value='Com Criança "no colo"'> <span>👶 Com Criança "no colo"</span></label></div><div class="field-help" style="margin-top:4px">Múltipla escolha. Sinaliza atendimento prioritário no salão e no cadastro do cliente.</div></div><div class="field span2"><label>Observações</label><textarea id="ciNotes" placeholder="Preferências, restrições, observações operacionais..."></textarea></div></div><div class="form-actions"><button type="reset" class="btn">Limpar</button><button type="submit" class="btn gold">✓ Confirmar check-in</button></div></form></div>
@@ -3625,6 +3753,7 @@ async function finalizeCheckin(pending){
   // LIBERAÇÃO INSTANTÂNEA DO TERMINAL DA RECEPÇÃO (< 15ms)
   selectedCheckinClientId = null;
   el('checkinForm').reset();
+  if(typeof updatePeopleQuickChips === 'function') updatePeopleQuickChips(2);
   applySessionHouse();
   el('clientFound').className = 'checkin-status';
   el('clientFound').innerHTML = '';
@@ -3664,6 +3793,41 @@ function lookupCheckinClient(){
     box.innerHTML = '<strong>Novo cliente</strong><div style="font-size:11px;color:var(--muted);margin-top:4px">Telefone não encontrado. O cadastro será criado ao confirmar o check-in.</div>';
   }
 }
+function setQuickPeople(n){
+  const inp = el('ciPeople');
+  if(!inp) return;
+  inp.value = n;
+  updatePeopleQuickChips(n);
+}
+
+function updatePeopleQuickChips(n){
+  const container = el('ciPeopleQuickChips');
+  if(!container) return;
+  const num = parseInt(n, 10);
+  const chips = container.querySelectorAll('.people-chip');
+  chips.forEach(btn => {
+    const val = parseInt(btn.textContent, 10);
+    if(val === num || (btn.textContent.includes('6+') && num >= 6)){
+      btn.classList.add('active');
+    } else {
+      btn.classList.remove('active');
+    }
+  });
+}
+
+function formatPhoneLive(val){
+  const d = String(val || '').replace(/\D/g, '').slice(0, 11);
+  if(!d) return '';
+  if(d.length <= 2) return `(${d}`;
+  if(d.length <= 6) return `(${d.slice(0,2)}) ${d.slice(2)}`;
+  if(d.length <= 10) return `(${d.slice(0,2)}) ${d.slice(2,6)}-${d.slice(6)}`;
+  return `(${d.slice(0,2)}) ${d.slice(2,7)}-${d.slice(7)}`;
+}
+
+el('ciPeople')?.addEventListener('input', e => {
+  updatePeopleQuickChips(e.target.value);
+});
+
 el('ciHouse').addEventListener('change', () => { const h = el('ciHouse').value; applyHouseBranding(h); updateCheckinBranding(h); });
 
 let ciLookupDebounceTimer = null;
@@ -3677,7 +3841,24 @@ el('ciLookup').addEventListener('input', () => {
   ciLookupDebounceTimer = setTimeout(renderCheckinLookup, 180);
 });
 
-el('ciPhone').addEventListener('input', () => {
+el('ciLookup').addEventListener('keydown', e => {
+  if(e.key === 'Enter'){
+    e.preventDefault();
+    const firstMatch = el('ciLookupResults')?.querySelector('.lookup-item, .lookup-result-item');
+    if(firstMatch){
+      firstMatch.click();
+    } else {
+      el('ciName')?.focus();
+    }
+  }
+});
+
+el('ciPhone').addEventListener('input', e => {
+  const cur = e.target.value;
+  const fmt = formatPhoneLive(cur);
+  if(fmt && fmt !== cur){
+    e.target.value = fmt;
+  }
   clearTimeout(ciPhoneDebounceTimer);
   ciPhoneDebounceTimer = setTimeout(lookupCheckinClient, 180);
 });
@@ -3690,6 +3871,8 @@ el('checkinForm').addEventListener('reset', () => setTimeout(() => {
   el('selectedClientCard').innerHTML = '';
   el('ciLookupResults').className = 'lookup-results';
   el('ciLookupResults').innerHTML = '';
+  if(el('ciPeople')) el('ciPeople').value = '2';
+  updatePeopleQuickChips(2);
   applySessionHouse();
 }, 0));
 el('checkinForm').onsubmit=e=>{e.preventDefault();let selected=selectedCheckinClientId?state.clients.find(x=>x.id===selectedCheckinClientId):null;const pv=validatePhone(el('ciPhone').value);if(!pv.ok){toast(pv.msg);el('ciPhone').focus();return}const nv=validateClientName(el('ciName').value);if(!selected&&!nv.ok){toast(nv.msg);el('ciName').focus();return}const name=selected?(normalizeName(el('ciName').value)||selected.name):nv.value;const pending={selectedId:selected?.id||null,name,phone:pv.value,house:el('ciHouse').value,people:+el('ciPeople').value||1,table:el('ciTable').value.trim(),source:el('ciSource').value,arrival:currentClock(),notes:el('ciNotes').value.trim()};const matches=duplicateCandidates(pending.name,pending.phone,pending.selectedId);if(matches.length){showDuplicateConfirmation(pending,matches);return}finalizeCheckin(pending)}
