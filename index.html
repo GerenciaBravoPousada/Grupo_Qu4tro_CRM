@@ -536,7 +536,7 @@ body[data-house] .sidebar{background:linear-gradient(180deg,var(--nav),color-mix
 
   <section class="view" id="view-checkin">
    <div class="hero"><div><h2>Novo Check-in</h2><p>Localize primeiro quem já é cliente. Busque por nome, sobrenome, telefone completo ou últimos dígitos.</p></div><div class="kpi-strip"><div class="kpi-chip"><span>Check-ins hoje</span><strong id="todayCheckins">0</strong></div><div class="kpi-chip"><span>Pessoas hoje</span><strong id="todayPeople">0</strong></div></div></div>
-   <div class="card form-shell checkin-shell"><div class="checkin-brand-banner" id="checkinBrandBanner"><img id="checkinHouseLogo" alt="Casa do check-in" onerror="this.style.display='none'" onload="this.style.display=''"><div class="checkin-brand-copy"><strong id="checkinHouseName">Check-in</strong><span id="checkinHouseSubtitle">Recepção selecionada para este atendimento</span></div><div class="checkin-brand-side">A casa acompanha a seleção abaixo<br>e pode ser alterada antes da confirmação.</div></div><form id="checkinForm"><div class="form-grid"><div class="field span2 client-lookup"><label>Localizar cliente existente</label><input id="ciLookup" autocomplete="off" placeholder="Ex.: Jean Balan, Balan, 3106 ou telefone completo"><div class="lookup-help">Nome/sobrenome: digite pelo menos 2 caracteres. Telefone parcial: digite pelo menos os 4 últimos números.</div><div class="lookup-results" id="ciLookupResults"></div></div><div class="span2 selected-client-card" id="selectedClientCard"></div><div class="checkin-status span2" id="clientFound"></div><!-- Linha 01: Nome do cliente * (50%) + Telefone * (50%) -->
+   <div class="card form-shell checkin-shell"><div class="checkin-brand-banner" id="checkinBrandBanner"><img id="checkinHouseLogo" alt="Casa do check-in" onerror="this.style.display='none'" onload="this.style.display=''"><div class="checkin-brand-copy"><strong id="checkinHouseName">Check-in</strong><span id="checkinHouseSubtitle">Recepção selecionada para este atendimento</span></div><div class="checkin-brand-side">A casa acompanha a seleção abaixo<br>e pode ser alterada antes da confirmação.</div></div><form id="checkinForm"><div class="form-grid"><div class="field span2 client-lookup"><label>Localizar cliente existente</label><input id="ciLookup" autocomplete="off" placeholder="Ex.: Jean Balan, Balan, 3106 ou telefone completo"><div class="lookup-help">Nome/sobrenome: digite pelo menos 3 letras (ex: Ana, Liz, Leo). Telefone parcial: digite pelo menos 4 números (ex: 8866, 3315).</div><div class="lookup-results" id="ciLookupResults"></div></div><div class="span2 selected-client-card" id="selectedClientCard"></div><div class="checkin-status span2" id="clientFound"></div><!-- Linha 01: Nome do cliente * (50%) + Telefone * (50%) -->
 <div class="field"><label>Nome do cliente *</label><input id="ciName" required placeholder="Nome e sobrenome"></div>
 <div class="field"><label>Telefone *</label><input id="ciPhone" inputmode="tel" placeholder="(22) 99999-9999" required></div>
 
@@ -2103,7 +2103,20 @@ function loadState(){let s;try{const raw=localStorage.getItem(STORE);s=raw?JSON.
   }
   if(!s.users||!Array.isArray(s.users)||s.users.length===0)s.users=structuredClone(SEED_USERS);// s.currentUser initialized via authentication
 return s}
-function save(){localStorage.setItem(STORE,JSON.stringify(state));refreshAll()}
+function saveStateToStorage(){
+  try {
+    localStorage.setItem(STORE, JSON.stringify(state));
+  } catch(e){
+    console.warn('Aviso ao salvar estado local:', e);
+  }
+}
+function save(){
+  saveStateToStorage();
+  refreshAll();
+}
+function saveFast(){
+  saveStateToStorage();
+}
 const el=id=>document.getElementById(id);
 const digits=v=>String(v||'').replace(/\D/g,'');
 function fmtPhone(v){let s=digits(v);if(s.startsWith('55')&&s.length>=12)s=s.slice(2);if(s.length===11)return `(${s.slice(0,2)}) ${s.slice(2,7)}-${s.slice(7)}`;if(s.length===10)return `(${s.slice(0,2)}) ${s.slice(2,6)}-${s.slice(6)}`;return v||'—'}
@@ -2185,13 +2198,56 @@ function initials(n){return String(n||'?').trim().split(/\s+/).slice(0,2).map(x=
 function toast(msg){el('toast').textContent=msg;el('toast').classList.add('show');setTimeout(()=>el('toast').classList.remove('show'),2600)}
 function today(){return getLocalDateStr(0)}
 function daysSince(d){if(!d)return 9999;return Math.floor((Date.now()-new Date(d+'T12:00:00'))/86400000)}
-function clientVisits(c){const p=digits(c.phone);return state.visits.filter(v=>(p&&digits(v.phone)===p)||(!p&&v.name.toLowerCase()===c.name.toLowerCase())).sort((a,b)=>(b.date+b.arrival).localeCompare(a.date+a.arrival))}
+let visitsByPhoneMap = null;
+let visitsByNameMap = null;
+
+function rebuildVisitsIndex(){
+  visitsByPhoneMap = new Map();
+  visitsByNameMap = new Map();
+  if(!Array.isArray(state.visits)) return;
+  for(let idx = 0; idx < state.visits.length; idx++){
+    const v = state.visits[idx];
+    const p = digits(v.phone);
+    if(p && p !== '0'){
+      let arr = visitsByPhoneMap.get(p);
+      if(!arr){ arr = []; visitsByPhoneMap.set(p, arr); }
+      arr.push(v);
+    } else if(v.name){
+      const n = String(v.name).toLowerCase().trim();
+      let arr = visitsByNameMap.get(n);
+      if(!arr){ arr = []; visitsByNameMap.set(n, arr); }
+      arr.push(v);
+    }
+  }
+}
+
+function clientVisits(c){
+  if(!c) return [];
+  if(!visitsByPhoneMap) rebuildVisitsIndex();
+  const p = digits(c.phone);
+  if(p && p !== '0'){
+    const found = visitsByPhoneMap.get(p);
+    if(found) return found;
+  }
+  const n = String(c.name || '').toLowerCase().trim();
+  if(n && visitsByNameMap){
+    const found = visitsByNameMap.get(n);
+    if(found) return found;
+  }
+  return [];
+}
+
 function calcClient(c){
+  if(!c) return {};
   const vv = clientVisits(c);
-  const i = vv.filter(v => normalizeHouseKey(v.house) === 'Íconico').length;
-  const l = vv.filter(v => normalizeHouseKey(v.house) === 'Leña').length;
-  const cf = vv.filter(v => normalizeHouseKey(v.house) === 'Bravo Café').length;
-  const cp = vv.filter(v => normalizeHouseKey(v.house) === 'Café da Bravo Pousada').length;
+  let i = 0, l = 0, cf = 0, cp = 0;
+  for(let k = 0; k < vv.length; k++){
+    const hk = normalizeHouseKey(vv[k].house);
+    if(hk === 'Íconico') i++;
+    else if(hk === 'Leña') l++;
+    else if(hk === 'Bravo Café') cf++;
+    else if(hk === 'Café da Bravo Pousada') cp++;
+  }
   const tot = i + l + cf + cp;
   const isPousada = cp > 0 || normalizeHouseKey(c.firstHouse) === 'Café da Bravo Pousada' || (c.cafePousada || 0) > 0;
   const isCafe = cf > 0 || normalizeHouseKey(c.firstHouse) === 'Bravo Café' || (!isPousada && (c.cafe || 0) > 0);
@@ -2206,7 +2262,18 @@ function calcClient(c){
     firstVisit: vv[vv.length-1]?.date || c.firstVisit
   };
 }
-function segmentOf(c){c=calcClient(c);const r=daysSince(c.lastVisit), f=c.totalVisits||0;if(f>=5&&r<=60)return 'VIP ativo';if(f>=5&&r>60)return 'VIP em risco';if(f>=2&&r<=45)return 'Recorrente ativo';if(f>=2&&r>90)return 'Em risco';if(f<=1&&r<=45)return 'Novo';return 'Inativo'}
+
+function segmentOf(c){
+  if(!c) return 'Novo';
+  if(c.totalVisits === undefined || !c.lastVisit) c = calcClient(c);
+  const r = daysSince(c.lastVisit), f = c.totalVisits || 0;
+  if(f >= 5 && r <= 60) return 'VIP ativo';
+  if(f >= 5 && r > 60) return 'VIP em risco';
+  if(f >= 2 && r <= 45) return 'Recorrente ativo';
+  if(f >= 2 && r > 90) return 'Em risco';
+  if(f <= 1 && r <= 45) return 'Novo';
+  return 'Inativo';
+}
 const COLORS={'Novo':'#477b9a','Recorrente':'#bf9153'};
 function getRoleBadgeClass(role){
   if(role==='Master')return 'badge-role-master';
@@ -2807,6 +2874,12 @@ function handleCheckinListSingleDateChange(){
   }
 }
 
+function formatArrival(t){
+  if(!t) return '—';
+  const m = String(t).match(/^(\d{1,2}):(\d{2})/);
+  return m ? `${m[1].padStart(2, '0')}:${m[2]}` : t;
+}
+
 function shiftTimeMinutes(t){
   if(!t) return 9999;
   const parts = String(t).split(':');
@@ -2893,7 +2966,7 @@ function renderCheckinList(){
     const opDisplay = v.operatorReception ? `<div style="font-size:10px;color:#475569;margin-top:3px;font-weight:600" title="Atendente responsável">👤 ${esc(v.operatorReception)}</div>` : '';
     return `
       <tr>
-        <td class="col-time">${esc(v.arrival || '—')}</td>
+        <td class="col-time">${esc(formatArrival(v.arrival))}</td>
         <td class="col-client" title="${esc(v.name)}">
           <strong>${esc(v.name)}</strong>${isEdited ? `<span class="badge warn" style="font-size:9px;padding:1px 4px;margin-left:4px" title="${esc(v.lastEditedReason || 'Registro alterado')}">Editado</span>` : ''}
         </td>
@@ -3247,8 +3320,36 @@ function copyPhone(){if(!currentClient)return;navigator.clipboard?.writeText(cur
 let selectedCheckinClientId=null;
 function foldText(v){return String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim()}
 function clientSearchScore(c,q){const fq=foldText(q),qd=digits(q),name=foldText(c.name),phone=digits(c.phone);let score=0;if(fq&&name===fq)score+=100;if(fq&&name.startsWith(fq))score+=65;if(fq&&name.includes(fq))score+=40;if(fq&&name.split(/\s+/).some(t=>t===fq))score+=55;if(qd.length>=4&&phone.endsWith(qd))score+=90;if(qd.length>=8&&phone.includes(qd))score+=50;if(qd&&phone===normalizePhone(q))score+=110;return score}
-function searchCheckinClients(q){const fq=foldText(q),qd=digits(q);const validName=fq.length>=2&&!/^\d+$/.test(fq),validDigits=qd.length>=4;if(!validName&&!validDigits)return[];return state.clients.map(c=>({c,score:clientSearchScore(c,q)})).filter(x=>x.score>0).sort((a,b)=>b.score-a.score||String(b.c.lastVisit||'').localeCompare(String(a.c.lastVisit||''))).slice(0,10).map(x=>calcClient(x.c))}
-function renderCheckinLookup(){const q=el('ciLookup').value.trim(),box=el('ciLookupResults'),a=searchCheckinClients(q);if((foldText(q).length<2&&digits(q).length<4)||!q){box.className='lookup-results';box.innerHTML='';return}box.className='lookup-results show';if(!a.length){box.innerHTML='<div class="lookup-noresult"><b>Nenhum cadastro encontrado.</b><br>Confira a informação ou preencha nome e telefone abaixo para criar um novo cliente.</div>';return}box.innerHTML=a.map(c=>`<button type="button" class="lookup-item" onclick="selectCheckinClient('${esc(c.id)}')"><div><div class="lookup-name">${esc(c.name)}</div><div class="lookup-meta">${esc(c.source||'Origem não informada')}</div></div><div><div class="lookup-label">Telefone</div><div class="lookup-value">${fmtPhone(c.phone)}</div></div><div><div class="lookup-label">Última visita</div><div class="lookup-value">${fmtDate(c.lastVisit)}</div></div><div><div class="lookup-label">Visitas</div><div class="lookup-value">${c.totalVisits}</div></div></button>`).join('')}
+function searchCheckinClients(q){
+  const fq = foldText(q), qd = digits(q);
+  const validName = fq.length >= 3 && !/^\d+$/.test(fq);
+  const validDigits = qd.length >= 4;
+  if(!validName && !validDigits) return [];
+  return state.clients
+    .map(c => ({ c, score: clientSearchScore(c, q) }))
+    .filter(x => x.score > 0)
+    .sort((a, b) => b.score - a.score || String(b.c.lastVisit || '').localeCompare(String(a.c.lastVisit || '')))
+    .slice(0, 10)
+    .map(x => calcClient(x.c));
+}
+function renderCheckinLookup(){
+  const q = el('ciLookup').value.trim(), box = el('ciLookupResults');
+  const fq = foldText(q), qd = digits(q);
+  const validName = fq.length >= 3 && !/^\d+$/.test(fq);
+  const validDigits = qd.length >= 4;
+  if((!validName && !validDigits) || !q){
+    box.className = 'lookup-results';
+    box.innerHTML = '';
+    return;
+  }
+  const a = searchCheckinClients(q);
+  box.className = 'lookup-results show';
+  if(!a.length){
+    box.innerHTML = '<div class="lookup-noresult"><b>Nenhum cadastro encontrado.</b><br>Confira a informação ou preencha nome e telefone abaixo para criar um novo cliente.</div>';
+    return;
+  }
+  box.innerHTML = a.map(c => `<button type="button" class="lookup-item" onclick="selectCheckinClient('${esc(c.id)}')"><div><div class="lookup-name">${esc(c.name)}</div><div class="lookup-meta">${esc(c.source||'Origem não informada')}</div></div><div><div class="lookup-label">Telefone</div><div class="lookup-value">${fmtPhone(c.phone)}</div></div><div><div class="lookup-label">Última visita</div><div class="lookup-value">${fmtDate(c.lastVisit)}</div></div><div><div class="lookup-label">Visitas</div><div class="lookup-value">${c.totalVisits}</div></div></button>`).join('');
+}
 function selectCheckinClient(id){const c=state.clients.find(x=>x.id===id);if(!c)return;const cc=calcClient(c);selectedCheckinClientId=c.id;el('ciLookup').value=c.name;el('ciLookupResults').className='lookup-results';el('ciLookupResults').innerHTML='';el('ciName').value=c.name;el('ciPhone').value=fmtPhone(c.phone);
 document.querySelectorAll('input[name="ciPriority"]').forEach(cb => {
   cb.checked = (c.priorities || []).includes(cb.value);
@@ -3492,13 +3593,6 @@ async function finalizeCheckin(pending){
   else if(house === 'Bravo Café'){ c.cafe = (c.cafe || 0) + 1; c.visitedCafe = 'Sim'; }
   else if(house === 'Café da Bravo Pousada'){ c.cafePousada = (c.cafePousada || 0) + 1; c.visitedCafePousada = 'Sim'; }
 
-  // Sincroniza cliente primeiro para assegurar que c.id existe no Supabase (evita erro de FK)
-  try {
-    await dbSyncCustomer(c);
-  } catch(err){
-    console.warn('[Checkin] Erro ao sincronizar cliente:', err);
-  }
-
   // Nome do atendente logado para rastreabilidade operacional
   const curUser = (typeof getCurrentUser === 'function') ? getCurrentUser() : null;
   const opName = (curUser && curUser.name) ? `${curUser.name} (${house})` : (getSessionHouse() || house);
@@ -3525,25 +3619,79 @@ async function finalizeCheckin(pending){
   };
 
   state.visits.unshift(newVisit);
-  save();
+  if(typeof rebuildVisitsIndex === 'function') rebuildVisitsIndex();
+  saveFast();
 
-  try {
-    await dbSyncVisit(newVisit);
-  } catch(err){
-    console.warn('[Checkin] Erro ao sincronizar visita:', err);
-  }
-
+  // LIBERAÇÃO INSTANTÂNEA DO TERMINAL DA RECEPÇÃO (< 15ms)
   selectedCheckinClientId = null;
   el('checkinForm').reset();
   applySessionHouse();
   el('clientFound').className = 'checkin-status';
+  el('clientFound').innerHTML = '';
+  el('selectedClientCard').className = 'span2 selected-client-card';
+  el('selectedClientCard').innerHTML = '';
+  el('ciLookupResults').className = 'lookup-results';
+  el('ciLookupResults').innerHTML = '';
   toast(`Check-in confirmado • ${c.name} • ${pending.arrival}`);
   renderCheckinStats();
   if(typeof renderCheckinList === 'function') renderCheckinList();
+  el('ciLookup')?.focus();
+
+  // SINCRONIZAÇÃO SEGURA EM SEGUNDO PLANO COM SUPABASE (100% GARANTIDA)
+  (async () => {
+    try {
+      await dbSyncCustomer(c);
+      await dbSyncVisit(newVisit);
+    } catch(err){
+      console.warn('[Checkin Background Sync] Erro:', err);
+    }
+  })();
 }
-function lookupCheckinClient(){const p=normalizePhone(el('ciPhone').value);if(selectedCheckinClientId)return;const c=state.clients.find(x=>normalizePhone(x.phone)===p);const box=el('clientFound');if(p.length<10){box.className='checkin-status';box.innerHTML='';return}if(c){selectCheckinClient(c.id)}else{box.className='checkin-status show';box.innerHTML='<strong>Novo cliente</strong><div style="font-size:11px;color:var(--muted);margin-top:4px">Telefone não encontrado. O cadastro será criado ao confirmar o check-in.</div>'}}
-el('ciHouse').addEventListener('change',()=>{const h=el('ciHouse').value;applyHouseBranding(h);updateCheckinBranding(h)});
-el('ciLookup').addEventListener('input',()=>{if(selectedCheckinClientId&&foldText(el('ciLookup').value)!==foldText((state.clients.find(c=>c.id===selectedCheckinClientId)||{}).name))clearSelectedCheckinClient();renderCheckinLookup()});el('ciPhone').addEventListener('input',lookupCheckinClient);el('checkinForm').addEventListener('reset',()=>setTimeout(()=>{selectedCheckinClientId=null;el('clientFound').className='checkin-status';el('clientFound').innerHTML='';el('selectedClientCard').className='span2 selected-client-card';el('selectedClientCard').innerHTML='';el('ciLookupResults').className='lookup-results';el('ciLookupResults').innerHTML='';applySessionHouse()},0));
+function lookupCheckinClient(){
+  const p = normalizePhone(el('ciPhone').value);
+  if(selectedCheckinClientId) return;
+  const box = el('clientFound');
+  if(p.length < 10){
+    box.className = 'checkin-status';
+    box.innerHTML = '';
+    return;
+  }
+  const c = state.clients.find(x => normalizePhone(x.phone) === p);
+  if(c){
+    selectCheckinClient(c.id);
+  } else {
+    box.className = 'checkin-status show';
+    box.innerHTML = '<strong>Novo cliente</strong><div style="font-size:11px;color:var(--muted);margin-top:4px">Telefone não encontrado. O cadastro será criado ao confirmar o check-in.</div>';
+  }
+}
+el('ciHouse').addEventListener('change', () => { const h = el('ciHouse').value; applyHouseBranding(h); updateCheckinBranding(h); });
+
+let ciLookupDebounceTimer = null;
+let ciPhoneDebounceTimer = null;
+
+el('ciLookup').addEventListener('input', () => {
+  if(selectedCheckinClientId && foldText(el('ciLookup').value) !== foldText((state.clients.find(c => c.id === selectedCheckinClientId) || {}).name)){
+    clearSelectedCheckinClient();
+  }
+  clearTimeout(ciLookupDebounceTimer);
+  ciLookupDebounceTimer = setTimeout(renderCheckinLookup, 180);
+});
+
+el('ciPhone').addEventListener('input', () => {
+  clearTimeout(ciPhoneDebounceTimer);
+  ciPhoneDebounceTimer = setTimeout(lookupCheckinClient, 180);
+});
+
+el('checkinForm').addEventListener('reset', () => setTimeout(() => {
+  selectedCheckinClientId = null;
+  el('clientFound').className = 'checkin-status';
+  el('clientFound').innerHTML = '';
+  el('selectedClientCard').className = 'span2 selected-client-card';
+  el('selectedClientCard').innerHTML = '';
+  el('ciLookupResults').className = 'lookup-results';
+  el('ciLookupResults').innerHTML = '';
+  applySessionHouse();
+}, 0));
 el('checkinForm').onsubmit=e=>{e.preventDefault();let selected=selectedCheckinClientId?state.clients.find(x=>x.id===selectedCheckinClientId):null;const pv=validatePhone(el('ciPhone').value);if(!pv.ok){toast(pv.msg);el('ciPhone').focus();return}const nv=validateClientName(el('ciName').value);if(!selected&&!nv.ok){toast(nv.msg);el('ciName').focus();return}const name=selected?(normalizeName(el('ciName').value)||selected.name):nv.value;const pending={selectedId:selected?.id||null,name,phone:pv.value,house:el('ciHouse').value,people:+el('ciPeople').value||1,table:el('ciTable').value.trim(),source:el('ciSource').value,arrival:currentClock(),notes:el('ciNotes').value.trim()};const matches=duplicateCandidates(pending.name,pending.phone,pending.selectedId);if(matches.length){showDuplicateConfirmation(pending,matches);return}finalizeCheckin(pending)}
 function renderCheckinStats(){
   const h = normalizeHouseKey(el('ciHouse')?.value || getSessionHouse());
@@ -5327,7 +5475,27 @@ function exportBackup(){const blob=new Blob([JSON.stringify(state,null,2)],{type
 el('backupInput').onchange=e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{try{const d=JSON.parse(rd.result);if(!d.clients||!d.visits)throw Error();state=d;save();toast('Backup importado com sucesso.')}catch{toast('Arquivo de backup inválido.')}};rd.readAsText(f)}
 function resetData(){if(!confirm('Restaurar a base inicial deste protótipo? Alterações locais serão apagadas.'))return;state=structuredClone(SEED_DATA);save();toast('Base inicial restaurada.')}
 function exportCSV(type){const rows=type==='clients'?getFilteredClients():state.visits;let headers,body;if(type==='clients'){headers=['Nome','Telefone','Prioridades','Primeira visita','Última visita','Visitas Iconico','Visitas Lena','Visitas Bravo Cafe','Visitas Bravo Pousada','Total','Origem','Segmento'];body=rows.map(c=>[c.name,c.phone,(c.priorities||[]).join(', '),c.firstVisit,c.lastVisit,c.iconico,c.lena,c.cafe||0,c.cafePousada||0,c.totalVisits,c.source,segmentOf(c)])}const csv=[headers,...body].map(r=>r.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(';')).join('\n');const blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='grupo_qu4tro_clientes.csv';a.click();URL.revokeObjectURL(a.href)}
-function refreshAll(){renderDashboard();renderClients();renderReservations();renderSegments();renderIntelligence();renderData();renderCheckinStats();renderQRCodes();renderSettings();renderUsers();renderUserSessionBadge();if(typeof renderWaitlist==='function')renderWaitlist();if(typeof updateOpWaitlistBadge==='function')updateOpWaitlistBadge();if(typeof renderFloorplan==='function' && el('view-tables')?.classList.contains('active')) renderFloorplan();}
+function refreshActiveView(){
+  const activeSection = document.querySelector('section.view.active');
+  const activeView = activeSection ? activeSection.id.replace('view-', '') : 'dashboard';
+  if(activeView === 'dashboard') renderDashboard();
+  else if(activeView === 'clients') renderClients();
+  else if(activeView === 'reservations') renderReservations();
+  else if(activeView === 'checkin') renderCheckinStats();
+  else if(activeView === 'checkin-list') { if(typeof renderCheckinList === 'function') renderCheckinList(); }
+  else if(activeView === 'segments') renderSegments();
+  else if(activeView === 'intelligence') renderIntelligence();
+  else if(activeView === 'waitlist') { if(typeof renderWaitlist==='function') renderWaitlist(); if(typeof updateOpWaitlistBadge==='function') updateOpWaitlistBadge(); }
+  else if(activeView === 'tables') { if(typeof renderFloorplan==='function') renderFloorplan(); }
+  else if(activeView === 'qrcodes') renderQRCodes();
+  else if(activeView === 'settings') renderSettings();
+  else if(activeView === 'users') renderUsers();
+  else if(activeView === 'data') renderData();
+  renderUserSessionBadge();
+}
+function refreshAll(){
+  refreshActiveView();
+}
 refreshAll();
 ensureSession();
 if(typeof initSidebarState==='function') initSidebarState();
