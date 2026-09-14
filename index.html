@@ -2212,7 +2212,13 @@ function loadState(){let s;try{const raw=localStorage.getItem(STORE);s=raw?JSON.
       s.settingsByHouse[h]=Object.assign({},DEFAULT_HOUSE_SETTINGS[h],s.settingsByHouse[h]||{});
     }
   }
-    if(Array.isArray(s.visits)){
+  if(Array.isArray(s.visits)){
+    s.visits = s.visits.filter(v => v.id !== 'a607b35b-3e8a-45dc-8503-37fba321930b' && !String(v.name || '').toLowerCase().includes('jean ballan teste'));
+  }
+  if(Array.isArray(s.clients)){
+    s.clients = s.clients.filter(c => c.id !== 'd1a08337-74ee-4422-bf61-0a17212ab837' && !String(c.name || '').toLowerCase().includes('jean ballan teste'));
+  }
+  if(Array.isArray(s.visits)){
     const seen = new Set();
     s.visits = s.visits.filter(v => {
       let p = String(v.phone || '').replace(/\D/g, '');
@@ -3113,9 +3119,14 @@ function renderCheckinList(){
           </div>
         </td>
         <td class="col-actions">
-          <button type="button" class="btn ghost" onclick="openEditCheckinModal('${esc(v.id)}')" style="padding:2px 7px;font-size:11px;font-weight:700;border:1px solid #cbd5e1;border-radius:6px;background:#fff;height:24px;line-height:1" title="Editar check-in">
-            ✎ Editar
-          </button>
+          <div style="display:inline-flex;gap:5px;align-items:center">
+            <button type="button" class="btn ghost" onclick="openEditCheckinModal('${esc(v.id)}')" style="padding:2px 7px;font-size:11px;font-weight:700;border:1px solid #cbd5e1;border-radius:6px;background:#fff;height:24px;line-height:1" title="Editar check-in">
+              ✎ Editar
+            </button>
+            <button type="button" class="btn danger-subtle" onclick="openCancelCheckinModal('${esc(v.id)}')" style="padding:2px 7px;font-size:11px;font-weight:700;border:1px solid #fecdd3;border-radius:6px;background:#fff1f2;color:#e11d48;height:24px;line-height:1;cursor:pointer" title="Anular este check-in">
+              🚫 Anular
+            </button>
+          </div>
         </td>
       </tr>
     `;
@@ -3300,6 +3311,124 @@ function submitEditCheckinForm(visitId){
   closeModal();
   renderCheckinList();
   toast(`Check-in de ${newName} atualizado com sucesso!`);
+}
+
+function openCancelCheckinModal(visitId){
+  const v = (state.visits || []).find(x => String(x.id) === String(visitId));
+  if(!v){
+    toast('Check-in não encontrado.');
+    return;
+  }
+
+  el('modalTitle').textContent = `🚫 Anular Check-in — ${v.name}`;
+  el('modalBody').innerHTML = `
+    <form id="cancelCheckinForm" onsubmit="event.preventDefault(); submitCancelCheckin('${esc(v.id)}');">
+      <div style="background:#fff1f2;border:1.5px solid #fecdd3;border-radius:12px;padding:12px;color:#9f1239;font-size:12px;line-height:1.45">
+        <strong>⚠️ Confirmação de Anulação:</strong> Esta ação anula e exclui definitivamente o atendimento. O registro deixará de aparecer na lista do salão, nas contagens estatísticas do dia e será removido da base de dados do Supabase.
+      </div>
+
+      <div class="selected-grid" style="margin-top:14px;background:#f8fafc;padding:12px;border-radius:10px;border:1px solid #e2e8f0">
+        <div><span>Cliente</span><strong>${esc(v.name)}</strong></div>
+        <div><span>Telefone</span><b>${v.phone ? fmtPhone(v.phone) : '—'}</b></div>
+        <div><span>Casa / Horário</span><b>${esc(houseLabel(v.house))} • ${esc(v.arrival || '—')}</b></div>
+        <div><span>Pessoas / Mesa</span><b>${v.people} pessoas • Mesa ${esc(v.table || '—')}</b></div>
+      </div>
+
+      <div class="field" style="margin-top:14px">
+        <label style="font-weight:800;color:#0f172a;font-size:12px;display:flex;align-items:center;gap:6px">
+          Excluir / Anular por qual motivo? * (Obrigatório)
+        </label>
+        <textarea id="cancelCiReason" required placeholder="Ex.: Lançamento duplicado por engano, check-in de teste, cliente desistiu antes de entrar..." style="min-height:75px;width:100%;margin-top:6px;border:1.5px solid #cbd5e1;border-radius:8px;padding:8px 10px;font-size:13px"></textarea>
+        <small style="color:#64748b;font-size:10.5px;display:block;margin-top:4px">
+          A justificativa e o operador logado são registrados para controle e auditoria interna.
+        </small>
+      </div>
+
+      <div class="form-actions" style="margin-top:18px;display:flex;justify-content:space-between;align-items:center">
+        <button type="button" class="btn" onclick="closeModal()">Voltar / Manter Check-in</button>
+        <button type="submit" class="btn" style="background:#e11d48;color:#fff;font-weight:800;border-radius:10px;padding:8px 16px;box-shadow:0 2px 8px rgba(225,29,72,0.25)">
+          🚫 Confirmar Anulação
+        </button>
+      </div>
+    </form>
+  `;
+  el('modal').classList.add('show');
+  setTimeout(() => el('cancelCiReason')?.focus(), 150);
+}
+
+async function submitCancelCheckin(visitId){
+  const v = state.visits.find(x => String(x.id) === String(visitId));
+  if(!v) return;
+
+  const reason = (el('cancelCiReason')?.value || '').trim();
+  if(!reason || reason.length < 3){
+    toast('Por favor, informe a justificativa da anulação (mínimo 3 caracteres).');
+    el('cancelCiReason')?.focus();
+    return;
+  }
+
+  const confirmMsg = `Tem certeza que deseja anular definitivamente o check-in de "${v.name}"?\n\n• Motivo: "${reason}"\n• O registro será removido da lista, das contagens do salão e do Supabase.`;
+  if(!confirm(confirmMsg)){
+    return;
+  }
+
+  const u = (typeof getCurrentUser === 'function') ? getCurrentUser() : null;
+  const userName = u?.name || 'Operador';
+  console.log(`[Checkin Anulado] ID: ${v.id} • Cliente: ${v.name} • Operador: ${userName} • Motivo: ${reason}`);
+
+  // 1. Ajusta métricas do cliente para não inflar contagens
+  const clientId = v.customer_id || v.clientId;
+  const c = state.clients.find(x => (clientId && x.id === clientId) || (v.phone && normalizePhone(x.phone) === normalizePhone(v.phone)));
+  if(c){
+    c.totalVisits = Math.max(0, (c.totalVisits || 1) - 1);
+    const hKey = normalizeHouseKey(v.house);
+    if(hKey === 'Leña') c.lena = Math.max(0, (c.lena || 1) - 1);
+    else if(hKey === 'Íconico') c.iconico = Math.max(0, (c.iconico || 1) - 1);
+    else if(hKey === 'Bravo Café') c.cafe = Math.max(0, (c.cafe || 1) - 1);
+    else if(hKey === 'Café da Bravo Pousada') c.cafePousada = Math.max(0, (c.cafePousada || 1) - 1);
+
+    // Se o cliente foi criado exclusivamente para teste ou tem 0 visitas e nome contém "teste"
+    if(c.totalVisits === 0 && (c.name.toLowerCase().includes('teste') || reason.toLowerCase().includes('teste'))){
+      state.clients = state.clients.filter(x => x.id !== c.id);
+      const sb = getSupabase();
+      if(sb && navigator.onLine){
+        sb.from('customers').delete().eq('id', c.id).then(() => {}).catch(() => {});
+      }
+    } else {
+      if(typeof dbSyncCustomer === 'function') dbSyncCustomer(c);
+    }
+  }
+
+  // 2. Remove da lista local de visitas
+  state.visits = state.visits.filter(x => String(x.id) !== String(visitId));
+
+  // 3. Remove da fila outbox se estiver pendente
+  try {
+    let outbox = JSON.parse(localStorage.getItem('qu4tro_crm_outbox_queue') || '[]');
+    outbox = outbox.filter(item => !(item.table === 'visits' && item.data && String(item.data.id) === String(visitId)));
+    localStorage.setItem('qu4tro_crm_outbox_queue', JSON.stringify(outbox));
+  } catch(e){}
+
+  // 4. Salva o estado local
+  if(typeof rebuildVisitsIndex === 'function') rebuildVisitsIndex();
+  save();
+
+  // 5. Exclui do Supabase em nuvem
+  const sb = getSupabase();
+  if(sb && navigator.onLine){
+    try {
+      await sb.from('visits').delete().eq('id', visitId);
+    } catch(err){
+      console.warn('[submitCancelCheckin] Erro ao deletar no Supabase:', err);
+    }
+  }
+
+  // 6. Atualiza toda a interface
+  closeModal();
+  renderCheckinList();
+  renderCheckinStats();
+  if(typeof renderDashboard === 'function') renderDashboard();
+  toast(`Check-in de "${v.name}" anulado e removido com sucesso!`);
 }
 
 const PRIORITY_OPTIONS = [
