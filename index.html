@@ -1039,12 +1039,24 @@ let _outboxPendingRerun = false;
 let deferredPwaPrompt = null;
 let outboxDbInstance = null;
 
-// Registro do Service Worker para suporte PWA Offline
+// Registro do Service Worker para suporte PWA Offline com auto-reload em deploys
 if ('serviceWorker' in navigator) {
+  let refreshing = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!refreshing) {
+      refreshing = true;
+      console.log('[PWA] Nova versão detectada e ativada. Recarregando aplicação...');
+      window.location.reload();
+    }
+  });
+
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('./sw.js').then(reg => {
       console.log('[PWA] Service Worker registrado:', reg.scope);
       reg.update().catch(() => {});
+      setInterval(() => {
+        reg.update().catch(() => {});
+      }, 5 * 60 * 1000);
     }).catch(err => {
       console.warn('[PWA] Aviso registro SW:', err);
     });
@@ -1308,7 +1320,7 @@ async function processOutboxQueue(){
             operator_reception: v.operatorReception || ''
           };
           let { error } = await sb.from('visits').upsert(payload, { onConflict: 'id' });
-          if (error && error.code === '23503') {
+          if (error && (error.code === '23503' || (error.message && error.message.includes('foreign key')))) {
             payload.customer_id = null;
             const retry = await sb.from('visits').upsert(payload, { onConflict: 'id' });
             error = retry.error;
@@ -1366,6 +1378,11 @@ async function processOutboxQueue(){
           successCount++;
         } else {
           console.warn('[Outbox] Erro no item:', item, resError);
+          item.retries = (item.retries || 0) + 1;
+          if (item.retries >= 3) {
+            console.warn('[Outbox] Descartando item após 3 falhas para desobstruir a fila:', item);
+            await deleteFromOutbox(item.id);
+          }
           if (!navigator.onLine) break;
         }
       } catch(err){
@@ -1503,8 +1520,11 @@ async function dbSyncCustomer(c){
       let { error } = await sb.from('customers').upsert(payload, { onConflict: 'id' });
       if (error && error.code === '23505' && error.message && error.message.includes('customers_phone_key')) {
         delete payload.id;
-        const { error: uErr } = await sb.from('customers').update(payload).eq('phone', payload.phone);
+        const { data: uData, error: uErr } = await sb.from('customers').update(payload).eq('phone', payload.phone).select('id');
         error = uErr;
+        if(uData && uData[0] && uData[0].id){
+          c.id = uData[0].id;
+        }
       }
       if(!error){
         updateSyncStatusUI('online', 0);
@@ -1541,12 +1561,13 @@ async function dbSyncVisit(v){
         operator_reception: v.operatorReception || ''
       };
       let { error } = await sb.from('visits').upsert(payload, { onConflict: 'id' });
-      if (error && error.code === '23503') {
+      if (error && (error.code === '23503' || (error.message && error.message.includes('foreign key')))) {
         payload.customer_id = null;
         const retry = await sb.from('visits').upsert(payload, { onConflict: 'id' });
         error = retry.error;
       }
       if(!error){
+        v.syncedToSupabase = true;
         updateSyncStatusUI('online', 0);
         return;
       }
@@ -3427,7 +3448,7 @@ function duplicateCandidates(name,phone,selectedId){const nn=foldText(name), p=n
 function clientSnapshot(c){const cc=calcClient(c);return {name:cc.name||'',phone:cc.phone||'',cpf:cc.cpf||'',lastVisit:cc.lastVisit||'',totalVisits:cc.totalVisits||0}}
 function showDuplicateConfirmation(pending,matches){const strongest=matches[0], old=clientSnapshot(strongest.c);const reasons=[];if(strongest.phoneMatch)reasons.push('mesmo telefone');if(strongest.nameMatch)reasons.push('mesmo nome');el('modalTitle').textContent='Possível cadastro duplicado';el('modalBody').innerHTML=`<div class="dup-reason">O sistema encontrou um cadastro existente por <strong>${reasons.join(' e ')}</strong>. Confirme se é a mesma pessoa antes de concluir.</div><div class="duplicate-grid"><div class="duplicate-box"><h4>ENTRADA QUE ESTÁ SENDO FEITA</h4><dl><dt>Nome</dt><dd>${esc(pending.name)}</dd><dt>Telefone</dt><dd>${fmtPhone(pending.phone)}</dd><dt>Casa</dt><dd>${esc(houseLabel(pending.house))}</dd><dt>Horário</dt><dd>${esc(pending.arrival)}</dd></dl></div><div class="duplicate-box"><h4>CADASTRO JÁ EXISTENTE</h4><dl><dt>Nome</dt><dd>${esc(old.name)}</dd><dt>Telefone</dt><dd>${fmtPhone(old.phone)}</dd><dt>CPF</dt><dd>${esc(old.cpf||'Não informado')}</dd><dt>Última visita</dt><dd>${fmtDate(old.lastVisit)}</dd><dt>Total de visitas</dt><dd>${old.totalVisits}</dd></dl></div></div>${matches.length>1?`<div class="validation-note" style="margin-top:12px">Existem ${matches.length} cadastros potencialmente relacionados. A confirmação abaixo vinculará ao cadastro exibido; se não for a mesma pessoa, será criado um registro separado e marcado para revisão.</div>`:''}<div class="form-actions"><button class="btn" onclick="resolveDuplicate(false)">Não, é outra pessoa</button><button class="btn primary" onclick="resolveDuplicate(true)">Sim, é a mesma pessoa</button></div>`;window.__pendingCheckin={pending,matches};el('modal').classList.add('show')}
 function resolveDuplicate(isSame){const bag=window.__pendingCheckin;if(!bag)return;closeModal();const {pending,matches}=bag;window.__pendingCheckin=null;if(isSame){const target=matches[0].c;pending.forceClientId=target.id;pending.samePersonConfirmed=true;if(normalizePhone(target.phone)!==normalizePhone(pending.phone)){target.previousPhones=Array.from(new Set([...(target.previousPhones||[]),target.phone].filter(Boolean)));target.phone=pending.phone}if(foldText(target.name)!==foldText(pending.name)&&pending.name)target.name=pending.name;finalizeCheckin(pending)}else{pending.allowDuplicate=true;pending.duplicateReview=true;finalizeCheckin(pending)}}
-function finalizeCheckin(pending){
+async function finalizeCheckin(pending){
   let c=pending.forceClientId?state.clients.find(x=>x.id===pending.forceClientId):(pending.selectedId?state.clients.find(x=>x.id===pending.selectedId):null);
   let isNew=!c;
   const d=today(),house=pending.house,p=pending.phone,name=pending.name;
@@ -3456,12 +3477,70 @@ function finalizeCheckin(pending){
       duplicateReview:!!pending.duplicateReview
     };
     state.clients.unshift(c);
-    dbSyncCustomer(c);
   } else {
     c.priorities = selectedPriorities;
-    dbSyncCustomer(c);
   }
- const prior=calcClient(c).totalVisits;c.name=name||c.name;c.lastVisit=d;if(prior===0&&!c.firstHouse)c.firstHouse=house;c.totalVisits=Math.max(c.totalVisits||0,prior)+1;if(house==='Íconico'){c.iconico=(c.iconico||0)+1;c.visitedIconico='Sim'}else if(house==='Leña'){c.lena=(c.lena||0)+1;c.visitedLena='Sim'}else if(house==='Bravo Café'){c.cafe=(c.cafe||0)+1;c.visitedCafe='Sim'}else if(house==='Café da Bravo Pousada'){c.cafePousada=(c.cafePousada||0)+1;c.visitedCafePousada='Sim'};const newVisit={id:generateUUID(),customer_id:c.id,clientId:c.id,date:d,house,name:c.name,people:pending.people,phone:p,arrival:pending.arrival,departure:'',source:pending.source,status:isNew||prior===0?'Novo':'Recorrente',houseStatus:isNew||prior===0?'Novo':'Recorrente',table:pending.table,notes:pending.notes,amount:0,operatorReception:getSessionHouse(),duplicateReview:!!pending.duplicateReview};state.visits.unshift(newVisit);save();dbSyncVisit(newVisit);selectedCheckinClientId=null;el('checkinForm').reset();applySessionHouse();el('clientFound').className='checkin-status';toast(`Check-in confirmado • ${c.name} • ${pending.arrival}`);renderCheckinStats()}
+
+  // Atualiza métricas do cliente ANTES da gravação em nuvem
+  const prior = calcClient(c).totalVisits;
+  c.name = name || c.name;
+  c.lastVisit = d;
+  if(prior === 0 && !c.firstHouse) c.firstHouse = house;
+  c.totalVisits = Math.max(c.totalVisits || 0, prior) + 1;
+  if(house === 'Íconico'){ c.iconico = (c.iconico || 0) + 1; c.visitedIconico = 'Sim'; }
+  else if(house === 'Leña'){ c.lena = (c.lena || 0) + 1; c.visitedLena = 'Sim'; }
+  else if(house === 'Bravo Café'){ c.cafe = (c.cafe || 0) + 1; c.visitedCafe = 'Sim'; }
+  else if(house === 'Café da Bravo Pousada'){ c.cafePousada = (c.cafePousada || 0) + 1; c.visitedCafePousada = 'Sim'; }
+
+  // Sincroniza cliente primeiro para assegurar que c.id existe no Supabase (evita erro de FK)
+  try {
+    await dbSyncCustomer(c);
+  } catch(err){
+    console.warn('[Checkin] Erro ao sincronizar cliente:', err);
+  }
+
+  // Nome do atendente logado para rastreabilidade operacional
+  const curUser = (typeof getCurrentUser === 'function') ? getCurrentUser() : null;
+  const opName = (curUser && curUser.name) ? `${curUser.name} (${house})` : (getSessionHouse() || house);
+
+  const newVisit = {
+    id: generateUUID(),
+    customer_id: c.id,
+    clientId: c.id,
+    date: d,
+    house,
+    name: c.name,
+    people: pending.people,
+    phone: p,
+    arrival: pending.arrival,
+    departure: '',
+    source: pending.source,
+    status: isNew || prior === 0 ? 'Novo' : 'Recorrente',
+    houseStatus: isNew || prior === 0 ? 'Novo' : 'Recorrente',
+    table: pending.table,
+    notes: pending.notes,
+    amount: 0,
+    operatorReception: opName,
+    duplicateReview: !!pending.duplicateReview
+  };
+
+  state.visits.unshift(newVisit);
+  save();
+
+  try {
+    await dbSyncVisit(newVisit);
+  } catch(err){
+    console.warn('[Checkin] Erro ao sincronizar visita:', err);
+  }
+
+  selectedCheckinClientId = null;
+  el('checkinForm').reset();
+  applySessionHouse();
+  el('clientFound').className = 'checkin-status';
+  toast(`Check-in confirmado • ${c.name} • ${pending.arrival}`);
+  renderCheckinStats();
+  if(typeof renderCheckinList === 'function') renderCheckinList();
+}
 function lookupCheckinClient(){const p=normalizePhone(el('ciPhone').value);if(selectedCheckinClientId)return;const c=state.clients.find(x=>normalizePhone(x.phone)===p);const box=el('clientFound');if(p.length<10){box.className='checkin-status';box.innerHTML='';return}if(c){selectCheckinClient(c.id)}else{box.className='checkin-status show';box.innerHTML='<strong>Novo cliente</strong><div style="font-size:11px;color:var(--muted);margin-top:4px">Telefone não encontrado. O cadastro será criado ao confirmar o check-in.</div>'}}
 el('ciHouse').addEventListener('change',()=>{const h=el('ciHouse').value;applyHouseBranding(h);updateCheckinBranding(h)});
 el('ciLookup').addEventListener('input',()=>{if(selectedCheckinClientId&&foldText(el('ciLookup').value)!==foldText((state.clients.find(c=>c.id===selectedCheckinClientId)||{}).name))clearSelectedCheckinClient();renderCheckinLookup()});el('ciPhone').addEventListener('input',lookupCheckinClient);el('checkinForm').addEventListener('reset',()=>setTimeout(()=>{selectedCheckinClientId=null;el('clientFound').className='checkin-status';el('clientFound').innerHTML='';el('selectedClientCard').className='span2 selected-client-card';el('selectedClientCard').innerHTML='';el('ciLookupResults').className='lookup-results';el('ciLookupResults').innerHTML='';applySessionHouse()},0));
