@@ -651,6 +651,8 @@ body[data-house] .sidebar{background:linear-gradient(180deg,var(--nav),color-mix
   <section class="view active" id="view-dashboard">
    <div class="hero"><div><h2>Visão Geral</h2><p>Leitura operacional e estratégica da base de clientes.</p></div><div class="filters"><select id="dashHouse" class="control"><option value="all">Todas as casas</option><option value="Bravo Café">Bravo Café</option><option value="Café da Bravo Pousada">Café da Bravo Pousada</option><option value="Íconico">Iconiko</option><option value="Leña">Leña</option></select><select id="dashPeriod" class="control"><option value="all">Todo o Período</option><option value="today">Hoje</option><option value="yesterday">Ontem</option><option value="7">Últimos 7 dias</option><option value="14">Últimos 14 dias</option><option value="30">Últimos 30 dias</option><option value="60">Últimos 60 dias</option><option value="90">Últimos 90 dias</option><option value="180">Últimos 180 dias</option><option value="custom">📅 Período específico...</option></select><button type="button" id="btnCustomPeriodEdit" class="btn ghost" style="display:none;padding:7px 12px;font-size:12px;border:1px solid var(--accent);border-radius:10px;background:#fff8ee;color:#8d642f;font-weight:700" onclick="openCustomPeriodModal()" title="Alterar período específico">📅 <span id="customPeriodBadgeText"></span> ✎</button></div></div>
    <div class="cards" id="metrics"></div>
+   <!-- MONITOR DE AUDITORIA E PRESENÇA DAS RECEPÇÕES -->
+   <div id="operatorPresenceSection" style="margin-bottom:18px"></div>
    <div class="grid2"><div class="card"><div class="section-title"><h3>Origem dos clientes</h3><small>visitas filtradas</small></div><div id="sourceBars"></div></div><div class="card"><div class="section-title"><h3>Novo × Recorrente</h3><small>classificação da visita</small></div><div id="statusDonut" class="donut-wrap"></div></div></div>
    <div class="grid3"><div class="card"><div class="section-title"><h3>Casas</h3></div><div id="houseBars"></div></div><div class="card"><div class="section-title"><h3>Últimos check-ins</h3><button class="btn ghost" onclick="go('checkin')">Novo</button></div><div id="recentVisits"></div></div><div class="card"><div class="section-title"><h3>Alertas comerciais</h3></div><div id="quickInsights"></div></div></div>
   </section>
@@ -1500,6 +1502,24 @@ async function processOutboxQueue(){
           };
           const { error } = await sb.from('customers').upsert(payload, { onConflict: 'id' });
           resError = error;
+        } else if (item.action === 'SYNC_AUDIT_LOGS') {
+          const payload = {
+            id: '00000000-0000-0000-0000-000000000003',
+            name: '__SYSTEM_AUDIT_LOGS__',
+            phone: 'SYSTEM_AUDIT_LOGS',
+            notes: JSON.stringify(item.payload)
+          };
+          const { error } = await sb.from('customers').upsert(payload, { onConflict: 'id' });
+          resError = error;
+        } else if (item.action === 'SYNC_OPERATOR_STATUS') {
+          const payload = {
+            id: '00000000-0000-0000-0000-000000000004',
+            name: '__SYSTEM_OPERATOR_STATUS__',
+            phone: 'SYSTEM_OPERATOR_STATUS',
+            notes: JSON.stringify(item.payload)
+          };
+          const { error } = await sb.from('customers').upsert(payload, { onConflict: 'id' });
+          resError = error;
         }
 
         if (!resError) {
@@ -1870,6 +1890,28 @@ async function pullAllFromSupabase(){
               if(typeof updateOpWaitlistBadge === 'function') updateOpWaitlistBadge();
             }
           } catch(e){}
+          return;
+        }
+        if(rc.name === '__SYSTEM_AUDIT_LOGS__'){
+          try {
+            const parsedLogs = JSON.parse(rc.notes);
+            if(Array.isArray(parsedLogs)){
+              window.__qu4troAuditLogs = parsedLogs;
+            }
+          } catch(e){}
+          return;
+        }
+        if(rc.name === '__SYSTEM_OPERATOR_STATUS__'){
+          try {
+            const parsedStatus = JSON.parse(rc.notes);
+            if(parsedStatus && typeof parsedStatus === 'object'){
+              window.__qu4troOperatorStatus = parsedStatus;
+              if(typeof renderOperatorPresenceWidget === 'function') renderOperatorPresenceWidget();
+            }
+          } catch(e){}
+          return;
+        }
+        if(rc.name && rc.name.startsWith('__SYSTEM_')){
           return;
         }
 
@@ -2824,7 +2866,350 @@ function renderDashboard(){const vv=filteredVisits();const phones=new Set(vv.map
  const counts={};vv.forEach(v=>counts[v.source||'Não informado']=(counts[v.source||'Não informado']||0)+1);const top=Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,7),max=top[0]?.[1]||1;el('sourceBars').innerHTML=top.map(([k,n])=>`<div class="barrow"><span title="${esc(k)}">${esc(k.slice(0,18))}</span><div class="bartrack"><div class="bar" style="width:${n/max*100}%"></div></div><strong>${n}</strong></div>`).join('')||'<div class="empty">Sem dados</div>';
  const total=Math.max(1,newN+recN),pct=newN/total*100;el('statusDonut').innerHTML=`<div class="donut" style="background:conic-gradient(${COLORS.Novo} 0 ${pct}%,${COLORS.Recorrente} ${pct}% 100%)"><div class="donut-center"><strong>${total}</strong><span>visitas</span></div></div><div class="legend"><div><span class="dot" style="background:${COLORS.Novo}"></span>Novo <b>${newN}</b></div><div><span class="dot" style="background:${COLORS.Recorrente}"></span>Recorrente <b>${recN}</b></div></div>`;
  const hc={Íconico:0,Leña:0};vv.forEach(v=>hc[v.house]=(hc[v.house]||0)+1);const hm=Math.max(...Object.values(hc),1);el('houseBars').innerHTML=Object.entries(hc).map(([k,n])=>`<div class="barrow"><span>${k}</span><div class="bartrack"><div class="bar" style="width:${n/hm*100}%"></div></div><strong>${n}</strong></div>`).join('');
- el('recentVisits').innerHTML=vv.slice(0,5).map(v=>`<div class="visit-item"><div class="date">${fmtDate(v.date)}<br>${esc(v.arrival||'')}</div><div><strong>${esc(v.name)}</strong><p>${esc(v.house)} • ${v.people} pessoa(s) • Mesa ${esc(v.table||'—')}</p></div><span class="badge ${v.status?.toLowerCase().includes('recorr')?'gold':'blue'}">${esc(v.status||'—')}</span></div>`).join('')||'<div class="empty">Sem visitas</div>';renderQuickInsights()}
+ el('recentVisits').innerHTML=vv.slice(0,5).map(v=>`<div class="visit-item"><div class="date">${fmtDate(v.date)}<br>${esc(v.arrival||'')}</div><div><strong>${esc(v.name)}</strong><p>${esc(v.house)} • ${v.people} pessoa(s) • Mesa ${esc(v.table||'—')}</p></div><span class="badge ${v.status?.toLowerCase().includes('recorr')?'gold':'blue'}">${esc(v.status||'—')}</span></div>`).join('')||'<div class="empty">Sem visitas</div>';
+ renderQuickInsights();
+ if(typeof renderOperatorPresenceWidget === 'function') renderOperatorPresenceWidget();
+}
+
+/* ==========================================================================
+   SISTEMA DE AUDITORIA DE ENCERRAMENTO E TELEMETRIA DOS OPERADORES
+   ========================================================================== */
+
+function formatTimeAgo(isoString){
+  if(!isoString) return 'Sem registro';
+  const diffMs = Math.max(0, Date.now() - new Date(isoString).getTime());
+  const diffMin = Math.floor(diffMs / 60000);
+  if(diffMin < 1) return 'Agora mesmo';
+  if(diffMin === 1) return 'Há 1 min';
+  if(diffMin < 60) return `Há ${diffMin} min`;
+  const diffHours = Math.floor(diffMin / 60);
+  if(diffHours === 1) return 'Há 1 hora';
+  if(diffHours < 24) return `Há ${diffHours} horas`;
+  return `Há ${Math.floor(diffHours / 24)} dias`;
+}
+
+function getAuditSnapshot(eventType = 'APP_CLOSED'){
+  const u = (typeof getCurrentUser === 'function') ? getCurrentUser() : null;
+  const operatorName = u?.name || 'Operador';
+  const operatorRole = u?.role || 'Atendimento';
+  const house = (typeof getSessionHouse === 'function') ? getSessionHouse() : 'Geral';
+  const todayStr = (typeof today === 'function') ? today() : new Date().toISOString().slice(0, 10);
+  
+  const todayVisits = (state?.visits || []).filter(v => (v.date === todayStr || normalizeDateIso(v.date) === todayStr));
+  const houseVisits = house === 'all' ? todayVisits : todayVisits.filter(v => normalizeHouseKey(v.house) === normalizeHouseKey(house));
+  
+  let pendingItems = [];
+  try {
+    pendingItems = JSON.parse(localStorage.getItem('qu4tro_crm_outbox_queue') || '[]');
+  } catch(e){}
+  
+  const pendingCount = pendingItems.length;
+  const unsyncedVisits = houseVisits.filter(v => !v.syncedToSupabase).length;
+  const totalPending = Math.max(pendingCount, unsyncedVisits);
+  
+  const labelH = (typeof houseLabel === 'function') ? houseLabel(house) : house;
+  const timeStr = (typeof currentClock === 'function') ? currentClock() : new Date().toLocaleTimeString('pt-BR').slice(0, 5);
+  
+  return {
+    id: (typeof generateUUID === 'function') ? generateUUID() : 'AUDIT-' + Date.now(),
+    timestamp: new Date().toISOString(),
+    localTime: timeStr,
+    eventType,
+    operator: operatorName,
+    role: operatorRole,
+    house: house === 'all' ? 'Todas as Casas' : house,
+    checkinsToday: houseVisits.length,
+    peopleToday: houseVisits.reduce((sum, v) => sum + (+v.people || 0), 0),
+    pendingOutbox: totalPending,
+    isOnline: navigator.onLine,
+    syncStatus: totalPending === 0 ? '✓ 100% Sincronizado' : `⚠️ ${totalPending} pendência(s)`,
+    summary: `${operatorName} (${operatorRole} • ${labelH}): ${eventType === 'APP_CLOSED' ? 'Fechou o app' : eventType === 'PAGE_HIDE' ? 'Minimizou/fechou app' : eventType === 'VISIBILITY_HIDDEN' ? 'Tela em 2º plano' : eventType === 'LOGIN' ? 'Iniciou sessão' : 'Batimento de presença'} às ${timeStr} • ${houseVisits.length} check-in(s) hoje • ${totalPending === 0 ? 'Base 100% sincronizada no Supabase' : totalPending + ' pendência(s) locais'}.`
+  };
+}
+
+function flushAuditToSupabase(snapshot, useBeacon = false){
+  if(!window.__qu4troOperatorStatus) window.__qu4troOperatorStatus = {};
+  
+  const houseKey = snapshot.house;
+  window.__qu4troOperatorStatus[houseKey] = {
+    operator: snapshot.operator,
+    role: snapshot.role,
+    house: snapshot.house,
+    lastSeen: snapshot.timestamp,
+    localTime: snapshot.localTime,
+    status: (snapshot.eventType === 'APP_CLOSED' || snapshot.eventType === 'PAGE_HIDE' || snapshot.eventType === 'LOGOUT') ? 'fechou_app' : (snapshot.eventType === 'VISIBILITY_HIDDEN' ? 'em_segundo_plano' : 'online'),
+    checkinsToday: snapshot.checkinsToday,
+    peopleToday: snapshot.peopleToday,
+    pendingOutbox: snapshot.pendingOutbox,
+    isOnline: snapshot.isOnline,
+    lastEvent: snapshot.eventType
+  };
+
+  if(!Array.isArray(window.__qu4troAuditLogs)) window.__qu4troAuditLogs = [];
+  window.__qu4troAuditLogs.unshift(snapshot);
+  if(window.__qu4troAuditLogs.length > 60) window.__qu4troAuditLogs.length = 60;
+
+  const statusPayload = {
+    id: '00000000-0000-0000-0000-000000000004',
+    name: '__SYSTEM_OPERATOR_STATUS__',
+    phone: 'SYSTEM_OPERATOR_STATUS',
+    notes: JSON.stringify(window.__qu4troOperatorStatus)
+  };
+
+  const logsPayload = {
+    id: '00000000-0000-0000-0000-000000000003',
+    name: '__SYSTEM_AUDIT_LOGS__',
+    phone: 'SYSTEM_AUDIT_LOGS',
+    notes: JSON.stringify(window.__qu4troAuditLogs)
+  };
+
+  if(useBeacon && navigator.onLine && typeof fetch === 'function' && typeof SUPABASE_URL !== 'undefined'){
+    try {
+      const url = SUPABASE_URL + '/rest/v1/customers';
+      const body = JSON.stringify([statusPayload, logsPayload]);
+      fetch(url, {
+        method: 'POST',
+        headers: {
+          'apikey': SUPABASE_ANON_KEY,
+          'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+          'Content-Type': 'application/json',
+          'Prefer': 'resolution=merge-duplicates'
+        },
+        body,
+        keepalive: true
+      }).catch(() => {});
+    } catch(e){}
+    return;
+  }
+
+  const sb = (typeof getSupabase === 'function') ? getSupabase() : null;
+  if(sb && navigator.onLine){
+    sb.from('customers').upsert([statusPayload, logsPayload], { onConflict: 'id' }).catch(err => {
+      console.warn('[Audit Sync] Erro no envio:', err);
+    });
+  }
+}
+
+function runAppClosureAudit(eventType = 'APP_CLOSED'){
+  const snapshot = getAuditSnapshot(eventType);
+  console.log('[Auditoria]', snapshot.summary);
+
+  if(snapshot.isOnline && snapshot.pendingOutbox > 0){
+    if(typeof processOutboxQueue === 'function') processOutboxQueue();
+  }
+
+  flushAuditToSupabase(snapshot, true);
+}
+
+function sendOperatorHeartbeat(eventType = 'HEARTBEAT'){
+  const u = (typeof getCurrentUser === 'function') ? getCurrentUser() : null;
+  if(!u) return;
+  const snapshot = getAuditSnapshot(eventType);
+  flushAuditToSupabase(snapshot, false);
+}
+
+function renderOperatorPresenceWidget(){
+  const container = el('operatorPresenceSection');
+  if(!container) return;
+  
+  const statusMap = window.__qu4troOperatorStatus || {};
+  const houses = ['Íconico', 'Leña', 'Bravo Café', 'Café da Bravo Pousada'];
+  const now = Date.now();
+  
+  const cardsHtml = houses.map(h => {
+    const data = statusMap[h] || statusMap[normalizeHouseKey(h)] || null;
+    let badgeClass = 'badge';
+    let statusText = 'Sem atividade hoje';
+    let statusDot = '⚪';
+    
+    if(data && data.lastSeen){
+      const diffMs = now - new Date(data.lastSeen).getTime();
+      const diffMin = Math.floor(diffMs / 60000);
+      
+      if(data.status === 'fechou_app'){
+        badgeClass = 'badge danger';
+        statusText = `Fechou o app (${data.localTime || formatTimeAgo(data.lastSeen)})`;
+        statusDot = '🔴';
+      } else if(data.status === 'em_segundo_plano' || diffMin >= 15){
+        badgeClass = 'badge warn';
+        statusText = `Inativo (${formatTimeAgo(data.lastSeen)})`;
+        statusDot = '🟡';
+      } else if(diffMin < 15){
+        badgeClass = 'badge good';
+        statusText = `Online agora (${formatTimeAgo(data.lastSeen)})`;
+        statusDot = '🟢';
+      }
+    }
+    
+    const opName = data?.operator || 'Nenhum operador logado';
+    const opRole = data?.role ? ` • ${data.role}` : '';
+    const checkins = data?.checkinsToday || 0;
+    const pending = data?.pendingOutbox || 0;
+    const syncStatus = pending === 0 
+      ? '<span style="color:#059669;font-weight:700">✓ Base 100% Salva</span>' 
+      : `<span style="color:#dc2626;font-weight:700">⚠️ ${pending} pendência(s)</span>`;
+
+    return `
+      <div style="background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px;box-shadow:0 1px 3px rgba(0,0,0,0.04);display:flex;flex-direction:column;justify-content:space-between;gap:10px">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+          <div>
+            <strong style="font-size:13.5px;color:#0f172a;display:block">${esc(houseLabel(h))}</strong>
+            <span style="font-size:11px;color:var(--muted);display:block;margin-top:2px">👤 ${esc(opName)}${esc(opRole)}</span>
+          </div>
+          <span class="${badgeClass}" style="font-size:10px;padding:3px 8px;white-space:nowrap" title="Último evento: ${esc(data?.lastEvent || 'Nenhum')}">
+            ${statusDot} ${statusText}
+          </span>
+        </div>
+        <div style="background:#f8fafc;border-radius:8px;padding:8px 10px;font-size:11px;display:flex;justify-content:space-between;align-items:center;margin-top:2px">
+          <div>Check-ins hoje: <strong style="font-size:12px;color:#0f172a">${checkins}</strong></div>
+          <div>${syncStatus}</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  container.innerHTML = `
+    <div class="card" style="padding:16px">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px">
+        <div>
+          <h3 style="margin:0;font-size:14.5px;display:flex;align-items:center;gap:6px">
+            🛡️ Presença & Auditoria das Recepções em Tempo Real
+          </h3>
+          <small style="color:var(--muted);font-size:11px">Acompanhamento contínuo dos aparelhos conectados e integridade da base de dados</small>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button type="button" class="btn" onclick="openAuditLogsModal()" style="font-size:11.5px;padding:6px 11px;background:#fff;border:1.5px solid #cbd5e1;font-weight:700">
+            📋 Ver Histórico de Auditorias
+          </button>
+          <button type="button" class="btn" onclick="refreshOperatorPresence()" style="font-size:11.5px;padding:6px 11px;background:#fff;border:1.5px solid #cbd5e1;font-weight:700">
+            🔄 Atualizar Status
+          </button>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px">
+        ${cardsHtml}
+      </div>
+    </div>
+  `;
+}
+
+async function refreshOperatorPresence(){
+  toast('Atualizando status das recepções...');
+  const sb = (typeof getSupabase === 'function') ? getSupabase() : null;
+  if(sb && navigator.onLine){
+    try {
+      const { data } = await sb.from('customers').select('*').in('name', ['__SYSTEM_OPERATOR_STATUS__', '__SYSTEM_AUDIT_LOGS__']);
+      if(Array.isArray(data)){
+        data.forEach(rc => {
+          if(rc.name === '__SYSTEM_OPERATOR_STATUS__'){
+            try { window.__qu4troOperatorStatus = JSON.parse(rc.notes); } catch(e){}
+          } else if(rc.name === '__SYSTEM_AUDIT_LOGS__'){
+            try { window.__qu4troAuditLogs = JSON.parse(rc.notes); } catch(e){}
+          }
+        });
+      }
+    } catch(e){}
+  }
+  renderOperatorPresenceWidget();
+  toast('Status das recepções atualizado!');
+}
+
+function openAuditLogsModal(){
+  const logs = window.__qu4troAuditLogs || [];
+  el('modalTitle').innerHTML = '🛡️ Histórico de Auditoria & Presença das Recepções';
+  
+  let rowsHtml = '';
+  if(logs.length === 0){
+    rowsHtml = '<tr><td colspan="5" style="text-align:center;padding:30px;color:var(--muted)">Nenhum evento de auditoria registrado ainda.</td></tr>';
+  } else {
+    rowsHtml = logs.map(l => {
+      const isClosed = l.eventType === 'APP_CLOSED' || l.eventType === 'PAGE_HIDE' || l.eventType === 'LOGOUT';
+      const badge = isClosed 
+        ? '<span class="badge danger" style="font-size:10px">Fechou o app</span>'
+        : (l.eventType === 'VISIBILITY_HIDDEN' 
+          ? '<span class="badge warn" style="font-size:10px">2º Plano</span>' 
+          : (l.eventType === 'LOGIN' 
+            ? '<span class="badge blue" style="font-size:10px">Iniciou Sessão</span>'
+            : '<span class="badge good" style="font-size:10px">Batimento OK</span>'));
+      
+      const syncBadge = (l.pendingOutbox === 0)
+        ? '<span style="color:#059669;font-weight:700;font-size:11px">✓ 100% Salvo</span>'
+        : `<span style="color:#dc2626;font-weight:700;font-size:11px">⚠️ ${l.pendingOutbox} pendência(s)</span>`;
+
+      return `
+        <tr>
+          <td style="white-space:nowrap;font-weight:700;font-variant-numeric:tabular-nums;font-size:11px">${fmtDate(l.timestamp?.slice(0,10))} ${esc(l.localTime || l.timestamp?.slice(11,16))}</td>
+          <td><strong>${esc(houseLabel(l.house))}</strong></td>
+          <td>${esc(l.operator || 'Operador')} <small style="color:var(--muted)">(${esc(l.role || '')})</small></td>
+          <td>${badge}</td>
+          <td>${esc(l.checkinsToday || 0)} check-in(s) • ${syncBadge}</td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  el('modalBody').innerHTML = `
+    <div style="font-size:12px;color:var(--muted);margin-bottom:14px">
+      Eventos registrados automaticamente ao fechar o app, minimizar a tela ou a cada batimento de presença na recepção:
+    </div>
+    <div style="max-height:60vh;overflow:auto;border:1px solid var(--line);border-radius:10px">
+      <table class="data-table" style="margin:0;width:100%">
+        <thead>
+          <tr>
+            <th>Horário</th>
+            <th>Casa</th>
+            <th>Operador</th>
+            <th>Evento</th>
+            <th>Auditoria de Integridade</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rowsHtml}
+        </tbody>
+      </table>
+    </div>
+    <div class="form-actions" style="margin-top:16px">
+      <button type="button" class="btn primary" onclick="closeModal()">Fechar</button>
+    </div>
+  `;
+  el('modal').classList.add('show');
+}
+
+// Escuta de ciclo de vida do navegador para auditoria de fechamento
+window.addEventListener('beforeunload', (e) => {
+  const snapshot = getAuditSnapshot('APP_CLOSED');
+  runAppClosureAudit('APP_CLOSED');
+  
+  if(!navigator.onLine && snapshot.pendingOutbox > 0){
+    const msg = `ATENÇÃO: Existem ${snapshot.pendingOutbox} check-in(s) salvos neste aparelho aguardando envio para a nuvem. Ao fechar offline, os dados só subirão quando este aparelho for reconectado à internet.`;
+    e.preventDefault();
+    e.returnValue = msg;
+    return msg;
+  }
+});
+
+window.addEventListener('pagehide', () => {
+  runAppClosureAudit('PAGE_HIDE');
+});
+
+document.addEventListener('visibilitychange', () => {
+  if(document.visibilityState === 'hidden'){
+    runAppClosureAudit('VISIBILITY_HIDDEN');
+  } else if(document.visibilityState === 'visible'){
+    sendOperatorHeartbeat('VISIBILITY_VISIBLE');
+  }
+});
+
+window.addEventListener('online', () => {
+  console.log('[Rede] Dispositivo online: executando auditoria e flush da fila...');
+  if(typeof processOutboxQueue === 'function') processOutboxQueue();
+  sendOperatorHeartbeat('RECONNECT_ONLINE');
+});
+
+// Pulso de presença automático a cada 2 minutos enquanto o app estiver aberto
+setInterval(() => {
+  sendOperatorHeartbeat('HEARTBEAT');
+}, 120000);
 function renderQuickInsights(){const cc=state.clients.map(calcClient);const risk=cc.filter(c=>c.totalVisits>=2&&daysSince(c.lastVisit)>90).length;const crossI=cc.filter(c=>c.iconico>0&&c.lena===0).length;const crossL=cc.filter(c=>c.lena>0&&c.iconico===0).length;el('quickInsights').innerHTML=`<div class="insight"><strong>${risk.toLocaleString('pt-BR')} clientes em risco</strong><p>2+ visitas e mais de 90 dias sem retornar.</p></div><div class="insight"><strong>${crossI.toLocaleString('pt-BR')} só no Íconico</strong><p>Potencial de convite para conhecer o Leña.</p></div><div class="insight"><strong>${crossL.toLocaleString('pt-BR')} só no Leña</strong><p>Potencial de convite para conhecer o Íconico.</p></div>`}
 el('dashHouse').onchange = renderDashboard;
 el('dashPeriod').onchange = handleDashPeriodChange;
@@ -4529,10 +4914,12 @@ async function handleOverlayLogin(e){
     go(user.role === 'Atendimento' ? 'checkin' : 'dashboard');
   }
   toast(`Bem-vindo(a), ${user.name}!`);
+  if(typeof sendOperatorHeartbeat === 'function') sendOperatorHeartbeat('LOGIN');
 }
 
 function performLogout(){
   if(!confirm('Deseja realmente sair do sistema?')) return;
+  if(typeof runAppClosureAudit === 'function') runAppClosureAudit('LOGOUT');
   localStorage.removeItem('qu4tro_auth_user');
   sessionStorage.removeItem('qu4tro_auth_user');
   state.currentUser = null;
