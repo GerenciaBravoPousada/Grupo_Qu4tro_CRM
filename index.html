@@ -766,7 +766,50 @@ body[data-house] .sidebar{background:linear-gradient(180deg,var(--nav),color-mix
 
   <section class="view" id="view-reservations">
    <div class="hero"><div><h2>Reservas</h2><p>Pré-check-in e acompanhamento das reservas.</p></div><button class="btn primary" id="btnOpenReservation" onclick="openReservation()">＋ Nova reserva</button></div><div id="reservationOfflineNotice" style="display:none;margin-bottom:14px"></div>
-<div class="table-card"><div class="table-head"><div class="search"><span>⌕</span><input id="reservationSearch" placeholder="Buscar reserva..."></div><div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><div style="display:inline-flex;gap:6px;align-items:center"><select id="reservationDateFilter" class="control" style="font-weight:700;min-width:130px" title="Filtrar por data da reserva"><option value="today" selected>Hoje</option><option value="tomorrow">Amanhã</option><option value="yesterday">Ontem</option><option value="custom">Outra data...</option><option value="all">Todas as datas</option></select><input id="reservationCustomDate" type="date" class="control" style="display:none;width:auto;padding:8px 10px;font-weight:600" title="Escolha uma data específica"></div><select id="reservationHouse" class="control" title="Filtrar reservas por casa" style="min-width:240px"></select><select id="reservationStatus" class="control"><option value="all">Todos os status</option><option>Pendente</option><option>Confirmada</option><option>Convertida</option><option>Cancelada</option></select></div></div><div class="table-wrap"><table class="data-table"><thead><tr><th>Cliente</th><th>Data</th><th>Hora</th><th>Casa</th><th>Pessoas</th><th>Status</th><th>Ações</th></tr></thead><tbody id="reservationsBody"></tbody></table></div></div>
+<div class="table-card"><div class="table-head"><div class="search"><span>⌕</span><input id="reservationSearch" placeholder="Buscar reserva..."></div><div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+  <!-- Seletor 1: Reservadas para (Data da Mesa/Visita) -->
+  <div style="display:inline-flex;gap:6px;align-items:center;background:#f8fafc;padding:3px 8px;border-radius:10px;border:1px solid var(--line)">
+    <span style="font-size:11px;font-weight:700;color:var(--muted);white-space:nowrap">🍽️ Reservadas para:</span>
+    <select id="reservationTargetFilter" class="control" style="font-weight:700;padding:6px 10px;font-size:12px;min-width:140px" title="Filtrar pela data da mesa/visita (quando o cliente virá)">
+      <option value="today" selected>Hoje</option>
+      <option value="tomorrow">Amanhã</option>
+      <option value="next7">Próximos 7 dias</option>
+      <option value="next14">Próximos 14 dias</option>
+      <option value="next30">Próximos 30 dias</option>
+      <option value="yesterday">Ontem</option>
+      <option value="past7">Últimos 7 dias</option>
+      <option value="custom">📅 Escolher data/período...</option>
+      <option value="all">Qualquer data</option>
+    </select>
+    <div id="resTargetCustomWrap" style="display:none;gap:4px;align-items:center">
+      <input id="resTargetCustomStart" type="date" class="control" style="width:auto;padding:5px 8px;font-size:11.5px" title="Data inicial">
+      <span style="font-size:11px;color:var(--muted)">a</span>
+      <input id="resTargetCustomEnd" type="date" class="control" style="width:auto;padding:5px 8px;font-size:11.5px" title="Data final">
+    </div>
+  </div>
+
+  <!-- Seletor 2: Data da reserva (Quando foi feita no sistema) -->
+  <div style="display:inline-flex;gap:6px;align-items:center;background:#f8fafc;padding:3px 8px;border-radius:10px;border:1px solid var(--line)">
+    <span style="font-size:11px;font-weight:700;color:var(--muted);white-space:nowrap">📝 Feitas em:</span>
+    <select id="reservationCreatedFilter" class="control" style="font-weight:700;padding:6px 10px;font-size:12px;min-width:140px" title="Filtrar pela data em que a reserva foi registrada no sistema">
+      <option value="all" selected>Todas as datas</option>
+      <option value="today">Hoje</option>
+      <option value="yesterday">Ontem</option>
+      <option value="7">Últimos 7 dias</option>
+      <option value="14">Últimos 14 dias</option>
+      <option value="30">Últimos 30 dias</option>
+      <option value="custom">📅 Escolher data/período...</option>
+    </select>
+    <div id="resCreatedCustomWrap" style="display:none;gap:4px;align-items:center">
+      <input id="resCreatedCustomStart" type="date" class="control" style="width:auto;padding:5px 8px;font-size:11.5px" title="Data inicial">
+      <span style="font-size:11px;color:var(--muted)">a</span>
+      <input id="resCreatedCustomEnd" type="date" class="control" style="width:auto;padding:5px 8px;font-size:11.5px" title="Data final">
+    </div>
+  </div>
+
+  <select id="reservationHouse" class="control" title="Filtrar reservas por casa" style="min-width:200px"></select>
+  <select id="reservationStatus" class="control"><option value="all">Todos os status</option><option>Pendente</option><option>Confirmada</option><option>Convertida</option><option>Cancelada</option></select>
+</div></div><div class="table-wrap"><table class="data-table"><thead><tr><th>Cliente</th><th>Reservada para</th><th>Feita em</th><th>Hora</th><th>Casa</th><th>Pessoas</th><th>Status</th><th>Ações</th></tr></thead><tbody id="reservationsBody"></tbody></table></div></div>
   </section>
 
   <section class="view" id="view-waitlist">
@@ -1824,6 +1867,12 @@ async function pullAllFromSupabase(){
           const pStr = rr.notes.split('[PRIORIDADE:')[1].split(']')[0];
           priorities = pStr.split(',').map(s=>s.trim()).filter(Boolean);
         }
+        let createdDate = rr.created_at ? rr.created_at.slice(0,10) : '';
+        if(!createdDate && rr.notes && rr.notes.includes('[CRIADA_EM:')){
+          createdDate = rr.notes.split('[CRIADA_EM:')[1].split(']')[0].trim();
+        }
+        if(!createdDate) createdDate = rr.reservation_date || getLocalDateStr(0);
+
         return {
           id: rr.id,
           customerId: rr.customer_id || null,
@@ -1836,6 +1885,7 @@ async function pullAllFromSupabase(){
           status: rr.status,
           notes: rr.notes || '',
           priorities: priorities,
+          createdAt: createdDate,
           exceptionReason: (rr.notes && rr.notes.includes('[EXCEÇÃO:')) ? (rr.notes.split('[EXCEÇÃO:')[1].split(']')[0].trim()) : ''
         };
       });
@@ -4422,13 +4472,15 @@ function normalizeDateIso(str){
 }
 
 function resetReservationFiltersToToday(){
-  const dateSel = el('reservationDateFilter');
-  if(dateSel) dateSel.value = 'today';
-  const customDateInput = el('reservationCustomDate');
-  if(customDateInput){
-    customDateInput.style.display = 'none';
-    customDateInput.value = getLocalDateStr(0);
-  }
+  const targetSel = el('reservationTargetFilter');
+  if(targetSel) targetSel.value = 'today';
+  const targetWrap = el('resTargetCustomWrap');
+  if(targetWrap) targetWrap.style.display = 'none';
+
+  const createdSel = el('reservationCreatedFilter');
+  if(createdSel) createdSel.value = 'all';
+  const createdWrap = el('resCreatedCustomWrap');
+  if(createdWrap) createdWrap.style.display = 'none';
 }
 
 function setupReservationHouseFilter(forceSession=false){const select=el('reservationHouse');if(!select)return;const session=normalizeHouseKey(getSessionHouse())||'Leña';const previous=select.value;const u=(typeof getCurrentUser==='function')?getCurrentUser():null;const userHouses=getUserHouses(u);const ordered=[session,...userHouses.filter(h=>h!==session)];select.innerHTML=ordered.map((h,i)=>`<option value="${esc(h)}">${i===0?'Esta recepção — ':''}${esc(houseLabel(h))}</option>`).join('')+'<option value="all">Todas as casas</option>';if(!forceSession&&previous&&select.options&&Array.from(select.options).some(o=>o.value===previous))select.value=previous;else select.value=session}
@@ -4438,32 +4490,105 @@ function renderReservations(){
   const q = (el('reservationSearch')?.value || '').toLowerCase().trim();
   const s = el('reservationStatus')?.value || 'all';
   const h = el('reservationHouse')?.value || normalizeHouseKey(getSessionHouse()) || 'all';
-  const dateFilter = el('reservationDateFilter')?.value || 'today';
-  let targetDate = '';
-  if(dateFilter === 'today'){
-    targetDate = getLocalDateStr(0);
-  } else if(dateFilter === 'tomorrow'){
-    targetDate = getLocalDateStr(1);
-  } else if(dateFilter === 'yesterday'){
-    targetDate = getLocalDateStr(-1);
-  } else if(dateFilter === 'custom'){
-    targetDate = el('reservationCustomDate')?.value || '';
+
+  // 1. Filtro: Reservadas para (Data da Mesa/Visita)
+  const targetFilter = el('reservationTargetFilter')?.value || 'today';
+  let tStart = '', tEnd = '';
+  if(targetFilter === 'today'){
+    tStart = getLocalDateStr(0); tEnd = getLocalDateStr(0);
+  } else if(targetFilter === 'tomorrow'){
+    tStart = getLocalDateStr(1); tEnd = getLocalDateStr(1);
+  } else if(targetFilter === 'next7'){
+    tStart = getLocalDateStr(0); tEnd = getLocalDateStr(7);
+  } else if(targetFilter === 'next14'){
+    tStart = getLocalDateStr(0); tEnd = getLocalDateStr(14);
+  } else if(targetFilter === 'next30'){
+    tStart = getLocalDateStr(0); tEnd = getLocalDateStr(30);
+  } else if(targetFilter === 'yesterday'){
+    tStart = getLocalDateStr(-1); tEnd = getLocalDateStr(-1);
+  } else if(targetFilter === 'past7'){
+    tStart = getLocalDateStr(-7); tEnd = getLocalDateStr(0);
+  } else if(targetFilter === 'custom'){
+    tStart = el('resTargetCustomStart')?.value || '';
+    tEnd = el('resTargetCustomEnd')?.value || tStart;
+  }
+
+  // 2. Filtro: Data da reserva (Quando foi feita/registrada no sistema)
+  const createdFilter = el('reservationCreatedFilter')?.value || 'all';
+  let cStart = '', cEnd = '';
+  if(createdFilter === 'today'){
+    cStart = getLocalDateStr(0); cEnd = getLocalDateStr(0);
+  } else if(createdFilter === 'yesterday'){
+    cStart = getLocalDateStr(-1); cEnd = getLocalDateStr(-1);
+  } else if(createdFilter === '7'){
+    cStart = getLocalDateStr(-7); cEnd = getLocalDateStr(0);
+  } else if(createdFilter === '14'){
+    cStart = getLocalDateStr(-14); cEnd = getLocalDateStr(0);
+  } else if(createdFilter === '30'){
+    cStart = getLocalDateStr(-30); cEnd = getLocalDateStr(0);
+  } else if(createdFilter === 'custom'){
+    cStart = el('resCreatedCustomStart')?.value || '';
+    cEnd = el('resCreatedCustomEnd')?.value || cStart;
   }
 
   const a = state.reservations.filter(r => {
     const matchHouse = (h === 'all' || normalizeHouseKey(r.house) === h);
     const matchSearch = (!q || r.name.toLowerCase().includes(q) || digits(r.phone).includes(digits(q)));
     const matchStatus = (s === 'all' || r.status === s);
-    const matchDate = (dateFilter === 'all') || (!targetDate) || (normalizeDateIso(r.date) === targetDate);
-    return matchHouse && matchSearch && matchStatus && matchDate;
+    
+    // Validar Reservada para (r.date)
+    let matchTarget = true;
+    if(targetFilter !== 'all'){
+      const tDate = normalizeDateIso(r.date);
+      if(!tDate) matchTarget = false;
+      else {
+        if(tStart && tDate < tStart) matchTarget = false;
+        if(tEnd && tDate > tEnd) matchTarget = false;
+      }
+    }
+
+    // Validar Data da reserva (r.createdAt ou fallback para r.date)
+    let matchCreated = true;
+    if(createdFilter !== 'all'){
+      let cDate = normalizeDateIso(r.createdAt);
+      if(!cDate && r.notes && r.notes.includes('[CRIADA_EM:')){
+        cDate = normalizeDateIso(r.notes.split('[CRIADA_EM:')[1].split(']')[0].trim());
+      }
+      if(!cDate) cDate = normalizeDateIso(r.date);
+      if(!cDate) matchCreated = false;
+      else {
+        if(cStart && cDate < cStart) matchCreated = false;
+        if(cEnd && cDate > cEnd) matchCreated = false;
+      }
+    }
+
+    return matchHouse && matchSearch && matchStatus && matchTarget && matchCreated;
   });
 
+  // Montar legenda informativa quando não houver reservas
   let emptyLabel = 'Nenhuma reserva encontrada';
-  if(dateFilter === 'today') emptyLabel += ' para hoje.';
-  else if(dateFilter === 'tomorrow') emptyLabel += ' para amanhã.';
-  else if(dateFilter === 'yesterday') emptyLabel += ' para ontem.';
-  else if(dateFilter === 'custom' && targetDate) emptyLabel += ` para a data ${fmtDate(targetDate)}.`;
-  else emptyLabel += ' para os filtros selecionados.';
+  const filterDescParts = [];
+  if(targetFilter === 'today') filterDescParts.push('reservadas para hoje');
+  else if(targetFilter === 'tomorrow') filterDescParts.push('reservadas para amanhã');
+  else if(targetFilter === 'next7') filterDescParts.push('reservadas para os próximos 7 dias');
+  else if(targetFilter === 'next14') filterDescParts.push('reservadas para os próximos 14 dias');
+  else if(targetFilter === 'next30') filterDescParts.push('reservadas para os próximos 30 dias');
+  else if(targetFilter === 'yesterday') filterDescParts.push('reservadas para ontem');
+  else if(targetFilter === 'past7') filterDescParts.push('reservadas nos últimos 7 dias');
+  else if(targetFilter === 'custom') filterDescParts.push(`reservadas entre ${fmtDate(tStart || '...')} e ${fmtDate(tEnd || '...')}`);
+
+  if(createdFilter === 'today') filterDescParts.push('feitas hoje');
+  else if(createdFilter === 'yesterday') filterDescParts.push('feitas ontem');
+  else if(createdFilter === '7') filterDescParts.push('feitas nos últimos 7 dias');
+  else if(createdFilter === '14') filterDescParts.push('feitas nos últimos 14 dias');
+  else if(createdFilter === '30') filterDescParts.push('feitas nos últimos 30 dias');
+  else if(createdFilter === 'custom') filterDescParts.push(`feitas entre ${fmtDate(cStart || '...')} e ${fmtDate(cEnd || '...')}`);
+
+  if(filterDescParts.length) {
+    emptyLabel += ' (' + filterDescParts.join(' • ') + ').';
+  } else {
+    emptyLabel += ' para os filtros selecionados.';
+  }
 
   el('reservationsBody').innerHTML = a.map(r => {
     const isExc = r.exceptionReason || (r.notes || '').includes('[EXCEÇÃO');
@@ -4471,6 +4596,13 @@ function renderReservations(){
       ? r.priorities
       : (state.clients.find(c => (r.customerId && c.id === r.customerId) || (normalizePhone(c.phone) === normalizePhone(r.phone)))?.priorities || []);
     const prioBadgesHtml = (rPrios && rPrios.length) ? `<div style="margin-top:4px">${renderPriorityBadges(rPrios)}</div>` : '';
+    
+    let displayCreated = r.createdAt;
+    if(!displayCreated && r.notes && r.notes.includes('[CRIADA_EM:')){
+      displayCreated = r.notes.split('[CRIADA_EM:')[1].split(']')[0].trim();
+    }
+    if(!displayCreated) displayCreated = r.date;
+
     return `<tr>
       <td>
         <div class="person">
@@ -4482,7 +4614,8 @@ function renderReservations(){
           </div>
         </div>
       </td>
-      <td>${fmtDate(r.date)}</td>
+      <td><strong style="color:#0f172a">${fmtDate(r.date)}</strong></td>
+      <td><span style="font-size:12px;color:var(--muted);white-space:nowrap">${fmtDate(displayCreated)}</span></td>
       <td>${esc(r.time || '—')}</td>
       <td>${esc(houseLabel(normalizeHouseKey(r.house)))}</td>
       <td>${r.people}</td>
@@ -4500,30 +4633,61 @@ function renderReservations(){
         </div>
       </td>
     </tr>`;
-  }).join('') || `<tr><td colspan="7"><div class="empty">${emptyLabel}</div></td></tr>`;
+  }).join('') || `<tr><td colspan="8"><div class="empty">${emptyLabel}</div></td></tr>`;
 }
 
 if(el('reservationSearch')) el('reservationSearch').oninput = renderReservations;
 if(el('reservationStatus')) el('reservationStatus').onchange = renderReservations;
 if(el('reservationHouse')) el('reservationHouse').onchange = renderReservations;
-if(el('reservationDateFilter')) {
-  el('reservationDateFilter').onchange = () => {
-    const customInput = el('reservationCustomDate');
-    if(el('reservationDateFilter').value === 'custom'){
-      if(customInput){
-        customInput.style.display = 'inline-block';
-        if(!customInput.value) customInput.value = getLocalDateStr(0);
-        customInput.focus();
+
+if(el('reservationTargetFilter')) {
+  el('reservationTargetFilter').onchange = () => {
+    const wrap = el('resTargetCustomWrap');
+    if(el('reservationTargetFilter').value === 'custom'){
+      if(wrap){
+        wrap.style.display = 'inline-flex';
+        const startInput = el('resTargetCustomStart');
+        if(startInput && !startInput.value) startInput.value = getLocalDateStr(0);
+        startInput?.focus();
       }
     } else {
-      if(customInput) customInput.style.display = 'none';
+      if(wrap) wrap.style.display = 'none';
     }
     renderReservations();
   };
 }
-if(el('reservationCustomDate')) {
-  el('reservationCustomDate').onchange = renderReservations;
-  el('reservationCustomDate').oninput = renderReservations;
+if(el('resTargetCustomStart')) {
+  el('resTargetCustomStart').onchange = renderReservations;
+  el('resTargetCustomStart').oninput = renderReservations;
+}
+if(el('resTargetCustomEnd')) {
+  el('resTargetCustomEnd').onchange = renderReservations;
+  el('resTargetCustomEnd').oninput = renderReservations;
+}
+
+if(el('reservationCreatedFilter')) {
+  el('reservationCreatedFilter').onchange = () => {
+    const wrap = el('resCreatedCustomWrap');
+    if(el('reservationCreatedFilter').value === 'custom'){
+      if(wrap){
+        wrap.style.display = 'inline-flex';
+        const startInput = el('resCreatedCustomStart');
+        if(startInput && !startInput.value) startInput.value = getLocalDateStr(0);
+        startInput?.focus();
+      }
+    } else {
+      if(wrap) wrap.style.display = 'none';
+    }
+    renderReservations();
+  };
+}
+if(el('resCreatedCustomStart')) {
+  el('resCreatedCustomStart').onchange = renderReservations;
+  el('resCreatedCustomStart').oninput = renderReservations;
+}
+if(el('resCreatedCustomEnd')) {
+  el('resCreatedCustomEnd').onchange = renderReservations;
+  el('resCreatedCustomEnd').oninput = renderReservations;
 }
 
 function openReservationWhatsApp(id){
@@ -4580,6 +4744,7 @@ function saveReservationDirectly(data){
       existing.priorities = prios;
       if(data.clientId) existing.customerId = data.clientId;
       if(data.exceptionReason !== undefined) existing.exceptionReason = data.exceptionReason;
+      if(data.createdAt) existing.createdAt = data.createdAt;
       const cust = state.clients.find(c => (existing.customerId && c.id === existing.customerId) || (normalizePhone(c.phone) === normalizePhone(existing.phone)));
       if(cust && prios.length){
         cust.priorities = Array.from(new Set([...(cust.priorities || []), ...prios]));
@@ -4605,6 +4770,7 @@ function saveReservationDirectly(data){
     status: data.status,
     notes: data.notes,
     priorities: prios,
+    createdAt: data.createdAt || getLocalDateStr(0),
     exceptionReason: data.exceptionReason || ''
   };
   const cust = state.clients.find(c => (data.clientId && c.id === data.clientId) || (normalizePhone(c.phone) === normalizePhone(data.phone)));
@@ -5890,7 +6056,7 @@ function openReservation(prefill=null, editId=null){
         </div>
 
         <div class="field">
-          <label>Data *</label>
+          <label>Reservada para (Data da Visita) *</label>
           <input id="rDate" type="date" required value="${esc(prefillDate)}">
           <div id="rDateWarning" style="display:none;font-size:11px;font-weight:700;color:#b45309;margin-top:4px">⚠️ Sexta/Sábado: requer justificativa de exceção para esta casa.</div>
         </div>
