@@ -2966,7 +2966,16 @@ function renderDashboard(){const vv=filteredVisits();const phones=new Set(vv.map
  const counts={};vv.forEach(v=>counts[v.source||'Não informado']=(counts[v.source||'Não informado']||0)+1);const top=Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,7),max=top[0]?.[1]||1;el('sourceBars').innerHTML=top.map(([k,n])=>`<div class="barrow"><span title="${esc(k)}">${esc(k.slice(0,18))}</span><div class="bartrack"><div class="bar" style="width:${n/max*100}%"></div></div><strong>${n}</strong></div>`).join('')||'<div class="empty">Sem dados</div>';
  const total=Math.max(1,newN+recN),pct=newN/total*100;el('statusDonut').innerHTML=`<div class="donut" style="background:conic-gradient(${COLORS.Novo} 0 ${pct}%,${COLORS.Recorrente} ${pct}% 100%)"><div class="donut-center"><strong>${total}</strong><span>visitas</span></div></div><div class="legend"><div><span class="dot" style="background:${COLORS.Novo}"></span>Novo <b>${newN}</b></div><div><span class="dot" style="background:${COLORS.Recorrente}"></span>Recorrente <b>${recN}</b></div></div>`;
  const hc={Íconico:0,Leña:0};vv.forEach(v=>hc[v.house]=(hc[v.house]||0)+1);const hm=Math.max(...Object.values(hc),1);el('houseBars').innerHTML=Object.entries(hc).map(([k,n])=>`<div class="barrow"><span>${k}</span><div class="bartrack"><div class="bar" style="width:${n/hm*100}%"></div></div><strong>${n}</strong></div>`).join('');
- el('recentVisits').innerHTML=vv.slice(0,5).map(v=>`<div class="visit-item"><div class="date">${fmtDate(v.date)}<br>${esc(v.arrival||'')}</div><div><strong>${esc(v.name)}</strong><p>${esc(v.house)} • ${v.people} pessoa(s) • Mesa ${esc(v.table||'—')}</p></div><span class="badge ${v.status?.toLowerCase().includes('recorr')?'gold':'blue'}">${esc(v.status||'—')}</span></div>`).join('')||'<div class="empty">Sem visitas</div>';
+  const recentSorted = [...vv].sort((a, b) => {
+    const da = normalizeDateOnly(a.date) || '';
+    const db = normalizeDateOnly(b.date) || '';
+    if(da !== db) return db.localeCompare(da);
+    const ta = shiftTimeMinutes(a.arrival);
+    const tb = shiftTimeMinutes(b.arrival);
+    if(ta !== tb) return tb - ta;
+    return (b.createdAt || 0) - (a.createdAt || 0);
+  });
+  el('recentVisits').innerHTML=recentSorted.slice(0,5).map(v=>`<div class="visit-item"><div class="date">${fmtDate(v.date)}<br>${esc(v.arrival||'')}</div><div><strong>${esc(v.name)}</strong><p>${esc(v.house)} • ${v.people} pessoa(s) • Mesa ${esc(v.table||'—')}</p></div><span class="badge ${v.status?.toLowerCase().includes('recorr')?'gold':'blue'}">${esc(v.status||'—')}</span></div>`).join('')||'<div class="empty">Sem visitas</div>';
  renderQuickInsights();
  if(typeof renderOperatorPresenceWidget === 'function') renderOperatorPresenceWidget();
 }
