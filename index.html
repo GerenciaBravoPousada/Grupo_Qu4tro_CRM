@@ -655,7 +655,7 @@ body[data-house] .sidebar{background:linear-gradient(180deg,var(--nav),color-mix
    <!-- MONITOR DE AUDITORIA E PRESENÇA DAS RECEPÇÕES -->
    <div id="operatorPresenceSection" style="margin-bottom:18px"></div>
    <div class="grid2"><div class="card"><div class="section-title"><h3>Origem dos clientes</h3><small>visitas filtradas</small></div><div id="sourceBars"></div></div><div class="card"><div class="section-title"><h3>Novo × Recorrente</h3><small>classificação da visita</small></div><div id="statusDonut" class="donut-wrap"></div></div></div>
-   <div class="grid3"><div class="card"><div class="section-title"><h3>Casas</h3></div><div id="houseBars"></div></div><div class="card"><div class="section-title"><h3>Últimos check-ins</h3><button class="btn ghost" onclick="go('checkin')">Novo</button></div><div id="recentVisits"></div></div><div class="card"><div class="section-title"><h3>Alertas comerciais</h3></div><div id="quickInsights"></div></div></div>
+   <div class="grid3"><div class="card"><div class="section-title"><h3>Casas</h3><small>visitas no período</small></div><div id="houseBars"></div></div><div class="card"><div class="section-title"><div style="display:flex;align-items:center;gap:6px"><h3>Sinergia & Cross-Selling</h3><span class="badge blue" style="font-size:10px;padding:2px 7px">Ecossistema</span></div><button type="button" class="btn ghost" style="padding:4px 9px;font-size:11px;font-weight:600" onclick="go('segments');showSegment('Cross-selling')" title="Ver lista de clientes multi-casa">Ver clientes →</button></div><div id="crossSellingWidget"></div></div><div class="card"><div class="section-title"><h3>Alertas comerciais</h3><small>retenção e hábito</small></div><div id="quickInsights"></div></div></div>
   </section>
 
   <section class="view" id="view-clients">
@@ -2965,19 +2965,131 @@ function clearCustomPeriod(){
 function renderDashboard(){const vv=filteredVisits();const phones=new Set(vv.map(v=>digits(v.phone)).filter(Boolean));const newN=vv.filter(v=>(v.status||'').toLowerCase().includes('novo')).length, recN=vv.filter(v=>(v.status||'').toLowerCase().includes('recorr')).length;const people=vv.reduce((s,v)=>s+(+v.people||0),0);const avg=vv.length?people/vv.length:0;const metrics=[['Clientes únicos',phones.size.toLocaleString('pt-BR'),'na seleção'],['Visitas',vv.length.toLocaleString('pt-BR'),'registros'],['Pessoas atendidas',people.toLocaleString('pt-BR'),`${avg.toFixed(1)} por visita`],['Taxa recorrência',((recN/Math.max(1,newN+recN))*100).toFixed(1)+'%','das visitas classificadas']];el('metrics').innerHTML=metrics.map(m=>`<div class="card metric"><div class="label">${m[0]}</div><div class="value">${m[1]}</div><div class="delta">${m[2]}</div></div>`).join('');
  const counts={};vv.forEach(v=>counts[v.source||'Não informado']=(counts[v.source||'Não informado']||0)+1);const top=Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,7),max=top[0]?.[1]||1;el('sourceBars').innerHTML=top.map(([k,n])=>`<div class="barrow"><span title="${esc(k)}">${esc(k.slice(0,18))}</span><div class="bartrack"><div class="bar" style="width:${n/max*100}%"></div></div><strong>${n}</strong></div>`).join('')||'<div class="empty">Sem dados</div>';
  const total=Math.max(1,newN+recN),pct=newN/total*100;el('statusDonut').innerHTML=`<div class="donut" style="background:conic-gradient(${COLORS.Novo} 0 ${pct}%,${COLORS.Recorrente} ${pct}% 100%)"><div class="donut-center"><strong>${total}</strong><span>visitas</span></div></div><div class="legend"><div><span class="dot" style="background:${COLORS.Novo}"></span>Novo <b>${newN}</b></div><div><span class="dot" style="background:${COLORS.Recorrente}"></span>Recorrente <b>${recN}</b></div></div>`;
- const hc={Íconico:0,Leña:0};vv.forEach(v=>hc[v.house]=(hc[v.house]||0)+1);const hm=Math.max(...Object.values(hc),1);el('houseBars').innerHTML=Object.entries(hc).map(([k,n])=>`<div class="barrow"><span>${k}</span><div class="bartrack"><div class="bar" style="width:${n/hm*100}%"></div></div><strong>${n}</strong></div>`).join('');
-  const recentSorted = [...vv].sort((a, b) => {
-    const da = normalizeDateOnly(a.date) || '';
-    const db = normalizeDateOnly(b.date) || '';
-    if(da !== db) return db.localeCompare(da);
-    const ta = shiftTimeMinutes(a.arrival);
-    const tb = shiftTimeMinutes(b.arrival);
-    if(ta !== tb) return tb - ta;
-    return (b.createdAt || 0) - (a.createdAt || 0);
+  const hc={'Íconico':0, 'Leña':0, 'Bravo Café':0, 'Café da Bravo Pousada':0};
+  vv.forEach(v=>{
+    const k = normalizeHouseKey(v.house);
+    if(k && k !== 'all') hc[k] = (hc[k] || 0) + 1;
   });
-  el('recentVisits').innerHTML=recentSorted.slice(0,5).map(v=>`<div class="visit-item"><div class="date">${fmtDate(v.date)}<br>${esc(v.arrival||'')}</div><div><strong>${esc(v.name)}</strong><p>${esc(v.house)} • ${v.people} pessoa(s) • Mesa ${esc(v.table||'—')}</p></div><span class="badge ${v.status?.toLowerCase().includes('recorr')?'gold':'blue'}">${esc(v.status||'—')}</span></div>`).join('')||'<div class="empty">Sem visitas</div>';
- renderQuickInsights();
- if(typeof renderOperatorPresenceWidget === 'function') renderOperatorPresenceWidget();
+  const sortedHouses = Object.entries(hc).sort((a,b)=>b[1]-a[1]);
+  const hm = Math.max(...sortedHouses.map(x=>x[1]), 1);
+  el('houseBars').innerHTML = sortedHouses.map(([k,n])=>`<div class="barrow"><span title="${esc(k)}">${esc(k.length>14?k.slice(0,13)+'…':k)}</span><div class="bartrack"><div class="bar" style="width:${n/hm*100}%"></div></div><strong>${n}</strong></div>`).join('') || '<div class="empty">Sem dados</div>';
+
+  renderCrossSellingCard();
+  renderQuickInsights();
+  if(typeof renderOperatorPresenceWidget === 'function') renderOperatorPresenceWidget();
+}
+
+function renderCrossSellingCard(){
+  const container = el('crossSellingWidget');
+  if(!container) return;
+
+  const cc = (state.clients || []).map(calcClient);
+  const totalClients = Math.max(1, cc.length);
+
+  const hFilter = el('dashHouse')?.value || 'all';
+  const normH = normalizeHouseKey(hFilter);
+
+  // Clientes multi-casa (frequentaram 2 ou mais marcas do grupo)
+  const multiHouse = cc.filter(c => {
+    const visited = [c.iconico > 0, c.lena > 0, (c.cafe || 0) > 0, (c.cafePousada || 0) > 0].filter(Boolean).length;
+    return visited >= 2;
+  });
+  const multiPct = ((multiHouse.length / totalClients) * 100).toFixed(1);
+
+  // Clientes exclusivos de cada casa
+  const onlyI = cc.filter(c => c.iconico > 0 && c.lena === 0 && (c.cafe || 0) === 0 && (c.cafePousada || 0) === 0).length;
+  const onlyL = cc.filter(c => c.lena > 0 && c.iconico === 0 && (c.cafe || 0) === 0 && (c.cafePousada || 0) === 0).length;
+  const onlyC = cc.filter(c => (c.cafe || 0) > 0 && c.iconico === 0 && c.lena === 0 && (c.cafePousada || 0) === 0).length;
+  const onlyP = cc.filter(c => (c.cafePousada || 0) > 0 && c.iconico === 0 && c.lena === 0 && (c.cafe || 0) === 0).length;
+
+  const maxVal = Math.max(multiHouse.length, onlyI, onlyL, onlyC + onlyP, 1);
+
+  // Oportunidades diretas
+  const iconicoSemLena = cc.filter(c => c.iconico > 0 && c.lena === 0).length;
+  const lenaSemIconico = cc.filter(c => c.lena > 0 && c.iconico === 0).length;
+
+  let noteHtml = '';
+  if(normH === 'Íconico'){
+    const icoTotal = cc.filter(c => c.iconico > 0).length;
+    const icoMulti = cc.filter(c => c.iconico > 0 && [c.lena > 0, (c.cafe || 0) > 0, (c.cafePousada || 0) > 0].some(Boolean)).length;
+    noteHtml = `
+      <div style="margin-top:10px;padding:9px 12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;font-size:11.5px;color:#334155;line-height:1.4">
+        🎯 <strong>Foco Íconico:</strong> ${icoMulti} clientes (${((icoMulti/Math.max(1,icoTotal))*100).toFixed(1)}%) já visitaram outra casa. <strong>${iconicoSemLena}</strong> conhecem o Íconico mas ainda não foram ao Leña.
+      </div>
+    `;
+  } else if(normH === 'Leña'){
+    const lenaTotal = cc.filter(c => c.lena > 0).length;
+    const lenaMulti = cc.filter(c => c.lena > 0 && [c.iconico > 0, (c.cafe || 0) > 0, (c.cafePousada || 0) > 0].some(Boolean)).length;
+    noteHtml = `
+      <div style="margin-top:10px;padding:9px 12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;font-size:11.5px;color:#334155;line-height:1.4">
+        🎯 <strong>Foco Leña:</strong> ${lenaMulti} clientes (${((lenaMulti/Math.max(1,lenaTotal))*100).toFixed(1)}%) já visitaram outra casa. <strong>${lenaSemIconico}</strong> conhecem o Leña mas ainda não foram ao Íconico.
+      </div>
+    `;
+  } else {
+    noteHtml = `
+      <div style="margin-top:10px;padding:9px 12px;background:#fcfbf8;border:1px solid #f1e6d4;border-radius:10px;font-size:11.5px;color:#6b4e18;line-height:1.4">
+        💡 <strong>Potencial de Migração:</strong> <strong>${iconicoSemLena}</strong> clientes do Íconico não foram ao Leña e <strong>${lenaSemIconico}</strong> clientes do Leña não foram ao Íconico.
+      </div>
+    `;
+  }
+
+  container.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 14px;background:linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);border:1px solid #e2e8f0;border-radius:12px;margin-bottom:12px">
+      <div>
+        <div style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#64748b">Clientes Multi-Casa</div>
+        <div style="display:flex;align-items:baseline;gap:6px;margin-top:2px">
+          <span style="font-size:22px;font-weight:800;color:#0f202a">${multiHouse.length.toLocaleString('pt-BR')}</span>
+          <span style="font-size:12px;font-weight:700;color:#2d6486">(${multiPct}% da base)</span>
+        </div>
+      </div>
+      <div style="text-align:right">
+        <span class="badge gold" style="font-weight:700;padding:4px 9px;font-size:10.5px;cursor:pointer" onclick="go('segments');showSegment('Cross-selling')" title="Ver lista de clientes">⭐ Embaixadores</span>
+        <div style="font-size:10px;color:#64748b;margin-top:3px">2+ marcas visitadas</div>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:7px;font-size:12px">
+      <div class="barrow" style="margin:2px 0;grid-template-columns:105px 1fr 45px" title="Clientes que consomem em 2 ou mais marcas do grupo">
+        <span style="display:flex;align-items:center;gap:5px;font-weight:700;color:#1e293b">
+          <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#e5bd7e"></span>
+          Multi-Casa
+        </span>
+        <div class="bartrack" style="height:8px"><div class="bar" style="width:${(multiHouse.length/maxVal*100)}%;background:linear-gradient(90deg,#e5bd7e,#c59b58)"></div></div>
+        <strong style="text-align:right">${multiHouse.length}</strong>
+      </div>
+
+      <div class="barrow" style="margin:2px 0;grid-template-columns:105px 1fr 45px" title="Clientes que só consumiram no Íconico">
+        <span style="display:flex;align-items:center;gap:5px;color:#475569">
+          <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#385a6d"></span>
+          Só Íconico
+        </span>
+        <div class="bartrack" style="height:8px"><div class="bar" style="width:${(onlyI/maxVal*100)}%;background:linear-gradient(90deg,#385a6d,#588298)"></div></div>
+        <strong style="text-align:right">${onlyI}</strong>
+      </div>
+
+      <div class="barrow" style="margin:2px 0;grid-template-columns:105px 1fr 45px" title="Clientes que só consumiram no Leña">
+        <span style="display:flex;align-items:center;gap:5px;color:#475569">
+          <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#8b2b2b"></span>
+          Só Leña
+        </span>
+        <div class="bartrack" style="height:8px"><div class="bar" style="width:${(onlyL/maxVal*100)}%;background:linear-gradient(90deg,#8b2b2b,#b44b4b)"></div></div>
+        <strong style="text-align:right">${onlyL}</strong>
+      </div>
+
+      ${(onlyC > 0 || onlyP > 0) ? `
+      <div class="barrow" style="margin:2px 0;grid-template-columns:105px 1fr 45px" title="Clientes exclusivos do Bravo Café ou Café da Bravo Pousada">
+        <span style="display:flex;align-items:center;gap:5px;color:#475569">
+          <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#b8860b"></span>
+          Café / Pousada
+        </span>
+        <div class="bartrack" style="height:8px"><div class="bar" style="width:${((onlyC + onlyP)/maxVal*100)}%;background:linear-gradient(90deg,#b8860b,#d4a024)"></div></div>
+        <strong style="text-align:right">${onlyC + onlyP}</strong>
+      </div>
+      ` : ''}
+    </div>
+
+    ${noteHtml}
+  `;
 }
 
 /* ==========================================================================
@@ -3319,7 +3431,38 @@ window.addEventListener('online', () => {
 setInterval(() => {
   sendOperatorHeartbeat('HEARTBEAT');
 }, 120000);
-function renderQuickInsights(){const cc=state.clients.map(calcClient);const risk=cc.filter(c=>c.totalVisits>=2&&daysSince(c.lastVisit)>90).length;const crossI=cc.filter(c=>c.iconico>0&&c.lena===0).length;const crossL=cc.filter(c=>c.lena>0&&c.iconico===0).length;el('quickInsights').innerHTML=`<div class="insight"><strong>${risk.toLocaleString('pt-BR')} clientes em risco</strong><p>2+ visitas e mais de 90 dias sem retornar.</p></div><div class="insight"><strong>${crossI.toLocaleString('pt-BR')} só no Íconico</strong><p>Potencial de convite para conhecer o Leña.</p></div><div class="insight"><strong>${crossL.toLocaleString('pt-BR')} só no Leña</strong><p>Potencial de convite para conhecer o Íconico.</p></div>`}
+function renderQuickInsights(){
+  const cc = state.clients.map(calcClient);
+  const risk = cc.filter(c => c.totalVisits >= 2 && daysSince(c.lastVisit) > 90);
+  const secondVisitWindow = cc.filter(c => c.totalVisits === 1 && daysSince(c.lastVisit) >= 15 && daysSince(c.lastVisit) <= 45);
+  const vipRisk = cc.filter(c => c.totalVisits >= 5 && daysSince(c.lastVisit) > 60);
+
+  el('quickInsights').innerHTML = `
+    <div class="insight" style="cursor:pointer;transition:transform .15s,box-shadow .15s" onclick="go('segments');showSegment('Em risco')" title="Ver clientes em risco no módulo de Segmentos">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <strong style="color:#b91c1c">⚠️ ${risk.length.toLocaleString('pt-BR')} em risco de churn</strong>
+        <span style="font-size:10.5px;color:var(--muted)">Ver lista →</span>
+      </div>
+      <p>Clientes com 2+ visitas afastados há mais de 90 dias.</p>
+    </div>
+
+    <div class="insight" style="cursor:pointer;transition:transform .15s,box-shadow .15s" onclick="go('segments');showSegment('Novos')" title="Ver novos clientes na janela de retorno">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <strong style="color:#2563eb">🎯 ${secondVisitWindow.length.toLocaleString('pt-BR')} na janela de 2ª visita</strong>
+        <span style="font-size:10.5px;color:var(--muted)">Ver lista →</span>
+      </div>
+      <p>1ª visita há 15-45 dias. Janela ideal para estimular o retorno.</p>
+    </div>
+
+    <div class="insight" style="cursor:pointer;transition:transform .15s,box-shadow .15s" onclick="go('segments');showSegment('VIP ativo')" title="Ver clientes VIP">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <strong style="color:#b45309">⭐ ${vipRisk.length.toLocaleString('pt-BR')} VIPs sem visita há 60d+</strong>
+        <span style="font-size:10.5px;color:var(--muted)">Ver lista →</span>
+      </div>
+      <p>Clientes de alta frequência (5+ visitas) com sinal de esfriamento.</p>
+    </div>
+  `;
+}
 el('dashHouse').onchange = renderDashboard;
 el('dashPeriod').onchange = handleDashPeriodChange;
 
