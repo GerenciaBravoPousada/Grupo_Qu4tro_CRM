@@ -1521,6 +1521,9 @@ async function processOutboxQueue(){
         } else if (item.action === 'UPSERT_RESERVATION') {
           const r = item.payload;
           let finalNotes = r.notes || '';
+          if(r.source && r.source !== 'Da casa' && !finalNotes.includes('[ORIGEM:')) {
+            finalNotes = `[ORIGEM: ${r.source}] ` + finalNotes;
+          }
           if(r.exceptionReason && !finalNotes.includes('[EXCEÇÃO')) {
             finalNotes = `[EXCEÇÃO: ${r.exceptionReason}] ` + finalNotes;
           }
@@ -1890,6 +1893,11 @@ async function pullAllFromSupabase(){
         }
         if(!createdDate) createdDate = rr.reservation_date || getLocalDateStr(0);
 
+        let originSource = rr.source || '';
+        if(!originSource && rr.notes && rr.notes.includes('[ORIGEM:')){
+          originSource = rr.notes.split('[ORIGEM:')[1].split(']')[0].trim();
+        }
+
         return {
           id: rr.id,
           customerId: rr.customer_id || null,
@@ -1900,6 +1908,7 @@ async function pullAllFromSupabase(){
           time: rr.reservation_time,
           house: rr.house,
           status: rr.status,
+          source: originSource || 'Da casa',
           notes: rr.notes || '',
           priorities: priorities,
           createdAt: createdDate,
@@ -4850,6 +4859,7 @@ function renderReservations(){
             <b>${esc(r.name)}</b>
             ${prioBadgesHtml}
             <small style="display:block;margin-top:2px">${fmtPhone(r.phone)}</small>
+            ${r.source ? `<span class="badge" style="font-size:10px;margin-top:3px;display:inline-block">${esc(r.source)}</span>` : ''}
           </div>
         </div>
       </td>
@@ -4981,12 +4991,18 @@ function saveReservationDirectly(data){
       existing.status = data.status;
       existing.notes = data.notes;
       existing.priorities = prios;
+      if(data.source !== undefined) existing.source = data.source;
       if(data.clientId) existing.customerId = data.clientId;
       if(data.exceptionReason !== undefined) existing.exceptionReason = data.exceptionReason;
       if(data.createdAt) existing.createdAt = data.createdAt;
       const cust = state.clients.find(c => (existing.customerId && c.id === existing.customerId) || (normalizePhone(c.phone) === normalizePhone(existing.phone)));
-      if(cust && prios.length){
-        cust.priorities = Array.from(new Set([...(cust.priorities || []), ...prios]));
+      if(cust){
+        if(prios.length){
+          cust.priorities = Array.from(new Set([...(cust.priorities || []), ...prios]));
+        }
+        if((!cust.source || cust.source === 'Da casa' || cust.source === 'Não informado') && data.source && data.source !== 'Da casa'){
+          cust.source = data.source;
+        }
         dbSyncCustomer(cust);
       }
       save();
@@ -5007,14 +5023,20 @@ function saveReservationDirectly(data){
     time: data.time,
     house: data.house,
     status: data.status,
+    source: data.source || 'Da casa',
     notes: data.notes,
     priorities: prios,
     createdAt: data.createdAt || getLocalDateStr(0),
     exceptionReason: data.exceptionReason || ''
   };
   const cust = state.clients.find(c => (data.clientId && c.id === data.clientId) || (normalizePhone(c.phone) === normalizePhone(data.phone)));
-  if(cust && prios.length){
-    cust.priorities = Array.from(new Set([...(cust.priorities || []), ...prios]));
+  if(cust){
+    if(prios.length){
+      cust.priorities = Array.from(new Set([...(cust.priorities || []), ...prios]));
+    }
+    if((!cust.source || cust.source === 'Da casa' || cust.source === 'Não informado') && data.source && data.source !== 'Da casa'){
+      cust.source = data.source;
+    }
     dbSyncCustomer(cust);
   }
   state.reservations.unshift(resObj);
@@ -6212,6 +6234,7 @@ function selectReservationClient(id){
   if(box){ box.className = 'lookup-results'; box.innerHTML = ''; }
   if(el('rName')) el('rName').value = c.name;
   if(el('rPhone')) el('rPhone').value = fmtPhone(c.phone);
+  if(c.source && el('rSource')) el('rSource').value = c.source;
 
   if(Array.isArray(c.priorities)){
     document.querySelectorAll('input[name="rPriority"]').forEach(cb => {
@@ -6232,6 +6255,7 @@ function clearSelectedReservationClient(){
   if(el('rLookup')) el('rLookup').value = '';
   if(el('rName')) el('rName').value = '';
   if(el('rPhone')) el('rPhone').value = '';
+  if(el('rSource')) el('rSource').value = 'Da casa';
   document.querySelectorAll('input[name="rPriority"]').forEach(cb => { cb.checked = false; });
   const card = el('rSelectedClientCard');
   if(card){ card.className = 'span2 selected-client-card'; card.innerHTML = ''; }
@@ -6265,6 +6289,22 @@ function openReservation(prefill=null, editId=null){
     if(cFound && cFound.priorities) initialPrios = cFound.priorities;
   }
   const currentPrios = Array.isArray(initialPrios) ? initialPrios : [];
+
+  let prefillSource = prefill?.source || '';
+  if(!prefillSource && editId){
+    const rFound = state.reservations.find(x => x.id === editId);
+    if(rFound && rFound.source) prefillSource = rFound.source;
+  }
+  if(!prefillSource && selectedReservationClientId){
+    const cFound = state.clients.find(x => x.id === selectedReservationClientId);
+    if(cFound && cFound.source) prefillSource = cFound.source;
+  }
+  if(!prefillSource && prefill?.phone){
+    const normP = normalizePhone(prefill.phone);
+    const cFound = state.clients.find(x => normalizePhone(x.phone) === normP);
+    if(cFound && cFound.source) prefillSource = cFound.source;
+  }
+  if(!prefillSource) prefillSource = 'Da casa';
 
   el('modalBody').innerHTML = `
     <form id="reservationForm">
@@ -6327,6 +6367,20 @@ function openReservation(prefill=null, editId=null){
         </div>
 
         <div class="field span2">
+          <label>Como nos conheceu?</label>
+          <select id="rSource">
+            <option value="Da casa" ${prefillSource === 'Da casa' ? 'selected' : ''}>Da casa</option>
+            <option value="Instagram" ${prefillSource === 'Instagram' ? 'selected' : ''}>Instagram</option>
+            <option value="Google" ${prefillSource === 'Google' ? 'selected' : ''}>Google</option>
+            <option value="Indicação" ${prefillSource === 'Indicação' ? 'selected' : ''}>Indicação</option>
+            <option value="Passagem/Passante" ${prefillSource === 'Passagem/Passante' ? 'selected' : ''}>Passagem/Passante</option>
+            <option value="Influencer / Parceria MKT" ${['Influencer / Parceria MKT', 'influencer/ Parceria MKT', 'Influencer/Parceria MKT'].includes(prefillSource) ? 'selected' : ''}>Influencer / Parceria MKT</option>
+            <option value="TikTok" ${prefillSource === 'TikTok' ? 'selected' : ''}>TikTok</option>
+            <option value="Outro" ${prefillSource === 'Outro' ? 'selected' : ''}>Outro</option>
+          </select>
+        </div>
+
+        <div class="field span2">
           <label>Prioridade (Atendimento Preferencial)</label>
           <div class="priority-checkbox-group" id="rPriorityGroup">
             <label class="priority-pill-toggle"><input type="checkbox" name="rPriority" value="Gestante" ${currentPrios.includes('Gestante') ? 'checked' : ''}> <span>🤰 Gestante</span></label>
@@ -6364,6 +6418,7 @@ function openReservation(prefill=null, editId=null){
     if(sessH !== 'all') el('rHouse').value = sessH;
   }
   if(prefill?.status) el('rStatus').value = prefill.status;
+  if(el('rSource') && prefillSource) el('rSource').value = prefillSource;
 
   if(!isEditing && (prefill?.phone || prefill?.name)){
     const normP = normalizePhone(prefill.phone || '');
@@ -6397,6 +6452,7 @@ function openReservation(prefill=null, editId=null){
       time: el('rTime').value,
       house: hVal,
       status: el('rStatus').value,
+      source: el('rSource')?.value || 'Da casa',
       priorities: selectedPriorities,
       notes: el('rNotes').value.trim()
     };
@@ -6417,6 +6473,7 @@ function convertReservation(id){
   go('checkin');
   el('ciPeople').value=r.people;
   el('ciHouse').value=r.house;
+  if(r.source && el('ciSource')) el('ciSource').value = r.source;
   if(r.notes)el('ciNotes').value=r.notes;
   const c=state.clients.find(x=>normalizePhone(x.phone)===normalizePhone(r.phone));
   if(c)selectCheckinClient(c.id);
