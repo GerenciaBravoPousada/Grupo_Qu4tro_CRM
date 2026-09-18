@@ -98,6 +98,8 @@ body[data-house] .sidebar{background:linear-gradient(180deg,var(--nav),color-mix
 .badge-role-master{background:#0f766e;color:#fff;border-radius:6px;padding:2px 7px;font-size:11px;font-weight:700;display:inline-block}
 .badge-role-gerente{background:#1e40af;color:#fff;border-radius:6px;padding:2px 7px;font-size:11px;font-weight:700;display:inline-block}
 .badge-role-atendimento{background:#2563eb;color:#fff;border-radius:6px;padding:2px 7px;font-size:11px;font-weight:700;display:inline-block}
+.badge-role-agente01{background:#d97706;color:#fff;border-radius:6px;padding:2px 7px;font-size:11px;font-weight:700;display:inline-block}
+.badge-role-agente02{background:#7c3aed;color:#fff;border-radius:6px;padding:2px 7px;font-size:11px;font-weight:700;display:inline-block}
 .badge-role-operador{background:#475569;color:#fff;border-radius:6px;padding:2px 7px;font-size:11px;font-weight:700;display:inline-block}
 .badge-status-active{background:#dcfce7;color:#15803d;border:1px solid #bbf7d0;border-radius:6px;padding:2px 7px;font-size:11px;font-weight:700;display:inline-block}
 .badge-status-inactive{background:#fee2e2;color:#b91c1c;border:1px solid #fecaca;border-radius:6px;padding:2px 7px;font-size:11px;font-weight:700;display:inline-block}
@@ -2314,6 +2316,28 @@ const SEED_USERS = [
     houses: ['Bravo Café'],
     active: true,
     createdAt: '2026-09-10'
+  },
+  {
+    id: 'USR-6',
+    name: 'Agente de Reservas 01',
+    email: 'reservas01@bravopousada.com.br',
+    phone: '5522999990006',
+    password: 'Mkt@2026_CRM!',
+    role: 'Agente de Reservas 01',
+    houses: ['Bravo Café', 'Café da Bravo Pousada', 'Íconico', 'Leña'],
+    active: true,
+    createdAt: '2026-09-18'
+  },
+  {
+    id: 'USR-7',
+    name: 'Agente de Reservas 02',
+    email: 'reservas02@bravopousada.com.br',
+    phone: '5522999990007',
+    password: 'Mkt@2026_CRM!',
+    role: 'Agente de Reservas 02',
+    houses: ['Bravo Café', 'Café da Bravo Pousada', 'Íconico', 'Leña'],
+    active: true,
+    createdAt: '2026-09-18'
   }
 ];
 
@@ -2355,8 +2379,16 @@ function loadState(){let s;try{const raw=localStorage.getItem(STORE);s=raw?JSON.
       return true;
     });
   }
-  if(!s.users||!Array.isArray(s.users)||s.users.length===0)s.users=structuredClone(SEED_USERS);// s.currentUser initialized via authentication
-return s}
+  if(!s.users||!Array.isArray(s.users)||s.users.length===0){
+    s.users=structuredClone(SEED_USERS);
+  } else {
+    SEED_USERS.forEach(su => {
+      if(!s.users.some(u => u.email === su.email || u.id === su.id)){
+        s.users.push(structuredClone(su));
+      }
+    });
+  }
+  return s}
 function saveStateToStorage(){
   try {
     localStorage.setItem(STORE, JSON.stringify(state));
@@ -2529,10 +2561,16 @@ function segmentOf(c){
   return 'Inativo';
 }
 const COLORS={'Novo':'#477b9a','Recorrente':'#bf9153'};
+function isRoleAgente(role){
+  return role === 'Agente de Reservas 01' || role === 'Agente de Reservas 02';
+}
+
 function getRoleBadgeClass(role){
   if(role==='Master')return 'badge-role-master';
   if(role==='Gerente')return 'badge-role-gerente';
   if(role==='Atendimento')return 'badge-role-atendimento';
+  if(role==='Agente de Reservas 01')return 'badge-role-agente01';
+  if(role==='Agente de Reservas 02')return 'badge-role-agente02';
   return 'badge-role-operador';
 }
 
@@ -2541,6 +2579,10 @@ function isViewAllowedForRole(view, role){
   if(!role || role === 'Master') return true;
   if(role === 'Gerente'){
     const allowed = ['dashboard', 'clients', 'profile', 'checkin', 'reservations', 'waitlist', 'tables', 'qrcodes', 'users'];
+    return allowed.includes(view);
+  }
+  if(isRoleAgente(role)){
+    const allowed = ['reservations', 'clients', 'profile', 'tables', 'waitlist', 'checkin'];
     return allowed.includes(view);
   }
   if(role === 'Atendimento'){
@@ -2590,8 +2632,8 @@ function go(view){
 
   if(!isViewAllowedForRole(view, role)){
     toast(`Módulo "${view}" não disponível para o perfil ${role}.`);
-    const fallback = (role === 'Atendimento') ? 'checkin' : 'dashboard';
-    go(fallback);
+    const fallback = isRoleAgente(role) ? 'reservations' : (role === 'Atendimento' ? 'checkin' : 'dashboard');
+    if(view !== fallback) go(fallback);
     return;
   }
 
@@ -4138,6 +4180,136 @@ function openEditClientPrioritiesModal(id){
   };
 }
 
+function openEditClientModal(id){
+  const c = state.clients.find(x => x.id === id);
+  if(!c){
+    toast('Cliente não encontrado.');
+    return;
+  }
+  el('modalTitle').textContent = 'Editar dados do cliente';
+  const prio = c.priorities || [];
+  const src = c.source || 'Da casa';
+  el('modalBody').innerHTML = `
+    <form id="editClientForm">
+      <div class="form-grid">
+        <div class="field span2">
+          <label>Nome e sobrenome *</label>
+          <input id="ecName" required value="${esc(c.name||'')}" placeholder="Ex.: Gabriel Sá">
+          <div class="field-help">Mínimo: nome + segundo nome, ambos com pelo menos 2 letras.</div>
+        </div>
+        <div class="field">
+          <label>Telefone completo *</label>
+          <input id="ecPhone" inputmode="tel" required value="${fmtPhone(c.phone||'')}" placeholder="(22) 99999-9999">
+        </div>
+        <div class="field">
+          <label>Origem (Como nos conheceu?)</label>
+          <select id="ecSource">
+            <option value="Da casa" ${src==='Da casa'?'selected':''}>Da casa</option>
+            <option value="Instagram" ${src==='Instagram'?'selected':''}>Instagram</option>
+            <option value="Google" ${src==='Google'?'selected':''}>Google</option>
+            <option value="Indicação" ${src==='Indicação'?'selected':''}>Indicação</option>
+            <option value="Passagem/Passante" ${src==='Passagem/Passante'?'selected':''}>Passagem/Passante</option>
+            <option value="Influencer / Parceria MKT" ${['Influencer / Parceria MKT', 'influencer/ Parceria MKT', 'Influencer/Parceria MKT'].includes(src)?'selected':''}>Influencer / Parceria MKT</option>
+            <option value="TikTok" ${src==='TikTok'?'selected':''}>TikTok</option>
+            <option value="Outro" ${src==='Outro'?'selected':''}>Outro</option>
+          </select>
+        </div>
+        <div class="field span2">
+          <label>Prioridade (Atendimento Preferencial)</label>
+          <div class="priority-checkbox-group">
+            <label class="priority-pill-toggle"><input type="checkbox" name="ecPriority" value="Gestante" ${prio.includes('Gestante')?'checked':''}> <span>🤰 Gestante</span></label>
+            <label class="priority-pill-toggle"><input type="checkbox" name="ecPriority" value="Idoso" ${prio.includes('Idoso')?'checked':''}> <span>🧓 Idoso</span></label>
+            <label class="priority-pill-toggle"><input type="checkbox" name="ecPriority" value="PCD" ${prio.includes('PCD')?'checked':''}> <span>♿ PCD</span></label>
+            <label class="priority-pill-toggle"><input type="checkbox" name="ecPriority" value='Com Criança "no colo"' ${prio.includes('Com Criança "no colo"')?'checked':''}> <span>👶 Com Criança "no colo"</span></label>
+          </div>
+          <div class="field-help" style="margin-top:4px">Múltipla escolha. Sinaliza atendimento prioritário no salão e no histórico do cliente.</div>
+        </div>
+        <div class="field span2">
+          <label>Observações / Preferências</label>
+          <textarea id="ecNotes" rows="3" placeholder="Preferências, restrições, observações operacionais...">${esc(c.notes||'')}</textarea>
+        </div>
+      </div>
+      <div class="form-actions" style="margin-top:16px">
+        <button type="button" class="btn" onclick="closeModal()">Cancelar</button>
+        <button type="submit" class="btn primary">Salvar Alterações</button>
+      </div>
+    </form>
+  `;
+  el('modal').classList.add('show');
+  el('editClientForm').onsubmit = e => {
+    e.preventDefault();
+    const nv = validateClientName(el('ecName').value);
+    const pv = validatePhone(el('ecPhone').value);
+    if(!nv.ok){ toast(nv.msg); el('ecName').focus(); return; }
+    if(!pv.ok){ toast(pv.msg); el('ecPhone').focus(); return; }
+    const newPhone = pv.value;
+    const oldPhoneDigits = digits(c.phone);
+
+    if(state.clients.some(x => x.id !== c.id && normalizePhone(x.phone) === newPhone)){
+      toast('Já existe outro cliente cadastrado com este telefone.');
+      el('ecPhone').focus();
+      return;
+    }
+    const selectedPriorities = Array.from(document.querySelectorAll('input[name="ecPriority"]:checked')).map(cb => cb.value);
+    c.name = nv.value;
+    c.phone = newPhone;
+    c.source = el('ecSource').value;
+    c.priorities = selectedPriorities;
+    c.notes = el('ecNotes').value.trim();
+
+    // Sincroniza dados do cliente nas visitas locais
+    if(Array.isArray(state.visits)){
+      state.visits.forEach(v => {
+        if((v.customerId && v.customerId === c.id) || (oldPhoneDigits && digits(v.phone) === oldPhoneDigits)){
+          v.name = c.name;
+          v.phone = c.phone;
+          if(!v.customerId) v.customerId = c.id;
+        }
+      });
+      rebuildVisitsIndex();
+    }
+
+    // Sincroniza em reservas onde o cliente seja este
+    if(Array.isArray(state.reservations)){
+      state.reservations.forEach(r => {
+        if((r.customerId && r.customerId === c.id) || (oldPhoneDigits && digits(r.phone) === oldPhoneDigits)){
+          r.name = c.name;
+          r.phone = c.phone;
+          if(!r.customerId) r.customerId = c.id;
+        }
+      });
+    }
+
+    // Atualiza campos de reserva caso modal de reserva esteja ativo
+    if(el('rName') && selectedReservationClientId === c.id){
+      el('rName').value = c.name;
+      if(el('rPhone')) el('rPhone').value = fmtPhone(c.phone);
+      if(el('rSource')) el('rSource').value = c.source;
+      document.querySelectorAll('input[name="rPriority"]').forEach(cb => {
+        cb.checked = c.priorities.includes(cb.value);
+      });
+      const card = el('rSelectedClientCard');
+      if(card){
+        const cc = calcClient(c);
+        const selPrioHtml = (c.priorities && c.priorities.length) ? `<div style="margin-top:6px">${renderPriorityBadges(c.priorities)}</div>` : '';
+        card.innerHTML = `<div style="display:flex;justify-content:space-between;gap:10px;align-items:center"><div><strong>✓ ${esc(cc.name)}</strong>${selPrioHtml}<div style="font-size:10px;color:var(--muted);margin-top:2px">Cliente existente selecionado</div></div><div style="display:flex;gap:6px"><button type="button" class="iconbtn" onclick="openEditClientModal('${esc(c.id)}')">✏️ Alterar dados</button><button type="button" class="iconbtn" onclick="clearSelectedReservationClient()">Trocar</button></div></div><div class="selected-grid"><div><span>Telefone</span><b>${fmtPhone(cc.phone)}</b></div><div><span>CPF</span><b>${esc(cc.cpf||'Não informado')}</b></div><div><span>Última visita</span><b>${fmtDate(cc.lastVisit)}</b></div><div><span>Total de visitas</span><b>${cc.totalVisits}</b></div></div>`;
+      }
+    }
+
+    save();
+    dbSyncCustomer(c);
+    closeModal();
+    if(document.getElementById('view-profile')?.classList.contains('active')){
+      openProfile(c.id);
+    }
+    if(document.getElementById('view-reservations')?.classList.contains('active')){
+      renderReservations();
+    }
+    renderClients();
+    toast('✓ Dados do cliente atualizados com sucesso!');
+  };
+}
+
 function getFilteredClients(){
   const q = el('clientSearch').value.trim().toLowerCase(),
         hf = el('clientHouse').value,
@@ -4170,7 +4342,7 @@ function renderClients(){
   const slice=a.slice((clientPage-1)*pageSize,clientPage*pageSize);
   el('clientsBody').innerHTML=slice.map(c=>{
     const prioBadges = renderPriorityBadges(c.priorities);
-    return `<tr><td><div class="person"><div class="avatar">${initials(c.name)}</div><div><b>${esc(c.name)}</b>${prioBadges?`<div style="margin-top:3px">${prioBadges}</div>`:''}<br><span style="color:var(--muted);font-size:10px">${esc(c.source||'')}</span></div></div></td><td>${fmtPhone(c.phone)}</td><td>${fmtDate(c.lastVisit)}</td><td>${c.iconico}</td><td>${c.lena}</td><td>${c.cafe||0}</td><td>${c.cafePousada||0}</td><td><b>${c.totalVisits}</b></td><td><span class="badge ${c.totalVisits>=5?'gold':c.totalVisits>=2?'good':'blue'}">${segmentOf(c)}</span></td><td><button class="iconbtn" onclick="openProfile('${esc(c.id)}')">Ver →</button></td></tr>`;
+    return `<tr><td><div class="person"><div class="avatar">${initials(c.name)}</div><div><b>${esc(c.name)}</b>${prioBadges?`<div style="margin-top:3px">${prioBadges}</div>`:''}<br><span style="color:var(--muted);font-size:10px">${esc(c.source||'')}</span></div></div></td><td>${fmtPhone(c.phone)}</td><td>${fmtDate(c.lastVisit)}</td><td>${c.iconico}</td><td>${c.lena}</td><td>${c.cafe||0}</td><td>${c.cafePousada||0}</td><td><b>${c.totalVisits}</b></td><td><span class="badge ${c.totalVisits>=5?'gold':c.totalVisits>=2?'good':'blue'}">${segmentOf(c)}</span></td><td style="white-space:nowrap"><button class="iconbtn" onclick="openProfile('${esc(c.id)}')">Ver →</button><button class="iconbtn" style="margin-left:4px" onclick="openEditClientModal('${esc(c.id)}')" title="Editar dados do cliente">✏️ Editar</button></td></tr>`;
   }).join('')||'<tr><td colspan="10"><div class="empty">Nenhum cliente encontrado.</div></td></tr>';
   el('clientCount').textContent=`${a.length.toLocaleString('pt-BR')} clientes`;
   el('clientPageLabel').textContent=`${clientPage}/${pages}`;
@@ -4201,7 +4373,8 @@ function openProfile(id){
     <h3>${esc(c.name)}</h3>
     <div class="phone">${fmtPhone(c.phone)}</div>
     ${prioBadgesHtml}
-    <div class="actions-row" style="margin-bottom:14px;justify-content:center">
+    <div class="actions-row" style="margin-bottom:14px;justify-content:center;gap:8px">
+      <button class="btn primary" style="font-size:12px;padding:7px 12px;font-weight:700" onclick="openEditClientModal('${esc(c.id)}')">✏️ Editar Dados</button>
       <button class="btn" style="font-size:11px;padding:6px 10px" onclick="openEditClientPrioritiesModal('${esc(c.id)}')">⭐ Alterar Prioridades</button>
     </div>
     <div class="quickstats">
@@ -4335,7 +4508,9 @@ const HOUSE_BRANDING = {
 const ALL_HOUSES = ['Bravo Café', 'Café da Bravo Pousada', 'Íconico', 'Leña'];
 
 function getUserHouses(user){
-  if(!user || user.role === 'Master') return ['all', 'Íconico', 'Leña', 'Bravo Café', 'Café da Bravo Pousada'];
+  if(!user || user.role === 'Master' || (isRoleAgente(user.role) && (!user.houses || !user.houses.length))) {
+    return ['all', 'Íconico', 'Leña', 'Bravo Café', 'Café da Bravo Pousada'];
+  }
   let list = Array.isArray(user.houses) && user.houses.length > 0 ? user.houses.map(normalizeHouseKey) : ['Bravo Café'];
   list = [...new Set(list)];
   return list.sort((a, b) => a.localeCompare(b, 'pt-BR'));
@@ -5222,10 +5397,11 @@ function checkAppAuthentication(){
     if(appEl) appEl.style.display = 'flex';
     applyCurrentUser();
     updateNavPermissions();
-    if(validUser.role === 'Atendimento'){
+    if(validUser.role === 'Atendimento' || isRoleAgente(validUser.role)){
       const curView = document.querySelector('.view.active');
+      const defaultView = isRoleAgente(validUser.role) ? 'reservations' : 'checkin';
       if(!curView || curView.id === 'view-dashboard' || !isViewAllowedForRole(curView.id.replace('view-',''), validUser.role)){
-        go('checkin');
+        go(defaultView);
       }
     }
     return true;
@@ -5338,7 +5514,7 @@ async function handleOverlayLogin(e){
   const curView = document.querySelector('.view.active');
   const viewId = curView ? curView.id.replace('view-', '') : 'dashboard';
   if(!isViewAllowedForRole(viewId, user.role)){
-    go(user.role === 'Atendimento' ? 'checkin' : 'dashboard');
+    go(isRoleAgente(user.role) ? 'reservations' : (user.role === 'Atendimento' ? 'checkin' : 'dashboard'));
   }
   toast(`Bem-vindo(a), ${user.name}!`);
   if(typeof sendOperatorHeartbeat === 'function') sendOperatorHeartbeat('LOGIN');
@@ -5364,8 +5540,8 @@ function performLogout(){
 }
 
 function openLoginModal(){
-  const masters=state.users.filter(x=>x.role==='Master');
-  const masterQuickCards=masters.map(m=>`
+  const quickUsers=state.users.filter(x=>x.active && (x.role==='Master' || isRoleAgente(x.role)));
+  const masterQuickCards=quickUsers.map(m=>`
     <div onclick="quickLoginAs('${m.id}')" style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:#f8fafc;cursor:pointer;margin-bottom:8px;transition:all .15s" onmouseover="this.style.borderColor='var(--accent)';this.style.background='#fff'" onmouseout="this.style.borderColor='var(--line)';this.style.background='#f8fafc'">
       <div style="display:flex;align-items:center;gap:10px">
         <div style="width:32px;height:32px;border-radius:50%;background:#0f202a;color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700">
@@ -5376,7 +5552,7 @@ function openLoginModal(){
           <span style="font-size:11px;color:var(--muted)">${esc(m.email)}</span>
         </div>
       </div>
-      <span class="badge-role-master" style="font-size:10px">Master</span>
+      <span class="${getRoleBadgeClass(m.role)}" style="font-size:10px">${esc(m.role)}</span>
     </div>
   `).join('');
 
@@ -5442,7 +5618,7 @@ function handleLoginSubmit(e){
   const curView = document.querySelector('.view.active');
   const viewId = curView ? curView.id.replace('view-', '') : 'dashboard';
   if(!isViewAllowedForRole(viewId, user.role)){
-    go(user.role === 'Atendimento' ? 'checkin' : 'dashboard');
+    go(isRoleAgente(user.role) ? 'reservations' : (user.role === 'Atendimento' ? 'checkin' : 'dashboard'));
   }
   toast(`Bem-vindo, ${user.name}!`);
 
@@ -5460,7 +5636,7 @@ function quickLoginAs(userId){
   const curView = document.querySelector('.view.active');
   const viewId = curView ? curView.id.replace('view-', '') : 'dashboard';
   if(!isViewAllowedForRole(viewId, user.role)){
-    go(user.role === 'Atendimento' ? 'checkin' : 'dashboard');
+    go(isRoleAgente(user.role) ? 'reservations' : (user.role === 'Atendimento' ? 'checkin' : 'dashboard'));
   }
   toast(`Conectado como ${user.name} (${user.role}).`);
 
@@ -5610,9 +5786,8 @@ function renderUsers(){
   const isMaster = cur && cur.role === 'Master';
   const isGerente = cur && cur.role === 'Gerente';
 
-  // Perfil Atendimento não tem acesso ao módulo de usuários
-  if(cur && cur.role === 'Atendimento'){
-    go('checkin');
+  if(cur && (cur.role === 'Atendimento' || isRoleAgente(cur.role))){
+    go(isRoleAgente(cur.role) ? 'reservations' : 'checkin');
     return;
   }
 
@@ -5622,12 +5797,12 @@ function renderUsers(){
 
   let list=[...state.users];
 
-  // Gerente visualiza APENAS a si mesmo e usuários de Atendimento da(s) sua(s) casa(s)
+  // Gerente visualiza a si mesmo e usuários de Atendimento e Agentes da(s) sua(s) casa(s)
   if(isGerente){
     const myHouses = getUserHouses(cur);
     list = list.filter(u => {
       if(u.id === cur.id) return true;
-      if(u.role === 'Atendimento' && u.houses && u.houses.some(h => myHouses.includes(h))) return true;
+      if((u.role === 'Atendimento' || isRoleAgente(u.role)) && u.houses && u.houses.some(h => myHouses.includes(h))) return true;
       return false;
     });
   }
@@ -6246,7 +6421,7 @@ function selectReservationClient(id){
   if(card){
     card.className = 'span2 selected-client-card show';
     const selPrioHtml = (c.priorities && c.priorities.length) ? `<div style="margin-top:6px">${renderPriorityBadges(c.priorities)}</div>` : '';
-    card.innerHTML = `<div style="display:flex;justify-content:space-between;gap:10px;align-items:center"><div><strong>✓ ${esc(cc.name)}</strong>${selPrioHtml}<div style="font-size:10px;color:var(--muted);margin-top:2px">Cliente existente selecionado</div></div><button type="button" class="iconbtn" onclick="clearSelectedReservationClient()">Trocar</button></div><div class="selected-grid"><div><span>Telefone</span><b>${fmtPhone(cc.phone)}</b></div><div><span>CPF</span><b>${esc(cc.cpf||'Não informado')}</b></div><div><span>Última visita</span><b>${fmtDate(cc.lastVisit)}</b></div><div><span>Total de visitas</span><b>${cc.totalVisits}</b></div></div>`;
+    card.innerHTML = `<div style="display:flex;justify-content:space-between;gap:10px;align-items:center"><div><strong>✓ ${esc(cc.name)}</strong>${selPrioHtml}<div style="font-size:10px;color:var(--muted);margin-top:2px">Cliente existente selecionado</div></div><div style="display:flex;gap:6px"><button type="button" class="iconbtn" onclick="openEditClientModal('${esc(c.id)}')">✏️ Alterar dados</button><button type="button" class="iconbtn" onclick="clearSelectedReservationClient()">Trocar</button></div></div><div class="selected-grid"><div><span>Telefone</span><b>${fmtPhone(cc.phone)}</b></div><div><span>CPF</span><b>${esc(cc.cpf||'Não informado')}</b></div><div><span>Última visita</span><b>${fmtDate(cc.lastVisit)}</b></div><div><span>Total de visitas</span><b>${cc.totalVisits}</b></div></div>`;
   }
 }
 
@@ -6263,11 +6438,11 @@ function clearSelectedReservationClient(){
 }
 
 function openReservation(prefill=null, editId=null){
-  if (!navigator.onLine && isUserAgente02((typeof getCurrentUser === 'function') ? getCurrentUser() : null)) {
+  const isEditing = Boolean(editId || prefill?.id);
+  if (!navigator.onLine && !isEditing && isUserAgente02((typeof getCurrentUser === 'function') ? getCurrentUser() : null)) {
     toast('🔒 Sem conexão. Para evitar duplicidades, apenas o Agente de Reservas 01 pode cadastrar reservas offline.', 'warn');
     return;
   }
-  const isEditing = Boolean(editId || prefill?.id);
   const resId = editId || prefill?.id || null;
   selectedReservationClientId = prefill?.customerId || prefill?.clientId || null;
   el('modalTitle').textContent = isEditing ? 'Editar reserva' : 'Nova reserva';
