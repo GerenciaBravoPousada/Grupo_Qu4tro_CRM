@@ -23,7 +23,7 @@ Conforme definido, a base de clientes é **Unificada a nível de Grupo**:
   - Total de visitas ao **Iconiko**
   - Total de visitas ao **Bravo Café**
   - Primeira casa onde o cliente foi acolhido
-  - Origem da captação (Instagram, Indicação, Google, QR Code da mesa)
+  - Origem da captação (Instagram, Google, Indicação, Passagem/Passante, Influencer / Parceria MKT, TikTok, Da casa, QR Code da mesa, Outro)
   - Segmento automático: *VIP Ativo*, *Recorrente*, *Novo*, *Em Risco* e *Cross-selling* (ex: cliente que frequenta o Leña, mas ainda não conhece o Iconiko).
 
 ---
