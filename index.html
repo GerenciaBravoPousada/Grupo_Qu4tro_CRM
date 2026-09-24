@@ -3966,14 +3966,14 @@ function openEditCheckinModal(visitId){
           <textarea id="editCiNotes" style="min-height:60px">${esc(v.notes || '')}</textarea>
         </div>
 
-        <!-- MOTIVO DA ALTERAÇÃO OBRIGATÓRIO -->
-        <div class="field span2" style="background:#fffbeb;border:1.5px solid #fde68a;border-radius:12px;padding:12px;margin-top:4px">
-          <label style="color:#92400e;font-weight:800;font-size:12px;display:flex;align-items:center;gap:6px">
-            ⚠️ Motivo da Alteração * (Obrigatório para confirmação e auditoria)
+        <!-- MOTIVO DA ALTERAÇÃO (OPCIONAL) -->
+        <div class="field span2" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:12px;margin-top:4px">
+          <label style="color:#475569;font-weight:700;font-size:12px;display:flex;align-items:center;gap:6px">
+            Motivo / Observação da Alteração (Opcional)
           </label>
-          <input type="text" id="editCiReason" required placeholder="Ex.: Garçom informou mudança de mesa 12 para 14, erro no nº de pessoas..." style="margin-top:6px;width:100%;background:#fff;border-color:#f59e0b">
-          <small style="color:#b45309;font-size:10.5px;display:block;margin-top:4px">
-            O motivo e o usuário responsável serão registrados no histórico desta visita para controle gerencial.
+          <input type="text" id="editCiReason" placeholder="Ex.: Garçom informou mudança de mesa, ajuste no nº de pessoas..." style="margin-top:6px;width:100%;background:#fff;border:1px solid #cbd5e1">
+          <small style="color:#64748b;font-size:10.5px;display:block;margin-top:4px">
+            Se preenchido, o motivo será registrado no histórico desta visita para controle gerencial.
           </small>
         </div>
       </div>
@@ -3985,7 +3985,7 @@ function openEditCheckinModal(visitId){
     </form>
   `;
   el('modal').classList.add('show');
-  setTimeout(() => el('editCiReason')?.focus(), 150);
+  setTimeout(() => el('editCiName')?.focus(), 150);
 }
 
 function submitEditCheckinForm(visitId){
@@ -3993,11 +3993,6 @@ function submitEditCheckinForm(visitId){
   if(!v) return;
 
   const reason = (el('editCiReason')?.value || '').trim();
-  if(!reason || reason.length < 3){
-    toast('Por favor, informe o motivo da alteração (mínimo 3 letras).');
-    el('editCiReason')?.focus();
-    return;
-  }
 
   const newName = (el('editCiName')?.value || '').trim();
   if(!newName){
@@ -4028,8 +4023,9 @@ function submitEditCheckinForm(visitId){
   const newSource = el('editCiSource')?.value || v.source;
   const newNotes = (el('editCiNotes')?.value || '').trim();
 
-  // Pedir confirmação e motivo antes de salvar conforme solicitado
-  const confirmMsg = `Confirma a alteração do check-in de "${v.name}"?\n\n• Motivo registrado: "${reason}"\n• Novo cliente: ${newName}\n• Pessoas: ${newPeople}\n• Mesa: ${newTable || '—'}`;
+  // Pedir confirmação antes de salvar
+  const reasonText = reason ? `\n• Motivo registrado: "${reason}"` : '';
+  const confirmMsg = `Confirma a alteração do check-in de "${v.name}"?${reasonText}\n• Novo cliente: ${newName}\n• Pessoas: ${newPeople}\n• Mesa: ${newTable || '—'}`;
   if(!confirm(confirmMsg)){
     return;
   }
@@ -4038,7 +4034,7 @@ function submitEditCheckinForm(visitId){
   const u = (typeof getCurrentUser === 'function') ? getCurrentUser() : null;
   const userName = u?.name || 'Operador';
   const nowStamp = new Date().toLocaleDateString('pt-BR') + ' às ' + currentClock();
-  const auditLog = `\n[Editado em ${nowStamp} por ${userName} — Motivo: ${reason}]`;
+  const auditLog = reason ? `\n[Editado em ${nowStamp} por ${userName} — Motivo: ${reason}]` : `\n[Editado em ${nowStamp} por ${userName}]`;
 
   v.name = newName;
   v.phone = finalPhone;
