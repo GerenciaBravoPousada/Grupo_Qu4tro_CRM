@@ -561,6 +561,76 @@ body[data-house] .sidebar{background:linear-gradient(180deg,var(--nav),color-mix
   margin-left: auto;
   line-height: 1.4;
 }
+.nav-badge-dup {
+  background: #f59e0b;
+  color: #fff;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 800;
+  padding: 1px 7px;
+  margin-left: auto;
+  line-height: 1.4;
+  box-shadow: 0 1px 4px rgba(245, 158, 11, 0.4);
+}
+.duplicate-alert-banner {
+  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+  border: 1.5px solid #f59e0b;
+  border-radius: 12px;
+  padding: 12px 18px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.15);
+  animation: dupBannerPulse 2.5s infinite ease-in-out;
+}
+@keyframes dupBannerPulse {
+  0%, 100% { box-shadow: 0 2px 8px rgba(245, 158, 11, 0.15); }
+  50% { box-shadow: 0 4px 16px rgba(245, 158, 11, 0.35); }
+}
+.duplicate-alert-banner .dup-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #92400e;
+}
+.duplicate-alert-banner .dup-icon {
+  font-size: 24px;
+  flex-shrink: 0;
+}
+.duplicate-alert-banner .dup-text strong {
+  display: block;
+  font-size: 13.5px;
+  font-weight: 750;
+  color: #78350f;
+}
+.duplicate-alert-banner .dup-text p {
+  margin: 3px 0 0 0;
+  font-size: 12px;
+  color: #92400e;
+}
+.duplicate-alert-banner .dup-action-btn {
+  background: #d97706;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 9px 18px;
+  font-size: 13px;
+  font-weight: 750;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all .2s;
+  box-shadow: 0 1px 4px rgba(217, 119, 6, 0.3);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.duplicate-alert-banner .dup-action-btn:hover {
+  background: #b45309;
+  transform: translateY(-1px);
+}
+
 
 /* Switch Toggle Component */
 .switch {
@@ -911,11 +981,11 @@ input:checked + .slider:before {
  <div class="brand group-brand"><img class="group-logo" src="data:image/png;base64,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" alt="Grupo Qu4tro"><div class="group-brand-copy"><strong>GRUPO QU4TRO</strong><small>Gestão de Clientes</small></div><button type="button" class="mobile-sidebar-close" id="mobileSidebarCloseBtn" onclick="closeMobileSidebar()" aria-label="Fechar menu" title="Fechar Menu">✕</button></div>
  <nav class="nav">
   <button class="active" data-view="dashboard" title="Visão Geral"><span class="ico">◫</span><span class="nav-text">Visão Geral</span></button>
-  <button data-view="clients" title="Clientes"><span class="ico">◎</span><span class="nav-text">Clientes</span></button>
+  <button data-view="clients" title="Clientes"><span class="ico">◎</span><span class="nav-text">Clientes</span><span class="nav-badge-dup" id="clientsDupBadge" style="display:none">0</span></button>
   <button data-view="checkin" title="Check-in"><span class="ico">✓</span><span class="nav-text">Check-in</span></button>
   <button data-view="waitlist" title="Fila de Espera"><span class="ico">⏳</span><span class="nav-text">Fila de Espera</span></button>
   <button data-view="reservations" title="Reservas"><span class="ico">▣</span><span class="nav-text">Reservas</span></button>
-  <button data-view="checkin-list" title="Lista de Check-ins"><span class="ico">📋</span><span class="nav-text">Lista de Check-ins</span></button>
+  <button data-view="checkin-list" title="Lista de Check-ins"><span class="ico">📋</span><span class="nav-text">Lista de Check-ins</span><span class="nav-badge-dup" id="checkinListDupBadge" style="display:none">0</span></button>
    <button data-view="vouchers" title="Vouchers"><span class="ico">🎟️</span><span class="nav-text">Vouchers</span><span class="nav-badge-vch" id="vouchersPendingBadge" style="display:none">0</span></button>
   <button data-view="tables" title="Mapa de Mesas"><span class="ico">⊞</span><span class="nav-text">Mapa de Mesas</span></button>
   <button data-view="qrcodes" title="QR Codes"><span class="ico">⌁</span><span class="nav-text">QR Codes</span></button>
@@ -974,6 +1044,7 @@ input:checked + .slider:before {
     <button type="button" class="op-nav-btn" id="opTabCheckinList" data-opview="checkin-list" onclick="go('checkin-list')" title="Lista de Check-ins do Salão">
      <span class="op-ico">📋</span>
      <span class="op-btn-text">Lista de Check-ins</span>
+     <span class="op-counter-badge" id="opCheckinListDupBadge" style="display:none;background:#f59e0b">0</span>
     </button>
     <!-- 5. Mapa de Mesas -->
     <button type="button" class="op-nav-btn" data-opview="tables" onclick="go('tables')" title="Mapa de Mesas e Ocupação">
@@ -993,6 +1064,7 @@ input:checked + .slider:before {
 
   <section class="view" id="view-clients">
    <div class="hero"><div><h2>Clientes</h2><p>Cadastro único, recorrência e histórico por pessoa.</p></div><div class="filters"><select id="clientHouse" class="control"><option value="all">Todas as casas</option><option value="iconico">Visitou Íconico</option><option value="lena">Visitou Leña</option><option value="cafe">Visitou Bravo Café</option><option value="pousada">Visitou Café da Bravo Pousada</option><option value="both">Visitou mais de uma casa</option></select><select id="clientSegment" class="control"><option value="all">Todos os segmentos</option><option value="new">1 visita</option><option value="recurring">2+ visitas</option><option value="vip">5+ visitas</option></select><select id="clientPriority" class="control"><option value="all">Todas as prioridades</option><option value="any">⭐ Com prioridade (qualquer)</option><option value="Gestante">🤰 Gestante</option><option value="Idoso">🧓 Idoso</option><option value="PCD">♿ PCD</option><option value='Com Criança "no colo"'>👶 Com Criança "no colo"</option></select></div></div>
+   <div id="clientsDupBanner" class="duplicate-alert-banner" style="display:none"></div>
    <div class="table-card"><div class="table-head"><div class="search"><span>⌕</span><input id="clientSearch" placeholder="Buscar por nome ou telefone..."></div><div class="actions-row"><button class="btn" onclick="openNewClient()">＋ Cliente</button><button class="btn" onclick="exportCSV('clients')">⇩ CSV</button></div></div><div class="table-wrap"><table class="data-table"><thead><tr><th>Cliente</th><th>Telefone</th><th>Última visita</th><th>Íconico</th><th>Leña</th><th>Bravo Café</th><th>Bravo Pousada</th><th>Total</th><th>Segmento</th><th></th></tr></thead><tbody id="clientsBody"></tbody></table></div><div class="pager"><span id="clientCount"></span><div><button class="iconbtn" id="prevClients">←</button> <span id="clientPageLabel"></span> <button class="iconbtn" id="nextClients">→</button></div></div></div>
   </section>
 
@@ -1058,6 +1130,7 @@ input:checked + .slider:before {
         <p>Acompanhamento e auditoria dos atendimentos do dia com filtros por data, busca e edição.</p>
       </div>
     </div>
+    <div id="checkinListDupBanner" class="duplicate-alert-banner" style="display:none"></div>
 
     <!-- Filtros e Controles -->
     <div class="card" style="margin-bottom:16px;padding:16px">
@@ -2119,6 +2192,15 @@ async function processOutboxQueue(){
           };
           const { error } = await sb.from('customers').upsert(payload, { onConflict: 'id' });
           resError = error;
+        } else if (item.action === 'SYNC_PENDING_DUPLICATES') {
+          const payload = {
+            id: '00000000-0000-0000-0000-000000000005',
+            name: '__SYSTEM_PENDING_DUPLICATES__',
+            phone: 'SYSTEM_PENDING_DUPLICATES',
+            notes: JSON.stringify(item.payload)
+          };
+          const { error } = await sb.from('customers').upsert(payload, { onConflict: 'id' });
+          resError = error;
         }
 
         if (!resError) {
@@ -2577,6 +2659,16 @@ async function pullAllFromSupabase(){
             if(parsedStatus && typeof parsedStatus === 'object'){
               window.__qu4troOperatorStatus = parsedStatus;
               if(typeof renderOperatorPresenceWidget === 'function') renderOperatorPresenceWidget();
+            }
+          } catch(e){}
+          return;
+        }
+        if(rc.name === '__SYSTEM_PENDING_DUPLICATES__'){
+          try {
+            const parsedDups = JSON.parse(rc.notes);
+            if(Array.isArray(parsedDups)){
+              state.pendingDuplicates = parsedDups;
+              if(typeof updateDuplicateBadgesAndBanners === 'function') updateDuplicateBadgesAndBanners();
             }
           } catch(e){}
           return;
@@ -3083,10 +3175,13 @@ function loadState(){let s;try{const raw=localStorage.getItem(STORE);s=raw?JSON.
     }
   }
   if(Array.isArray(s.visits)){
-    s.visits = s.visits.filter(v => v.id !== 'a607b35b-3e8a-45dc-8503-37fba321930b' && !String(v.name || '').toLowerCase().includes('jean ballan teste'));
+    s.visits = s.visits.filter(v => v.id !== 'a607b35b-3e8a-45dc-8503-37fba321930b');
   }
   if(Array.isArray(s.clients)){
-    s.clients = s.clients.filter(c => c.id !== 'd1a08337-74ee-4422-bf61-0a17212ab837' && !String(c.name || '').toLowerCase().includes('jean ballan teste'));
+    s.clients = s.clients.filter(c => c.id !== 'd1a08337-74ee-4422-bf61-0a17212ab837');
+  }
+  if(!s.pendingDuplicates || !Array.isArray(s.pendingDuplicates)){
+    s.pendingDuplicates = [];
   }
   if(Array.isArray(s.visits)){
     const seen = new Set();
@@ -4461,6 +4556,7 @@ function toggleCheckinListOrder(){
 }
 
 function renderCheckinList(){
+  if(typeof updateDuplicateBadgesAndBanners === 'function') updateDuplicateBadgesAndBanners();
   const tbody = el('checkinListTbody');
   if(!tbody) return;
 
@@ -5080,6 +5176,7 @@ function getFilteredClients(){
 }
 
 function renderClients(){
+  if(typeof updateDuplicateBadgesAndBanners === 'function') updateDuplicateBadgesAndBanners();
   const a=getFilteredClients(),pages=Math.max(1,Math.ceil(a.length/pageSize));
   clientPage=Math.min(clientPage,pages);
   const slice=a.slice((clientPage-1)*pageSize,clientPage*pageSize);
@@ -5177,6 +5274,358 @@ function openProfile(id){
 function copyPhone(){if(!currentClient)return;navigator.clipboard?.writeText(currentClient.phone);toast('Telefone copiado.')}
 let selectedCheckinClientId=null;
 function foldText(v){return String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim()}
+
+function levenshteinDistance(s1, s2) {
+  s1 = String(s1 || '');
+  s2 = String(s2 || '');
+  const m = s1.length, n = s2.length;
+  const d = [];
+  for (let i = 0; i <= m; i++) d[i] = [i];
+  for (let j = 0; j <= n; j++) d[0][j] = j;
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      const cost = s1[i - 1] === s2[j - 1] ? 0 : 1;
+      d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + cost);
+    }
+  }
+  return d[m][n];
+}
+
+function calculateNameSimilarity(nameA, nameB) {
+  const a = foldText(nameA);
+  const b = foldText(nameB);
+  if (!a || !b) return 0;
+  if (a === b) return 1.0;
+
+  const stopWords = new Set(['da', 'de', 'do', 'das', 'dos', 'e', 'junior', 'filho', 'neto', 'sobrinho']);
+  const wordsA = a.split(/\s+/).filter(w => w.length > 1 && !stopWords.has(w));
+  const wordsB = b.split(/\s+/).filter(w => w.length > 1 && !stopWords.has(w));
+
+  const commonWords = wordsA.filter(w => wordsB.includes(w));
+  const totalUnique = new Set([...wordsA, ...wordsB]);
+  const jaccard = totalUnique.size > 0 ? (commonWords.length / totalUnique.size) : 0;
+
+  const firstA = wordsA[0];
+  const firstB = wordsB[0];
+  const lastA = wordsA[wordsA.length - 1];
+  const lastB = wordsB[wordsB.length - 1];
+  const firstLastMatch = (firstA && firstB && firstA === firstB && lastA && lastB && lastA === lastB);
+
+  const maxLen = Math.max(a.length, b.length);
+  const dist = levenshteinDistance(a, b);
+  const levSim = maxLen > 0 ? (1 - dist / maxLen) : 0;
+
+  let score = Math.max(jaccard, levSim);
+  if (firstLastMatch && score < 0.85) score = 0.85;
+  return score;
+}
+
+function calculatePhoneSimilarity(phoneA, phoneB) {
+  let a = digits(phoneA);
+  let b = digits(phoneB);
+  if (!a || !b) return 0;
+  if (a.startsWith('55') && a.length > 10) a = a.slice(2);
+  if (b.startsWith('55') && b.length > 10) b = b.slice(2);
+  if (a === b) return 1.0;
+
+  const last8A = a.slice(-8);
+  const last8B = b.slice(-8);
+  if (last8A.length === 8 && last8A === last8B) return 0.90;
+
+  if (a.length === b.length && a.length >= 10) {
+    if (levenshteinDistance(a, b) === 1) return 0.85;
+  }
+  return 0;
+}
+
+function findPotentialDuplicate(name, phone, selectedId) {
+  const normPhone = normalizePhone(phone);
+  const normName = foldText(name);
+  if (!normPhone && !normName) return null;
+
+  let bestMatch = null;
+  let highestScore = 0;
+
+  for (const client of (state.clients || [])) {
+    if (!client || !client.name) continue;
+    if (selectedId && client.id === selectedId) continue;
+    if (client.name.startsWith('__SYSTEM_')) continue;
+
+    const phoneSim = calculatePhoneSimilarity(phone, client.phone);
+    const nameSim = calculateNameSimilarity(name, client.name);
+
+    let matchScore = 0;
+    let matchReason = '';
+
+    if (phoneSim === 1.0) {
+      if (nameSim >= 0.85) {
+        matchScore = 1.0;
+        matchReason = 'Mesmo cliente (telefone e nome coincidentes)';
+      } else {
+        matchScore = 0.95;
+        matchReason = `Mesmo telefone com nome diferente ("${client.name}")`;
+      }
+    } else if (nameSim === 1.0) {
+      matchScore = 0.90;
+      matchReason = `Mesmo nome com telefone diferente (${fmtPhone(client.phone)})`;
+    } else if (nameSim >= 0.78) {
+      matchScore = nameSim;
+      matchReason = `Nome muito semelhante (${Math.round(nameSim * 100)}% de similaridade com "${client.name}")`;
+    } else if (phoneSim >= 0.85 && nameSim >= 0.40) {
+      matchScore = 0.85;
+      matchReason = `Telefone quase idêntico (${fmtPhone(client.phone)}) e nome similar`;
+    }
+
+    if (matchScore > highestScore && matchScore >= 0.75) {
+      highestScore = matchScore;
+      bestMatch = {
+        client,
+        score: matchScore,
+        reason: matchReason,
+        phoneSim,
+        nameSim
+      };
+    }
+  }
+
+  return bestMatch;
+}
+
+function syncPendingDuplicatesToRemote() {
+  if (typeof addToOutbox === 'function') {
+    addToOutbox('SYNC_PENDING_DUPLICATES', state.pendingDuplicates || []);
+  }
+}
+
+function updateDuplicateBadgesAndBanners() {
+  const pending = (state.pendingDuplicates || []).filter(d => d && !d.resolved);
+  const count = pending.length;
+
+  const cbBadge = el('clientsDupBadge');
+  const clBadge = el('checkinListDupBadge');
+  const opBadge = el('opCheckinListDupBadge');
+  if (cbBadge) {
+    cbBadge.textContent = count;
+    cbBadge.style.display = count > 0 ? 'inline-flex' : 'none';
+  }
+  if (clBadge) {
+    clBadge.textContent = count;
+    clBadge.style.display = count > 0 ? 'inline-flex' : 'none';
+  }
+  if (opBadge) {
+    opBadge.textContent = count;
+    opBadge.style.display = count > 0 ? 'inline-flex' : 'none';
+  }
+
+  const cBanner = el('clientsDupBanner');
+  const clBanner = el('checkinListDupBanner');
+
+  const bannerHtml = count > 0 ? `
+    <div class="duplicate-alert-content">
+      <div class="duplicate-alert-text">
+        <span class="duplicate-alert-icon">⚠️</span>
+        <div>
+          <strong>Atenção: ${count} auto check-in(s) com suspeita de duplicidade detectados.</strong>
+          <div style="font-size:12px;opacity:0.9">Cadastros aguardando confirmação da equipe para evitar registros duplicados.</div>
+        </div>
+      </div>
+      <button type="button" class="btn-dup-review" onclick="openDuplicateReviewModal()">
+        Revisar Duplicidades (${count})
+      </button>
+    </div>
+  ` : '';
+
+  if (cBanner) {
+    cBanner.innerHTML = bannerHtml;
+    cBanner.style.display = count > 0 ? 'block' : 'none';
+  }
+  if (clBanner) {
+    clBanner.innerHTML = bannerHtml;
+    clBanner.style.display = count > 0 ? 'block' : 'none';
+  }
+}
+
+function openDuplicateReviewModal(dupIndex = 0) {
+  const pendingList = (state.pendingDuplicates || []).filter(d => d && !d.resolved);
+  if (!pendingList.length) {
+    closeModal();
+    toast('Nenhuma duplicidade pendente de revisão.');
+    updateDuplicateBadgesAndBanners();
+    return;
+  }
+
+  if (dupIndex >= pendingList.length) dupIndex = 0;
+  const current = pendingList[dupIndex];
+  const total = pendingList.length;
+
+  const submitted = current.submitted || {};
+  const matched = current.matchedClient || {};
+  const prioText = (submitted.priorities && submitted.priorities.length) ? submitted.priorities.join(', ') : 'Nenhuma';
+  
+  const liveMatched = (state.clients || []).find(c => c.id === matched.id) || matched;
+
+  el('modalTitle').textContent = `Revisão de Duplicidade no Auto Check-in (${dupIndex + 1} de ${total})`;
+  el('modalBody').innerHTML = `
+    <div style="background:#fffbeb;border:1px solid #fef3c7;border-radius:10px;padding:12px 14px;margin-bottom:14px;color:#92400e;font-size:13px">
+      <strong>Motivo da suspeita:</strong> ${esc(current.reason || 'Informações relevantes coincidentes com cadastro existente')}.
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px">
+      <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:14px">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:#64748b;margin-bottom:10px;display:flex;align-items:center;gap:6px">
+          <span style="display:inline-block;width:8px;height:8px;background:#f59e0b;border-radius:50%"></span>
+          DADOS DIGITADOS NO AUTO CHECK-IN
+        </div>
+        <dl style="display:grid;grid-template-columns:auto 1fr;gap:6px 12px;font-size:13px;margin:0">
+          <dt style="color:#64748b;font-weight:600">Nome:</dt>
+          <dd style="font-weight:700;color:#0f172a;margin:0">${esc(submitted.name)}</dd>
+          
+          <dt style="color:#64748b;font-weight:600">Telefone:</dt>
+          <dd style="margin:0">${esc(fmtPhone(submitted.phone))}</dd>
+          
+          <dt style="color:#64748b;font-weight:600">Casa:</dt>
+          <dd style="margin:0">${esc(submitted.house || current.house || '—')}</dd>
+          
+          <dt style="color:#64748b;font-weight:600">Prioridades:</dt>
+          <dd style="margin:0">${esc(prioText)}</dd>
+          
+          <dt style="color:#64748b;font-weight:600">Data/Hora:</dt>
+          <dd style="margin:0">${esc(fmtDate(current.createdAt))} ${new Date(current.createdAt).toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})}</dd>
+        </dl>
+      </div>
+
+      <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:14px">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:#64748b;margin-bottom:10px;display:flex;align-items:center;gap:6px">
+          <span style="display:inline-block;width:8px;height:8px;background:#3b82f6;border-radius:50%"></span>
+          CADASTRO JÁ EXISTENTE NO SISTEMA
+        </div>
+        <dl style="display:grid;grid-template-columns:auto 1fr;gap:6px 12px;font-size:13px;margin:0">
+          <dt style="color:#64748b;font-weight:600">Nome:</dt>
+          <dd style="font-weight:700;color:#0f172a;margin:0">${esc(liveMatched.name)}</dd>
+          
+          <dt style="color:#64748b;font-weight:600">Telefone:</dt>
+          <dd style="margin:0">${esc(fmtPhone(liveMatched.phone))}</dd>
+          
+          <dt style="color:#64748b;font-weight:600">Visitas totais:</dt>
+          <dd style="margin:0"><strong>${liveMatched.totalVisits || 1}</strong></dd>
+          
+          <dt style="color:#64748b;font-weight:600">Última visita:</dt>
+          <dd style="margin:0">${esc(fmtDate(liveMatched.lastVisit))}</dd>
+          
+          <dt style="color:#64748b;font-weight:600">Prioridades:</dt>
+          <dd style="margin:0">${esc((liveMatched.priorities||[]).join(', ') || 'Nenhuma')}</dd>
+        </dl>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:10px;justify-content:flex-end;align-items:center;padding-top:12px;border-top:1px solid #e2e8f0">
+      <button type="button" class="btn" style="background:#f1f5f9;color:#334155;border:1px solid #cbd5e1;font-weight:600;padding:10px 18px" onclick="resolveAutoCheckinDuplicate('${current.id}', false, ${dupIndex})">
+        👥 Manter os cadastros separados
+      </button>
+      <button type="button" class="btn primary" style="background:#059669;color:#fff;border-color:#047857;font-weight:600;padding:10px 18px" onclick="resolveAutoCheckinDuplicate('${current.id}', true, ${dupIndex})">
+        ✓ Confirmo que são o mesmo cliente
+      </button>
+    </div>
+  `;
+
+  el('modal').classList.add('show');
+}
+
+async function resolveAutoCheckinDuplicate(dupId, isSame, currentIndex = 0) {
+  const dup = (state.pendingDuplicates || []).find(d => d.id === dupId);
+  if (!dup) {
+    closeModal();
+    updateDuplicateBadgesAndBanners();
+    return;
+  }
+
+  const submitted = dup.submitted || {};
+  const houseKey = submitted.house || dup.house || 'Bravo Café';
+
+  if (isSame) {
+    let target = (state.clients || []).find(c => c.id === dup.matchedClient.id);
+    if (!target) {
+      target = (state.clients || []).find(c => normalizePhone(c.phone) === normalizePhone(dup.matchedClient.phone));
+    }
+
+    if (target) {
+      if (submitted.priorities && submitted.priorities.length) {
+        target.priorities = Array.from(new Set([...(target.priorities || []), ...submitted.priorities]));
+      }
+
+      target.lastVisit = today();
+      target.totalVisits = (target.totalVisits || 1) + 1;
+
+      if (houseKey === 'Íconico') target.iconico = (target.iconico || 0) + 1;
+      else if (houseKey === 'Leña') target.lena = (target.lena || 0) + 1;
+      else if (houseKey === 'Bravo Café') target.cafe = (target.cafe || 0) + 1;
+      else if (houseKey === 'Café da Bravo Pousada') target.cafePousada = (target.cafePousada || 0) + 1;
+
+      if (dup.voucherId && state.vouchers) {
+        const vch = state.vouchers.find(v => v.id === dup.voucherId);
+        if (vch) {
+          vch.clientId = target.id;
+          vch.clientName = target.name;
+          vch.clientPhone = target.phone;
+        }
+      }
+
+      save();
+      dbSyncCustomer(target);
+      toast(`Cadastros unificados com sucesso! Visita vinculada a ${target.name}.`);
+    }
+  } else {
+    const d = today();
+    const newCust = {
+      id: generateUUID(),
+      name: submitted.name,
+      phone: submitted.phone,
+      firstVisit: d,
+      lastVisit: d,
+      iconico: houseKey === 'Íconico' ? 1 : 0,
+      lena: houseKey === 'Leña' ? 1 : 0,
+      cafe: houseKey === 'Bravo Café' ? 1 : 0,
+      cafePousada: houseKey === 'Café da Bravo Pousada' ? 1 : 0,
+      firstHouse: houseKey,
+      visitedIconico: houseKey === 'Íconico' ? 'Sim' : 'Não',
+      visitedLena: houseKey === 'Leña' ? 'Sim' : 'Não',
+      visitedCafe: houseKey === 'Bravo Café' ? 'Sim' : 'Não',
+      visitedCafePousada: houseKey === 'Café da Bravo Pousada' ? 'Sim' : 'Não',
+      source: submitted.source || 'QR Code Saída',
+      totalVisits: 1,
+      priorities: submitted.priorities || [],
+      registrationHouse: houseKey,
+      registrationChannel: 'QR Code Saída',
+      registeredAt: dup.createdAt || new Date().toISOString()
+    };
+
+    state.clients.unshift(newCust);
+
+    if (dup.voucherId && state.vouchers) {
+      const vch = state.vouchers.find(v => v.id === dup.voucherId);
+      if (vch) {
+        vch.clientId = newCust.id;
+      }
+    }
+
+    save();
+    dbSyncCustomer(newCust);
+    toast(`Novo cadastro mantido separadamente para ${newCust.name}!`);
+  }
+
+  state.pendingDuplicates = (state.pendingDuplicates || []).filter(d => d.id !== dupId);
+  saveStateToStorage();
+  syncPendingDuplicatesToRemote();
+  updateDuplicateBadgesAndBanners();
+
+  const remaining = (state.pendingDuplicates || []).filter(d => d && !d.resolved);
+  if (remaining.length > 0) {
+    openDuplicateReviewModal(0);
+  } else {
+    closeModal();
+    refreshAll();
+  }
+}
 function clientSearchScore(c,q){const fq=foldText(q),qd=digits(q),name=foldText(c.name),phone=digits(c.phone);let score=0;if(fq&&name===fq)score+=100;if(fq&&name.startsWith(fq))score+=65;if(fq&&name.includes(fq))score+=40;if(fq&&name.split(/\s+/).some(t=>t===fq))score+=55;if(qd.length>=4&&phone.endsWith(qd))score+=90;if(qd.length>=8&&phone.includes(qd))score+=50;if(qd&&phone===normalizePhone(q))score+=110;return score}
 function searchCheckinClients(q){
   const fq = foldText(q), qd = digits(q);
@@ -8372,12 +8821,20 @@ function submitPublicRegistration(e){
   const hSettings = getHouseSettings(houseKey);
   const isVoucherActive = hSettings.googleReviewEnabled !== false;
 
-  const existing=state.clients.find(c=>normalizePhone(c.phone)===pv.value);
-  if(existing){
+  const potentialDup = findPotentialDuplicate(nv.value, pv.value);
+  const isExactReturningClient = potentialDup && potentialDup.phoneSim === 1.0 && potentialDup.nameSim >= 0.85;
+
+  if(isExactReturningClient){
+    const existing = potentialDup.client;
     if(selectedPriorities.length){
       existing.priorities = Array.from(new Set([...(existing.priorities||[]), ...selectedPriorities]));
     }
     existing.lastVisit = today();
+    existing.totalVisits = (existing.totalVisits || 1) + 1;
+    if(houseKey==='Íconico') existing.iconico = (existing.iconico||0) + 1;
+    else if(houseKey==='Leña') existing.lena = (existing.lena||0) + 1;
+    else if(houseKey==='Bravo Café') existing.cafe = (existing.cafe||0) + 1;
+    else if(houseKey==='Café da Bravo Pousada') existing.cafePousada = (existing.cafePousada||0) + 1;
     save();
     dbSyncCustomer(existing);
 
@@ -8388,6 +8845,56 @@ function submitPublicRegistration(e){
     }
 
     el('publicCard').innerHTML=`<div class="success-box"><div style="font-size:34px">✓</div><h2 style="margin:8px 0">Cadastro localizado</h2><p>Seu telefone já consta em nossa base como <strong>${esc(existing.name)}</strong>.</p><p style="font-size:12px;color:var(--muted)">Pode avisar nossa equipe na recepção que o cadastro já foi localizado.</p><button class="btn" onclick="location.reload()" style="margin-top:8px">Concluir</button></div>`;
+    return;
+  }
+
+  if(potentialDup){
+    const dupId = 'dup_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
+    const d = today(), source = el('pubSource').value || 'QR Code Saída';
+    const pendingDup = {
+      id: dupId,
+      createdAt: new Date().toISOString(),
+      house: houseKey,
+      source,
+      submitted: {
+        id: generateUUID(),
+        name: nv.value,
+        phone: pv.value,
+        priorities: selectedPriorities,
+        house: houseKey,
+        source
+      },
+      matchedClient: {
+        id: potentialDup.client.id,
+        name: potentialDup.client.name,
+        phone: potentialDup.client.phone,
+        totalVisits: potentialDup.client.totalVisits || 1,
+        lastVisit: potentialDup.client.lastVisit || ''
+      },
+      reason: potentialDup.reason,
+      similarityScore: potentialDup.score
+    };
+
+    if(!state.pendingDuplicates) state.pendingDuplicates = [];
+    state.pendingDuplicates.unshift(pendingDup);
+    saveStateToStorage();
+    syncPendingDuplicatesToRemote();
+    updateDuplicateBadgesAndBanners();
+
+    if(isVoucherActive){
+      const tempClient = {
+        id: 'pending_' + dupId,
+        name: nv.value,
+        phone: pv.value
+      };
+      const vch = createClientVoucher(tempClient, houseKey, hSettings.voucherDiscountPercent || 12, hSettings.voucherValidityDays || 30);
+      pendingDup.voucherId = vch ? vch.id : null;
+      saveStateToStorage();
+      renderPublicVoucherSuccessScreen(tempClient, houseKey, vch, hSettings.googleReviewUrl);
+      return;
+    }
+
+    el('publicCard').innerHTML=`<div class="success-box"><div style="font-size:34px">✓</div><h2 style="margin:8px 0">Check-in concluído</h2><p>Obrigado, <strong>${esc(nv.value.split(' ')[0])}</strong>. Seu check-in no ${esc(houseKey)} foi registrado com sucesso.</p><p style="font-size:12px;color:var(--muted)">Agora é só aguardar a orientação da nossa equipe.</p></div>`;
     return;
   }
   const d=today(),source=el('pubSource').value||'QR Code';
@@ -8432,6 +8939,7 @@ el('backupInput').onchange=e=>{const f=e.target.files[0];if(!f)return;const rd=n
 function resetData(){if(!confirm('Restaurar a base inicial deste protótipo? Alterações locais serão apagadas.'))return;state=structuredClone(SEED_DATA);save();toast('Base inicial restaurada.')}
 function exportCSV(type){const rows=type==='clients'?getFilteredClients():state.visits;let headers,body;if(type==='clients'){headers=['Nome','Telefone','Prioridades','Primeira visita','Última visita','Visitas Iconico','Visitas Lena','Visitas Bravo Cafe','Visitas Bravo Pousada','Total','Origem','Segmento'];body=rows.map(c=>[c.name,c.phone,(c.priorities||[]).join(', '),c.firstVisit,c.lastVisit,c.iconico,c.lena,c.cafe||0,c.cafePousada||0,c.totalVisits,c.source,segmentOf(c)])}const csv=[headers,...body].map(r=>r.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(';')).join('\n');const blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='grupo_qu4tro_clientes.csv';a.click();URL.revokeObjectURL(a.href)}
 function refreshActiveView(){
+  if(typeof updateDuplicateBadgesAndBanners === 'function') updateDuplicateBadgesAndBanners();
   const activeSection = document.querySelector('section.view.active');
   const activeView = activeSection ? activeSection.id.replace('view-', '') : 'dashboard';
   if(activeView === 'dashboard') renderDashboard();
@@ -8451,6 +8959,7 @@ function refreshActiveView(){
   renderUserSessionBadge();
 }
 function refreshAll(){
+  if(typeof updateDuplicateBadgesAndBanners === 'function') updateDuplicateBadgesAndBanners();
   refreshActiveView();
 }
 refreshAll();
