@@ -182,3 +182,30 @@ CREATE TABLE IF NOT EXISTS app_settings (
 ALTER TABLE app_settings ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Permitir leitura e atualização de configurações" ON app_settings FOR ALL USING (true) WITH CHECK (true);
 
+-- 10. Tabela de Vouchers de Desconto & Avaliações Google
+CREATE TABLE IF NOT EXISTS vouchers (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    code VARCHAR(50) UNIQUE NOT NULL,
+    customer_id VARCHAR(50),
+    customer_name VARCHAR(150) NOT NULL,
+    customer_phone VARCHAR(30) NOT NULL,
+    house VARCHAR(50) NOT NULL,
+    discount_percent INT DEFAULT 12,
+    discount_text VARCHAR(30) DEFAULT '12% OFF',
+    status VARCHAR(50) DEFAULT 'ativo', -- 'ativo', 'utilizado', 'expirado'
+    sent_wpp BOOLEAN DEFAULT false,
+    wpp_sent_at TIMESTAMPTZ,
+    used_at TIMESTAMPTZ,
+    expires_at TIMESTAMPTZ NOT NULL,
+    source VARCHAR(100) DEFAULT 'QR Check-in Saída',
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_vouchers_code ON vouchers(code);
+CREATE INDEX IF NOT EXISTS idx_vouchers_phone ON vouchers(customer_phone);
+CREATE INDEX IF NOT EXISTS idx_vouchers_status ON vouchers(status);
+CREATE INDEX IF NOT EXISTS idx_vouchers_expires_at ON vouchers(expires_at);
+
+ALTER TABLE vouchers ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Permitir leitura e gestão de vouchers" ON vouchers FOR ALL USING (true) WITH CHECK (true);
+
