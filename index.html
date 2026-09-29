@@ -2201,6 +2201,15 @@ async function processOutboxQueue(){
           };
           const { error } = await sb.from('customers').upsert(payload, { onConflict: 'id' });
           resError = error;
+        } else if (item.action === 'SYNC_VOUCHERS') {
+          const payload = {
+            id: '00000000-0000-0000-0000-000000000006',
+            name: '__SYSTEM_VOUCHERS__',
+            phone: 'SYSTEM_VOUCHERS',
+            notes: JSON.stringify(item.payload)
+          };
+          const { error } = await sb.from('customers').upsert(payload, { onConflict: 'id' });
+          resError = error;
         }
 
         if (!resError) {
@@ -2447,6 +2456,23 @@ async function dbSyncWaitlist(wl){
   if(navigator.onLine) processOutboxQueue();
 }
 
+let _syncVouchersTimeout = null;
+function debouncedSyncVouchers(){
+  if(_syncVouchersTimeout) clearTimeout(_syncVouchersTimeout);
+  _syncVouchersTimeout = setTimeout(() => {
+    if(state.vouchers){
+      dbSyncVouchers(state.vouchers);
+    }
+  }, 400);
+}
+
+async function dbSyncVouchers(vchs){
+  if(!vchs) return;
+  const clean = Array.isArray(vchs) ? vchs.filter(v => v && !String(v.id).startsWith('vch-seed-')) : [];
+  await addToOutbox('SYNC_VOUCHERS', clean);
+  if(navigator.onLine) processOutboxQueue();
+}
+
 
 async function runRescueSyncForBeatriz(force = false){
   return;
@@ -2673,6 +2699,24 @@ async function pullAllFromSupabase(){
           } catch(e){}
           return;
         }
+        if(rc.name === '__SYSTEM_VOUCHERS__'){
+          try {
+            const parsedVchs = JSON.parse(rc.notes);
+            if(Array.isArray(parsedVchs)){
+              const vMap = new Map();
+              (state.vouchers || []).forEach(v => {
+                if(v && v.id && !String(v.id).startsWith('vch-seed-')) vMap.set(v.id, v);
+              });
+              parsedVchs.forEach(v => {
+                if(v && v.id && !String(v.id).startsWith('vch-seed-')) vMap.set(v.id, v);
+              });
+              state.vouchers = Array.from(vMap.values()).sort((a,b) => new Date(b.createdAt||0) - new Date(a.createdAt||0));
+              saveStateToStorage();
+              if(typeof renderVouchers === 'function' && el('view-vouchers')?.classList.contains('active')) renderVouchers();
+            }
+          } catch(e){}
+          return;
+        }
         if(rc.name && rc.name.startsWith('__SYSTEM_')){
           return;
         }
@@ -2810,6 +2854,7 @@ async function pullAllFromSupabase(){
     } // end if(sb)
 
     save();
+    if(typeof syncRescueVouchers === 'function') syncRescueVouchers();
 
   } catch(err){
     console.warn('pullAllFromSupabase error:', err);
@@ -3049,116 +3094,10 @@ function loadState(){let s;try{const raw=localStorage.getItem(STORE);s=raw?JSON.
   if(!s.waitlist){
     s.waitlist = [];
   }
-  if(!s.vouchers || !Array.isArray(s.vouchers) || s.vouchers.length === 0){
-    const now = Date.now();
-    const d30 = 30 * 24 * 60 * 60 * 1000;
-    const d = (daysAgo) => new Date(now - daysAgo * 24 * 60 * 60 * 1000).toISOString();
-    const exp = (daysFromNow) => new Date(now + daysFromNow * 24 * 60 * 60 * 1000).toISOString();
-    
-    s.vouchers = [
-      {
-        id: 'vch-seed-1',
-        code: 'BC12-9A4KP',
-        clientId: 'C-1069',
-        clientName: 'Maiane Azevedo',
-        clientPhone: '5511981326900',
-        house: 'Bravo Café',
-        discountPercent: 12,
-        discountText: '12% OFF',
-        createdAt: d(0),
-        expiresAt: exp(30),
-        status: 'ativo',
-        sentWpp: false,
-        wppSentAt: null,
-        usedAt: null,
-        source: 'QR Check-in Saída'
-      },
-      {
-        id: 'vch-seed-2',
-        code: 'BC12-7L2XR',
-        clientId: 'c-seed-gabriel',
-        clientName: 'Gabriel Santos',
-        clientPhone: '5522998765432',
-        house: 'Bravo Café',
-        discountPercent: 12,
-        discountText: '12% OFF',
-        createdAt: d(28),
-        expiresAt: exp(2),
-        status: 'ativo',
-        sentWpp: false,
-        wppSentAt: null,
-        usedAt: null,
-        source: 'QR Check-in Saída'
-      },
-      {
-        id: 'vch-seed-3',
-        code: 'BC12-5M8TV',
-        clientId: 'c-seed-camila',
-        clientName: 'Camila Rocha',
-        clientPhone: '5521987654321',
-        house: 'Bravo Café',
-        discountPercent: 12,
-        discountText: '12% OFF',
-        createdAt: d(25),
-        expiresAt: exp(5),
-        status: 'ativo',
-        sentWpp: true,
-        wppSentAt: d(25),
-        usedAt: null,
-        source: 'QR Check-in Saída'
-      },
-      {
-        id: 'vch-seed-4',
-        code: 'BC12-3K9WQ',
-        clientId: 'c-seed-rodrigo',
-        clientName: 'Rodrigo Lima',
-        clientPhone: '5522992345678',
-        house: 'Bravo Café',
-        discountPercent: 12,
-        discountText: '12% OFF',
-        createdAt: d(8),
-        expiresAt: exp(22),
-        status: 'ativo',
-        sentWpp: true,
-        wppSentAt: d(8),
-        usedAt: null,
-        source: 'QR Check-in Saída'
-      },
-      {
-        id: 'vch-seed-5',
-        code: 'BC12-1H4BN',
-        clientId: 'c-seed-juliana',
-        clientName: 'Juliana Freitas',
-        clientPhone: '5524991122334',
-        house: 'Bravo Café',
-        discountPercent: 12,
-        discountText: '12% OFF',
-        createdAt: d(15),
-        expiresAt: exp(15),
-        status: 'utilizado',
-        sentWpp: true,
-        wppSentAt: d(15),
-        usedAt: d(2),
-        source: 'QR Check-in Saída'
-      },
-      {
-        id: 'vch-seed-6',
-        code: 'BC12-8P6ZT',
-        clientId: 'c-seed-felipe',
-        clientName: 'Felipe Mendes',
-        clientPhone: '5522988776655',
-        house: 'Bravo Café',
-        discountPercent: 12,
-        discountText: '12% OFF',
-        createdAt: d(35),
-        expiresAt: d(5),
-        status: 'expirado',
-        sentWpp: true,
-        wppSentAt: d(35),
-        usedAt: null,
-        source: 'QR Check-in Saída'
-      }
-    ];
+  if(!s.vouchers || !Array.isArray(s.vouchers)){
+    s.vouchers = [];
+  } else {
+    s.vouchers = s.vouchers.filter(v => v && !String(v.id).startsWith('vch-seed-'));
   }
   if(s.reservations && Array.isArray(s.reservations)){
     s.reservations = s.reservations.filter(r => !['R-1','R-2','R-3','R-4','R-5','R-iconiko'].includes(r.id));
@@ -5394,6 +5333,7 @@ function findPotentialDuplicate(name, phone, selectedId) {
 function syncPendingDuplicatesToRemote() {
   if (typeof addToOutbox === 'function') {
     addToOutbox('SYNC_PENDING_DUPLICATES', state.pendingDuplicates || []);
+    if (navigator.onLine && typeof processOutboxQueue === 'function') processOutboxQueue();
   }
 }
 
@@ -5421,27 +5361,25 @@ function updateDuplicateBadgesAndBanners() {
   const clBanner = el('checkinListDupBanner');
 
   const bannerHtml = count > 0 ? `
-    <div class="duplicate-alert-content">
-      <div class="duplicate-alert-text">
-        <span class="duplicate-alert-icon">⚠️</span>
-        <div>
-          <strong>Atenção: ${count} auto check-in(s) com suspeita de duplicidade detectados.</strong>
-          <div style="font-size:12px;opacity:0.9">Cadastros aguardando confirmação da equipe para evitar registros duplicados.</div>
-        </div>
+    <div class="dup-content">
+      <span class="dup-icon">⚠️</span>
+      <div class="dup-text">
+        <strong>Atenção: ${count} auto check-in(s) com suspeita de duplicidade detectados.</strong>
+        <p>Cadastros aguardando confirmação da equipe para evitar registros duplicados.</p>
       </div>
-      <button type="button" class="btn-dup-review" onclick="openDuplicateReviewModal()">
-        Revisar Duplicidades (${count})
-      </button>
     </div>
+    <button type="button" class="dup-action-btn" onclick="openDuplicateReviewModal(0)">
+      🔍 Revisar Duplicidades (${count})
+    </button>
   ` : '';
 
   if (cBanner) {
     cBanner.innerHTML = bannerHtml;
-    cBanner.style.display = count > 0 ? 'block' : 'none';
+    cBanner.style.display = count > 0 ? 'flex' : 'none';
   }
   if (clBanner) {
     clBanner.innerHTML = bannerHtml;
-    clBanner.style.display = count > 0 ? 'block' : 'none';
+    clBanner.style.display = count > 0 ? 'flex' : 'none';
   }
 }
 
@@ -8115,6 +8053,7 @@ function createClientVoucher(client, house, discountPercent = 12, validityDays =
   client.vouchers.unshift(voucher);
 
   save();
+  if(typeof dbSyncVouchers === 'function') dbSyncVouchers(state.vouchers);
   return voucher;
 }
 
@@ -8474,7 +8413,65 @@ function getFilteredVouchers(){
   return list;
 }
 
+function syncRescueVouchers(){
+  if(!state.vouchers) state.vouchers = [];
+  
+  // 1. Remove qualquer resquício de voucher seed antigo
+  const beforeCount = state.vouchers.length;
+  state.vouchers = state.vouchers.filter(v => v && !String(v.id).startsWith('vch-seed-'));
+  let changed = (state.vouchers.length !== beforeCount);
+
+  // 2. Resgata e vincula vouchers para clientes que fizeram Auto Check-in (como o teste 'Jean texte')
+  (state.clients || []).forEach(c => {
+    if(!c || !c.name || c.name.startsWith('__SYSTEM_')) return;
+    const isPublicCheckin = c.registrationChannel === 'QR Code Saída' || 
+                            c.source === 'QR Code Saída' || 
+                            (c.registrationChannel && c.registrationChannel.includes('Saída')) ||
+                            (c.registration_channel && c.registration_channel.includes('Saída'));
+    
+    if(isPublicCheckin){
+      const normClientPhone = normalizePhone(c.phone);
+      const hasVoucher = state.vouchers.some(v => v.clientId === c.id || (normClientPhone && normalizePhone(v.clientPhone) === normClientPhone));
+      
+      if(!hasVoucher){
+        const hKey = normalizeHouseKey(c.firstHouse || c.first_house || c.registrationHouse || 'Bravo Café');
+        const regDate = c.registeredAt || c.created_at || new Date().toISOString();
+        const createdDate = new Date(regDate);
+        const expDate = new Date(createdDate.getTime() + 30 * 24 * 60 * 60 * 1000);
+        
+        const rescuedVoucher = {
+          id: generateUUID(),
+          code: generateVoucherCode(hKey),
+          clientId: c.id,
+          clientName: c.name,
+          clientPhone: c.phone,
+          house: hKey,
+          discountPercent: 12,
+          discountText: '12% OFF',
+          createdAt: createdDate.toISOString(),
+          expiresAt: expDate.toISOString(),
+          status: 'ativo',
+          sentWpp: false,
+          wppSentAt: null,
+          usedAt: null,
+          source: 'QR Check-in Saída'
+        };
+        state.vouchers.unshift(rescuedVoucher);
+        if(!c.vouchers) c.vouchers = [];
+        c.vouchers.unshift(rescuedVoucher);
+        changed = true;
+      }
+    }
+  });
+
+  if(changed){
+    save();
+    if(typeof dbSyncVouchers === 'function') dbSyncVouchers(state.vouchers);
+  }
+}
+
 function renderVouchers(){
+  if(typeof syncRescueVouchers === 'function') syncRescueVouchers();
   const all = Array.isArray(state.vouchers) ? state.vouchers : [];
   
   // Atualiza status de expiração
@@ -8637,6 +8634,7 @@ function sendVoucherWpp(voucherId){
   v.sentWpp = true;
   v.wppSentAt = new Date().toISOString();
   save();
+  if(typeof dbSyncVouchers === 'function') dbSyncVouchers(state.vouchers);
   renderVouchers();
   toast(`WhatsApp aberto para ${firstName}! Voucher marcado como enviado.`);
 }
@@ -8655,6 +8653,7 @@ function toggleVoucherUsed(voucherId){
     toast(`Voucher ${v.code} marcado como UTILIZADO!`);
   }
   save();
+  if(typeof dbSyncVouchers === 'function') dbSyncVouchers(state.vouchers);
   renderVouchers();
   if(document.getElementById('view-profile')?.classList.contains('active')){
     if(currentClient) openProfile(currentClient.id);
@@ -8674,6 +8673,7 @@ function deleteVoucher(voucherId){
     }
   }
   save();
+  if(typeof dbSyncVouchers === 'function') dbSyncVouchers(state.vouchers);
   renderVouchers();
   toast('Voucher excluído.');
 }
