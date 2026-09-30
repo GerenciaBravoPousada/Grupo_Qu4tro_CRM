@@ -1036,6 +1036,47 @@ input:checked + .slider:before {
   background: #e2e8f0;
 }
 
+/* Vouchers Table Desktop Horizontal Alignment */
+#vouchersTable {
+  width: 100%;
+  border-collapse: collapse;
+}
+#vouchersTable th, #vouchersTable td {
+  padding: 12px 14px;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+#vouchersTable tbody tr:hover {
+  background: #f8fafc;
+}
+.vch-client-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+.vch-client-phone {
+  font-size: 11.5px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  background: #f1f5f9;
+  padding: 2px 7px;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+  font-weight: 500;
+}
+.vch-validity-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+.vch-validity-date {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
 /* Public Customer Voucher Ticket on Submit */
 .public-voucher-ticket {
   background: linear-gradient(135deg, #1c1917 0%, #292524 50%, #0c0a09 100%);
@@ -1684,7 +1725,7 @@ input:checked + .slider:before {
     <div class="card" style="padding:14px">
       <!-- Vouchers Table -->
       <div class="table-wrap" style="overflow-x:auto">
-        <table class="table" id="vouchersTable">
+        <table class="data-table" id="vouchersTable" style="width:100%">
           <thead>
             <tr>
               <th style="width:145px">Código</th>
@@ -8819,17 +8860,17 @@ function renderVouchersList(){
           </div>
         </td>
         <td>
-          <div>
+          <div class="vch-client-cell">
             ${clientLink}
-            <div style="font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums">${fmtPhone(v.clientPhone)}</div>
+            <span class="vch-client-phone">${fmtPhone(v.clientPhone)}</span>
           </div>
         </td>
         <td><span class="badge blue" style="font-size:11px">${esc(v.house)}</span></td>
         <td><strong style="color:#d97706;font-size:13px">${v.discountPercent||12}% OFF</strong></td>
         <td style="font-size:12px;color:var(--muted)">${fmtDate((v.createdAt||'').split('T')[0])}</td>
         <td>
-          <div>
-            <div style="font-size:12px;font-weight:600;margin-bottom:3px">${fmtDate((v.expiresAt||'').split('T')[0])}</div>
+          <div class="vch-validity-cell">
+            <span class="vch-validity-date">${fmtDate((v.expiresAt||'').split('T')[0])}</span>
             ${expBadge}
           </div>
         </td>
