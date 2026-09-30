@@ -1157,6 +1157,89 @@ input:checked + .slider:before {
   color: #f1f5f9;
 }
 
+/* Central de Comunicação (CRM) */
+.comm-tab-btn {
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+  color: #334155;
+  padding: 6px 12px;
+  border-radius: 9px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.comm-tab-btn:hover {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+}
+.comm-tab-btn.active {
+  background: #0f172a;
+  color: #fff;
+  border-color: #0f172a;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.2);
+}
+
+.comm-quick-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #eef2ff;
+  color: #3730a3;
+  border: 1px solid #c7d2fe;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+.comm-quick-tag:hover {
+  background: #e0e7ff;
+  border-color: #818cf8;
+}
+
+/* WhatsApp Live Preview Simulation Box */
+.wpp-live-chat-wrap {
+  background: #efeae2 url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png') repeat;
+  background-size: 380px;
+  border: 1px solid #cbd5e1;
+  border-radius: 14px;
+  padding: 16px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 100%;
+}
+.wpp-chat-bubble {
+  background: #dcf8c6;
+  border-radius: 12px 0 12px 12px;
+  padding: 10px 12px 6px;
+  box-shadow: 0 1.5px 3px rgba(0, 0, 0, 0.13);
+  max-width: 90%;
+  margin-left: auto;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #111827;
+  position: relative;
+  word-break: break-word;
+  white-space: pre-wrap;
+}
+.wpp-chat-meta {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 4px;
+  font-size: 10.5px;
+  color: #64748b;
+  margin-top: 4px;
+}
+.wpp-chat-ticks {
+  color: #38bdf8;
+  font-weight: 800;
+}
+
 </style>
 </head>
 <body>
@@ -1201,19 +1284,22 @@ input:checked + .slider:before {
 <aside class="sidebar" id="sidebar">
  <div class="brand group-brand"><img class="group-logo" src="data:image/png;base64,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" alt="Grupo Qu4tro"><div class="group-brand-copy"><strong>GRUPO QU4TRO</strong><small>Gestão de Clientes</small></div><button type="button" class="mobile-sidebar-close" id="mobileSidebarCloseBtn" onclick="closeMobileSidebar()" aria-label="Fechar menu" title="Fechar Menu">✕</button></div>
  <nav class="nav">
-  <button class="active" data-view="dashboard" title="Visão Geral"><span class="ico">◫</span><span class="nav-text">Visão Geral</span></button>
+  <div class="navsep" id="navsep-operation">Operação</div>
   <button data-view="clients" title="Clientes"><span class="ico">◎</span><span class="nav-text">Clientes</span><span class="nav-badge-dup" id="clientsDupBadge" style="display:none">0</span></button>
   <button data-view="checkin" title="Check-in"><span class="ico">✓</span><span class="nav-text">Check-in</span></button>
   <button data-view="waitlist" title="Fila de Espera"><span class="ico">⏳</span><span class="nav-text">Fila de Espera</span></button>
   <button data-view="reservations" title="Reservas"><span class="ico">▣</span><span class="nav-text">Reservas</span></button>
   <button data-view="checkin-list" title="Lista de Check-ins"><span class="ico">📋</span><span class="nav-text">Lista de Check-ins</span><span class="nav-badge-dup" id="checkinListDupBadge" style="display:none">0</span></button>
-   <button data-view="vouchers" title="Vouchers"><span class="ico">🎟️</span><span class="nav-text">Vouchers</span><span class="nav-badge-vch" id="vouchersPendingBadge" style="display:none">0</span></button>
   <button data-view="tables" title="Mapa de Mesas"><span class="ico">⊞</span><span class="nav-text">Mapa de Mesas</span></button>
-  <button data-view="qrcodes" title="QR Codes"><span class="ico">⌁</span><span class="nav-text">QR Codes</span></button>
+  <div class="navsep" id="navsep-crm">CRM</div>
+  <button data-view="communication" title="Comunicação"><span class="ico">💬</span><span class="nav-text">Comunicação</span><span class="nav-badge-vch" id="communicationPendingBadge" style="display:none;background:#f59e0b">0</span></button>
+  <button data-view="vouchers" title="Vouchers"><span class="ico">🎟️</span><span class="nav-text">Vouchers</span><span class="nav-badge-vch" id="vouchersPendingBadge" style="display:none">0</span></button>
   <div class="navsep" id="navsep-intel">Inteligência</div>
+  <button class="active" data-view="dashboard" title="Visão Geral"><span class="ico">◫</span><span class="nav-text">Visão Geral</span></button>
   <button data-view="segments" title="Segmentos"><span class="ico">◈</span><span class="nav-text">Segmentos</span></button>
   <button data-view="intelligence" title="Inteligência"><span class="ico">↗</span><span class="nav-text">Inteligência</span></button>
   <div class="navsep" id="navsep-system">Sistema</div>
+  <button data-view="qrcodes" title="QR Codes"><span class="ico">⌁</span><span class="nav-text">QR Codes</span></button>
   <button data-view="settings" title="Configurações"><span class="ico">⚙</span><span class="nav-text">Configurações</span></button>
   <button data-view="users" title="Usuários & Login"><span class="ico">👤</span><span class="nav-text">Usuários & Login</span></button>
   <button data-view="data" title="Dados & Backup"><span class="ico">🗄</span><span class="nav-text">Dados & Backup</span></button>
@@ -1672,7 +1758,154 @@ input:checked + .slider:before {
     </div>
   </section>
 
-  
+  <!-- SEÇÃO / GUIA: COMUNICAÇÃO & RELACIONAMENTO (CRM) -->
+  <section class="view" id="view-communication">
+    <!-- Header Bar: Título, Busca e Botões na mesma linha -->
+    <div class="vouchers-header-bar" style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px;flex-wrap:wrap">
+      <div>
+        <h2 style="margin:0;font-size:22px;font-weight:750;letter-spacing:-0.4px">💬 Comunicação & Relacionamento</h2>
+        <p style="margin:3px 0 0;font-size:12px;color:var(--muted)">Acompanhamento de check-ins cruzado com vouchers. Envio de mensagens personalizadas, ofertas, vouchers e mídias.</p>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <button type="button" class="btn primary" style="background:#25D366;color:#fff;border-color:#16a34a;font-weight:700" onclick="openFreeCommunicationModal()" title="Escrever e enviar mensagem personalizada para qualquer cliente ou número">
+          💬 Nova Mensagem
+        </button>
+        <button type="button" class="btn" onclick="openWppTemplatesManagerModal()" title="Gerenciar e cadastrar modelos de mensagem do WhatsApp">
+          ⚙️ Modelos WhatsApp
+        </button>
+        <button type="button" class="btn" onclick="go('vouchers')" title="Ir para a Central de Vouchers">
+          🎟️ Vouchers
+        </button>
+        <button type="button" class="btn" onclick="exportCommunicationCSV()" title="Exportar histórico de contatos e check-ins em CSV">
+          ⇩ Exportar CSV
+        </button>
+      </div>
+    </div>
+
+    <!-- Filtros de Cruzamento (Data da Visita, Casa, Status de Voucher/Envio, Segmento e Busca) -->
+    <div class="card" style="margin-bottom:16px;padding:16px">
+      <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end">
+        <div style="display:flex;flex-direction:column;gap:5px">
+          <label style="font-size:12px;font-weight:750;color:#000">Período de Check-in:</label>
+          <div style="display:flex;gap:8px;align-items:center">
+            <select id="commPeriodFilter" class="control" style="font-size:13px;font-weight:700;padding:9px 12px;color:#000;border:1.5px solid #cbd5e1" onchange="handleCommPeriodFilterChange()">
+              <option value="today">Hoje</option>
+              <option value="yesterday">Ontem</option>
+              <option value="7" selected>Últimos 7 dias</option>
+              <option value="14">Últimos 14 dias</option>
+              <option value="30">Últimos 30 dias</option>
+              <option value="all">Todo o histórico</option>
+              <option value="custom">📅 Período específico...</option>
+            </select>
+            <input type="date" id="commStartDate" class="control" style="display:none;padding:8px 10px;font-size:12px;border:1.5px solid #cbd5e1" onchange="renderCommunication()">
+            <input type="date" id="commEndDate" class="control" style="display:none;padding:8px 10px;font-size:12px;border:1.5px solid #cbd5e1" onchange="renderCommunication()">
+          </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:5px">
+          <label style="font-size:12px;font-weight:750;color:#000">Casa / Estabelecimento:</label>
+          <select id="commHouseFilter" class="control" style="font-size:13px;font-weight:700;padding:9px 12px;color:#000;border:1.5px solid #cbd5e1" onchange="renderCommunication()">
+            <option value="all">Todas as casas</option>
+            <option value="Bravo Café">Bravo Café</option>
+            <option value="Café da Bravo Pousada">Café da Bravo Pousada</option>
+            <option value="Íconico">Iconiko Cozinha Japonesa</option>
+            <option value="Leña">Leña Casa Italiana</option>
+          </select>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:5px">
+          <label style="font-size:12px;font-weight:750;color:#000">Status Voucher & Envio:</label>
+          <select id="commVoucherStatusFilter" class="control" style="font-size:13px;font-weight:700;padding:9px 12px;color:#000;border:1.5px solid #cbd5e1" onchange="renderCommunication()">
+            <option value="all">Todos os clientes</option>
+            <option value="pending_wpp">⚠️ Pendente de envio WhatsApp</option>
+            <option value="sent_wpp">💬 Mensagem já enviada</option>
+            <option value="with_voucher">🎟️ Com voucher ativo (12%)</option>
+            <option value="exp_72h">⏰ Vencendo em 72h</option>
+            <option value="no_voucher">⚪ Sem voucher emitido</option>
+            <option value="used">✔️ Voucher já utilizado</option>
+          </select>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:5px">
+          <label style="font-size:12px;font-weight:750;color:#000">Segmento do Cliente:</label>
+          <select id="commSegmentFilter" class="control" style="font-size:13px;font-weight:700;padding:9px 12px;color:#000;border:1.5px solid #cbd5e1" onchange="renderCommunication()">
+            <option value="all">Todos os segmentos</option>
+            <option value="new">🆕 Novos Clientes (1ª visita)</option>
+            <option value="recurring">🔁 Recorrentes (2+ visitas)</option>
+            <option value="vip">👑 VIP (5+ visitas)</option>
+            <option value="priority">⭐ Atendimento Prioritário</option>
+          </select>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:5px;flex:1;min-width:240px">
+          <label style="font-size:12px;font-weight:750;color:#000">Buscar cliente, telefone, mesa ou voucher:</label>
+          <div class="search" style="max-width:none">
+            <span>⌕</span>
+            <input type="text" id="commSearch" placeholder="Ex.: Gabriel, 99999, Mesa 4, VCH-..." style="color:#000;font-weight:600;border:1.5px solid #cbd5e1" oninput="renderCommunication()">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- KPI Strip Interativo (Cards com Contadores e Filtro com 1 Clique) -->
+    <div class="kpi-strip voucher-kpi-filter-strip" id="commKpiStrip" style="margin-bottom:18px">
+      <button type="button" class="kpi-chip vch-card-btn active" data-commfilter="all" onclick="setCommKpiFilter('all')" title="Exibir todos os check-ins no período">
+        <span class="vch-card-label">Check-ins no Período</span>
+        <strong id="kpiCommTotal" class="vch-card-val">0</strong>
+      </button>
+      <button type="button" class="kpi-chip vch-card-btn warn" data-commfilter="pending_wpp" onclick="setCommKpiFilter('pending_wpp')" title="Filtrar quem ainda não recebeu mensagem pelo WhatsApp">
+        <span class="vch-card-label">⚠️ Pendentes Envio WPP</span>
+        <strong id="kpiCommPendingWpp" class="vch-card-val" style="color:#d97706">0</strong>
+      </button>
+      <button type="button" class="kpi-chip vch-card-btn good" data-commfilter="sent_wpp" onclick="setCommKpiFilter('sent_wpp')" title="Filtrar clientes que já receberam mensagem pelo WhatsApp">
+        <span class="vch-card-label">💬 Mensagens Enviadas</span>
+        <strong id="kpiCommSentWpp" class="vch-card-val" style="color:#059669">0</strong>
+      </button>
+      <button type="button" class="kpi-chip vch-card-btn blue" data-commfilter="with_voucher" onclick="setCommKpiFilter('with_voucher')" title="Filtrar check-ins com voucher ativo de 12%">
+        <span class="vch-card-label">🎟️ Vouchers Ativos (12%)</span>
+        <strong id="kpiCommWithVoucher" class="vch-card-val" style="color:#2563eb">0</strong>
+      </button>
+      <button type="button" class="kpi-chip vch-card-btn danger" data-commfilter="exp_72h" onclick="setCommKpiFilter('exp_72h')" title="Filtrar vouchers prestes a vencer em 72 horas">
+        <span class="vch-card-label">⏰ Vencendo em 72h</span>
+        <strong id="kpiCommExp72h" class="vch-card-val" style="color:#dc2626">0</strong>
+      </button>
+      <button type="button" class="kpi-chip vch-card-btn orange" data-commfilter="new_clients" onclick="setCommKpiFilter('new_clients')" title="Filtrar novas pessoas cadastradas no período">
+        <span class="vch-card-label">🆕 Primeiras Visitas</span>
+        <strong id="kpiCommNewClients" class="vch-card-val" style="color:#ea580c">0</strong>
+      </button>
+    </div>
+
+    <!-- Tabela Unificada de Comunicação -->
+    <div class="card" style="padding:14px">
+      <div class="table-wrap" style="overflow-x:auto">
+        <table class="data-table" id="commTable" style="width:100%">
+          <thead>
+            <tr>
+              <th style="min-width:130px">Data & Horário</th>
+              <th style="min-width:180px">Cliente</th>
+              <th style="min-width:140px">Telefone</th>
+              <th style="min-width:130px">Casa & Mesa</th>
+              <th style="min-width:180px">Voucher de 12%</th>
+              <th style="min-width:140px">Status WhatsApp</th>
+              <th style="text-align:right;min-width:220px">Ações de Comunicação</th>
+            </tr>
+          </thead>
+          <tbody id="commTableBody">
+            <!-- Renderizado dinamicamente -->
+          </tbody>
+        </table>
+      </div>
+      <div class="pager" style="justify-content:space-between;padding:10px 14px;background:#f8fafc;margin-top:10px;border-radius:10px">
+        <div id="commPaginationSummary" style="font-size:12px;color:var(--muted)">Exibindo check-ins e vouchers.</div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button type="button" class="btn" onclick="renderCommunication()" style="background:#fff;border:1.5px solid #cbd5e1;font-weight:700;color:#000;padding:6px 12px;font-size:12px">
+            🔄 Atualizar
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- SEÇÃO / GUIA: VOUCHERS & AVALIAÇÕES GOOGLE -->
   <section class="view" id="view-vouchers">
     <!-- Header Bar: Título, Busca e Botões na mesma linha -->
@@ -2435,6 +2668,15 @@ async function processOutboxQueue(){
           };
           const { error } = await sb.from('customers').upsert(payload, { onConflict: 'id' });
           resError = error;
+        } else if (item.action === 'SYNC_COMMUNICATIONS') {
+          const payload = {
+            id: '00000000-0000-0000-0000-000000000008',
+            name: '__SYSTEM_COMMUNICATIONS__',
+            phone: 'SYSTEM_COMMUNICATIONS',
+            notes: JSON.stringify(item.payload)
+          };
+          const { error } = await sb.from('customers').upsert(payload, { onConflict: 'id' });
+          resError = error;
         }
 
         if (!resError) {
@@ -2958,6 +3200,20 @@ async function pullAllFromSupabase(){
           } catch(e){}
           return;
         }
+        if(rc.name === '__SYSTEM_COMMUNICATIONS__'){
+          try {
+            const parsedComms = JSON.parse(rc.notes);
+            if(Array.isArray(parsedComms)){
+              const cMap = new Map();
+              (state.communications || []).forEach(c => { if(c && c.id) cMap.set(c.id, c); });
+              parsedComms.forEach(c => { if(c && c.id) cMap.set(c.id, c); });
+              state.communications = Array.from(cMap.values()).sort((a,b) => new Date(b.sentAt||0) - new Date(a.sentAt||0));
+              saveStateToStorage();
+              if(typeof renderCommunication === 'function' && el('view-communication')?.classList.contains('active')) renderCommunication();
+            }
+          } catch(e){}
+          return;
+        }
         if(rc.name && rc.name.startsWith('__SYSTEM_')){
           return;
         }
@@ -3353,6 +3609,34 @@ function getDefaultWppTemplates(){
       title: 'Agradecimento VIP Especial',
       isDefault: false,
       text: "Olá, *{cliente_nome}*! É uma enorme satisfação ter você como cliente VIP do *{casa}*! 🌟\n\nMuito obrigado por avaliar nossa casa com tanto carinho. Aqui está o seu benefício exclusivo:\n\n🎟️ Código: *{codigo_voucher}*\n🎁 Desconto: *{desconto}*\n⏳ Validade: *{data_validade}*\n\nApresente esta mensagem na sua próxima visita. Até breve! ❤️"
+    },
+    {
+      id: 'tmpl-5',
+      title: 'Oferta Especial & Cortesia da Semana',
+      category: 'oferta',
+      isDefault: false,
+      text: "Olá, *{cliente_nome}*! Tudo bem? 🍽️✨\n\nNesta semana no *{casa}*, preparamos uma experiência deliciosa para você! Venha almoçar ou jantar conosco e ganhe uma sobremesa especial da casa na apresentação desta mensagem.\n\n📍 Esperamos por você!\nSe quiser reservar sua mesa preferida, é só nos responder aqui! 😊"
+    },
+    {
+      id: 'tmpl-6',
+      title: 'Cardápio Digital & Foto do Prato',
+      category: 'midia',
+      isDefault: false,
+      text: "Olá, *{cliente_nome}*! Que alegria falar com você! 📸✨\n\nAcabamos de lançar criações incríveis em nosso cardápio no *{casa}* que combinam perfeitamente com você. Dê uma olhada no menu digital:\n\n👉 *Veja o cardápio e fotos aqui:* {link_midia}\n\nQual dia podemos preparar sua mesa?"
+    },
+    {
+      id: 'tmpl-7',
+      title: 'Vídeo & Experiência da Casa',
+      category: 'video',
+      isDefault: false,
+      text: "Olá, *{cliente_nome}*! Olha só o clima incrível que preparamos hoje no *{casa}*! 🎥🍷\n\nAssista ao vídeo da experiência:\n🎬 {link_midia}\n\nVenha viver esse momento com a gente! Deseja que reservemos sua mesa?"
+    },
+    {
+      id: 'tmpl-8',
+      title: 'Reengajamento & Saudades',
+      category: 'reengajamento',
+      isDefault: false,
+      text: "Olá, *{cliente_nome}*! Tudo bem? Faz algum tempo desde sua última visita no *{casa}* e estamos com saudades da sua presença! ✨\n\nPreparamos uma recepção muito especial para o seu retorno. Que tal nos visitar esta semana?\n\nResponda esta mensagem para garantirmos a sua mesa com todo o carinho!"
     }
   ];
 }
@@ -3371,6 +3655,9 @@ function loadState(){let s;try{const raw=localStorage.getItem(STORE);s=raw?JSON.
     s.vouchers = [];
   } else {
     s.vouchers = s.vouchers.filter(v => v && !String(v.id).startsWith('vch-seed-'));
+  }
+  if(!s.communications || !Array.isArray(s.communications)){
+    s.communications = [];
   }
   if(s.reservations && Array.isArray(s.reservations)){
     s.reservations = s.reservations.filter(r => !['R-1','R-2','R-3','R-4','R-5','R-iconiko'].includes(r.id));
@@ -3608,10 +3895,10 @@ function getRoleBadgeClass(role){
 }
 
 function isViewAllowedForRole(view, role){
-  if(view === 'checkin-list' || view === 'vouchers') return true;
+  if(view === 'checkin-list' || view === 'vouchers' || view === 'communication') return true;
   if(!role || role === 'Master') return true;
   if(role === 'Gerente'){
-    const allowed = ['dashboard', 'clients', 'profile', 'checkin', 'reservations', 'waitlist', 'tables', 'qrcodes', 'users'];
+    const allowed = ['dashboard', 'clients', 'profile', 'checkin', 'reservations', 'waitlist', 'tables', 'qrcodes', 'users', 'communication', 'vouchers'];
     return allowed.includes(view);
   }
   if(isRoleAgente(role)){
@@ -3619,7 +3906,7 @@ function isViewAllowedForRole(view, role){
     return allowed.includes(view);
   }
   if(role === 'Atendimento'){
-    const allowed = ['checkin', 'reservations', 'waitlist', 'tables', 'qrcodes'];
+    const allowed = ['checkin', 'reservations', 'waitlist', 'tables', 'qrcodes', 'communication', 'checkin-list', 'vouchers'];
     return allowed.includes(view);
   }
   return false;
@@ -3644,8 +3931,14 @@ function updateNavPermissions(){
   });
 
   // Separadores da barra lateral
+  const opSep = el('navsep-operation');
+  if(opSep) opSep.style.display = '';
+
+  const crmSep = el('navsep-crm');
+  if(crmSep) crmSep.style.display = (role === 'Master' || role === 'Gerente' || role === 'Atendimento') ? '' : 'none';
+
   const intelSep = el('navsep-intel');
-  if(intelSep) intelSep.style.display = (role === 'Master') ? '' : 'none';
+  if(intelSep) intelSep.style.display = (role === 'Master' || role === 'Gerente') ? '' : 'none';
 
   const systemSep = el('navsep-system');
   if(systemSep) systemSep.style.display = (role === 'Master' || role === 'Gerente') ? '' : 'none';
@@ -3676,7 +3969,7 @@ function go(view){
 
   // Ocultar barra operacional rápida e botão "+ Novo check-in" em visões gerenciais/administrativas (vouchers, qrcodes, etc)
   const banner = el('houseContextBanner');
-  const hideBannerViews = ['vouchers', 'qrcodes', 'segments', 'intelligence', 'settings', 'users', 'data'];
+  const hideBannerViews = ['vouchers', 'communication', 'qrcodes', 'segments', 'intelligence', 'settings', 'users', 'data'];
   if(banner){
     banner.style.display = hideBannerViews.includes(view) ? 'none' : 'flex';
   }
@@ -3703,6 +3996,7 @@ function go(view){
     waitlist:'Fila de Espera',
     tables:'Mapa de Mesas',
     'checkin-list':'Lista de Check-ins',
+    communication:'Comunicação & Relacionamento',
     vouchers:'Vouchers & Avaliações Google',
     qrcodes:'QR Codes',
     segments:'Segmentos',
@@ -3726,6 +4020,7 @@ function go(view){
   if(view==='checkin')renderCheckinStats();
   if(view==='waitlist'){ renderWaitlist(); startWaitlistTimer(); } else { stopWaitlistTimer(); }
   if(view==='tables') renderFloorplan();
+  if(view==='communication') renderCommunication();
   if(view==='vouchers')renderVouchers();
   if(view==='settings')renderSettings();
   if(view==='users')renderUsers();
@@ -8780,6 +9075,1104 @@ function syncRescueVouchers(){
   }
 }
 
+/* =========================================================================
+   MÓDULO DE COMUNICAÇÃO & RELACIONAMENTO (CRM MULTICANAL GRUPO QU4TRO)
+   Acompanhamento por Data, Vouchers, Ofertas, Mídias e WhatsApp Interativo
+   ========================================================================= */
+
+function syncCommunicationsToRemote(){
+  if(!state.communications) state.communications = [];
+  try {
+    saveStateToStorage();
+    if(typeof addToOutbox === 'function'){
+      addToOutbox('SYNC_COMMUNICATIONS', state.communications || []);
+      if(navigator.onLine && typeof processOutboxQueue === 'function') processOutboxQueue();
+    }
+  } catch(e){
+    console.error('Erro ao sincronizar comunicações:', e);
+  }
+}
+
+function updateCommunicationBadges(){
+  try {
+    const visits = Array.isArray(state.visits) ? state.visits : [];
+    const comms = Array.isArray(state.communications) ? state.communications : [];
+    const commPhoneSet = new Set();
+    comms.forEach(c => {
+      if(c && c.phone) commPhoneSet.add(digits(c.phone));
+    });
+
+    const now = new Date();
+    let pendingCount = 0;
+    visits.forEach(v => {
+      if(!v) return;
+      const vDate = v.date ? new Date(v.date + 'T12:00:00') : null;
+      if(vDate){
+        const diffDays = Math.floor((now - vDate) / (1000 * 60 * 60 * 24));
+        if(diffDays >= 0 && diffDays <= 7){
+          const p = v.phone ? digits(v.phone) : '';
+          if(p && !commPhoneSet.has(p)) pendingCount++;
+        }
+      }
+    });
+
+    const badge = el('communicationPendingBadge');
+    if(badge){
+      badge.textContent = pendingCount;
+      badge.style.display = pendingCount > 0 ? 'inline-flex' : 'none';
+    }
+  } catch(e){}
+}
+
+function handleCommPeriodFilterChange(){
+  const p = el('commPeriodFilter')?.value;
+  const start = el('commStartDate');
+  const end = el('commEndDate');
+  if(start && end){
+    const isCustom = p === 'custom';
+    start.style.display = isCustom ? '' : 'none';
+    end.style.display = isCustom ? '' : 'none';
+    if(isCustom && !start.value){
+      const t = today();
+      start.value = t;
+      end.value = t;
+    }
+  }
+  renderCommunication();
+}
+
+let currentCommKpiFilter = 'all';
+function setCommKpiFilter(filterKey){
+  currentCommKpiFilter = filterKey;
+  const strip = el('commKpiStrip');
+  if(strip){
+    strip.querySelectorAll('.kpi-chip').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.commfilter === filterKey);
+    });
+  }
+  const statusSel = el('commVoucherStatusFilter');
+  if(statusSel){
+    if(filterKey === 'pending_wpp' || filterKey === 'sent_wpp' || filterKey === 'with_voucher' || filterKey === 'exp_72h'){
+      statusSel.value = filterKey;
+    } else if(filterKey === 'all') {
+      statusSel.value = 'all';
+    }
+  }
+  renderCommunication();
+}
+
+function getVisitClient(v){
+  if(!v) return null;
+  const clients = Array.isArray(state.clients) ? state.clients : [];
+  if(v.clientId){
+    const found = clients.find(c => c.id === v.clientId);
+    if(found) return found;
+  }
+  if(v.phone){
+    const dPhone = digits(v.phone);
+    if(dPhone){
+      const found = clients.find(c => digits(c.phone) === dPhone);
+      if(found) return found;
+    }
+  }
+  return null;
+}
+
+function getVisitVouchers(v, client){
+  const allV = Array.isArray(state.vouchers) ? state.vouchers : [];
+  const cId = client ? client.id : (v ? v.clientId : null);
+  const p = v && v.phone ? digits(v.phone) : (client && client.phone ? digits(client.phone) : null);
+  return allV.filter(vc => {
+    if(cId && vc.clientId === cId) return true;
+    if(p && vc.clientPhone && digits(vc.clientPhone) === p) return true;
+    return false;
+  }).sort((a,b) => new Date(b.createdAt||0) - new Date(a.createdAt||0));
+}
+
+function getVisitCommunications(v, client){
+  const allC = Array.isArray(state.communications) ? state.communications : [];
+  const vId = v ? v.id : null;
+  const cId = client ? client.id : (v ? v.clientId : null);
+  const p = v && v.phone ? digits(v.phone) : (client && client.phone ? digits(client.phone) : null);
+  return allC.filter(cm => {
+    if(vId && cm.visitId === vId) return true;
+    if(cId && cm.clientId === cId) return true;
+    if(p && cm.phone && digits(cm.phone) === p) return true;
+    return false;
+  }).sort((a,b) => new Date(b.sentAt||0) - new Date(a.sentAt||0));
+}
+
+function renderCommunication(){
+  updateCommunicationBadges();
+  const tbody = el('commTableBody');
+  if(!tbody) return;
+
+  const period = el('commPeriodFilter')?.value || '7';
+  const house = el('commHouseFilter')?.value || 'all';
+  const voucherFilter = el('commVoucherStatusFilter')?.value || 'all';
+  const segmentFilter = el('commSegmentFilter')?.value || 'all';
+  const query = (el('commSearch')?.value || '').toLowerCase().trim();
+  const customStart = el('commStartDate')?.value;
+  const customEnd = el('commEndDate')?.value;
+
+  const now = new Date();
+  const tStr = today();
+  const yesterdayDate = new Date();
+  yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+  const yStr = yesterdayDate.toISOString().slice(0, 10);
+
+  let rawVisits = Array.isArray(state.visits) ? [...state.visits] : [];
+
+  const seenVisits = new Set();
+  rawVisits = rawVisits.filter(v => {
+    if(!v) return false;
+    const key = v.id || `${v.house}_${v.date}_${v.phone}_${v.arrival}`;
+    if(seenVisits.has(key)) return false;
+    seenVisits.add(key);
+    return true;
+  });
+
+  rawVisits.sort((a,b) => {
+    const da = (a.date || '') + ' ' + (a.arrival || '00:00');
+    const db = (b.date || '') + ' ' + (b.arrival || '00:00');
+    return db.localeCompare(da);
+  });
+
+  const periodFilteredVisits = rawVisits.filter(v => {
+    if(house !== 'all'){
+      if(normalizeHouseKey(v.house) !== normalizeHouseKey(house)) return false;
+    }
+    const d = v.date ? v.date.slice(0, 10) : '';
+    if(!d) return false;
+
+    if(period === 'today') return d === tStr;
+    if(period === 'yesterday') return d === yStr;
+    if(period === '7'){
+      const diff = Math.floor((now - new Date(d + 'T12:00:00')) / (1000 * 60 * 60 * 24));
+      return diff >= 0 && diff <= 7;
+    }
+    if(period === '14'){
+      const diff = Math.floor((now - new Date(d + 'T12:00:00')) / (1000 * 60 * 60 * 24));
+      return diff >= 0 && diff <= 14;
+    }
+    if(period === '30'){
+      const diff = Math.floor((now - new Date(d + 'T12:00:00')) / (1000 * 60 * 60 * 24));
+      return diff >= 0 && diff <= 30;
+    }
+    if(period === 'custom'){
+      if(customStart && d < customStart) return false;
+      if(customEnd && d > customEnd) return false;
+      return true;
+    }
+    return true;
+  });
+
+  let kpiTotal = periodFilteredVisits.length;
+  let kpiPendingWpp = 0;
+  let kpiSentWpp = 0;
+  let kpiWithVoucher = 0;
+  let kpiExp72h = 0;
+  let kpiNewClients = 0;
+
+  const rowsData = periodFilteredVisits.map(v => {
+    const client = getVisitClient(v);
+    const vchs = getVisitVouchers(v, client);
+    const comms = getVisitCommunications(v, client);
+    const activeVch = vchs.find(vc => vc.status === 'ativo' && getVoucherDaysRemaining(vc) > 0) || null;
+    const latestVch = vchs[0] || null;
+    const lastComm = comms[0] || null;
+    const isNew = client ? (client.totalVisits || 1) <= 1 : true;
+
+    if(comms.length === 0) kpiPendingWpp++;
+    else kpiSentWpp++;
+
+    if(activeVch) {
+      kpiWithVoucher++;
+      const daysRem = getVoucherDaysRemaining(activeVch);
+      if(daysRem > 0 && daysRem <= 3) kpiExp72h++;
+    }
+
+    if(isNew) kpiNewClients++;
+
+    return {
+      visit: v,
+      client,
+      vouchers: vchs,
+      activeVoucher: activeVch,
+      latestVoucher: latestVch,
+      communications: comms,
+      lastComm,
+      isNew
+    };
+  });
+
+  if(el('kpiCommTotal')) el('kpiCommTotal').textContent = kpiTotal;
+  if(el('kpiCommPendingWpp')) el('kpiCommPendingWpp').textContent = kpiPendingWpp;
+  if(el('kpiCommSentWpp')) el('kpiCommSentWpp').textContent = kpiSentWpp;
+  if(el('kpiCommWithVoucher')) el('kpiCommWithVoucher').textContent = kpiWithVoucher;
+  if(el('kpiCommExp72h')) el('kpiCommExp72h').textContent = kpiExp72h;
+  if(el('kpiCommNewClients')) el('kpiCommNewClients').textContent = kpiNewClients;
+
+  let filteredRows = rowsData.filter(item => {
+    if(currentCommKpiFilter === 'pending_wpp' && item.communications.length > 0) return false;
+    if(currentCommKpiFilter === 'sent_wpp' && item.communications.length === 0) return false;
+    if(currentCommKpiFilter === 'with_voucher' && !item.activeVoucher) return false;
+    if(currentCommKpiFilter === 'exp_72h'){
+      if(!item.activeVoucher) return false;
+      const d = getVoucherDaysRemaining(item.activeVoucher);
+      if(d <= 0 || d > 3) return false;
+    }
+    if(currentCommKpiFilter === 'new_clients' && !item.isNew) return false;
+
+    if(voucherFilter === 'pending_wpp' && item.communications.length > 0) return false;
+    if(voucherFilter === 'sent_wpp' && item.communications.length === 0) return false;
+    if(voucherFilter === 'with_voucher' && !item.activeVoucher) return false;
+    if(voucherFilter === 'exp_72h'){
+      if(!item.activeVoucher) return false;
+      const d = getVoucherDaysRemaining(item.activeVoucher);
+      if(d <= 0 || d > 3) return false;
+    }
+    if(voucherFilter === 'no_voucher' && item.latestVoucher) return false;
+    if(voucherFilter === 'used'){
+      const hasUsed = item.vouchers.some(vc => vc.status === 'utilizado');
+      if(!hasUsed) return false;
+    }
+
+    if(segmentFilter === 'new' && !item.isNew) return false;
+    if(segmentFilter === 'recurring'){
+      const tot = item.client ? (item.client.totalVisits || 1) : 1;
+      if(tot < 2 || tot >= 5) return false;
+    }
+    if(segmentFilter === 'vip'){
+      const tot = item.client ? (item.client.totalVisits || 1) : 1;
+      if(tot < 5) return false;
+    }
+    if(segmentFilter === 'priority'){
+      const hasClientPrio = item.client && Array.isArray(item.client.priorities) && item.client.priorities.length > 0;
+      const hasVisitPrio = item.visit && Array.isArray(item.visit.priorities) && item.visit.priorities.length > 0;
+      if(!hasClientPrio && !hasVisitPrio) return false;
+    }
+
+    if(query){
+      const name = (item.visit.name || (item.client ? item.client.name : '')).toLowerCase();
+      const phone = digits(item.visit.phone || (item.client ? item.client.phone : ''));
+      const table = String(item.visit.table || '').toLowerCase();
+      const vchCode = (item.latestVoucher ? item.latestVoucher.code : '').toLowerCase();
+      const fQuery = typeof foldText === 'function' ? foldText(query) : query;
+      const fName = typeof foldText === 'function' ? foldText(name) : name;
+      const dQuery = digits(query);
+
+      const mName = fName.includes(fQuery);
+      const mPhone = dQuery.length > 0 && phone.includes(dQuery);
+      const mTable = table.includes(query);
+      const mVch = vchCode.includes(query);
+      if(!mName && !mPhone && !mTable && !mVch) return false;
+    }
+
+    return true;
+  });
+
+  if(filteredRows.length === 0){
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="7" style="text-align:center;padding:36px 14px;color:var(--muted)">
+          <div style="font-size:32px;margin-bottom:8px">💬</div>
+          <strong style="font-size:14px;color:#0f172a">Nenhum check-in ou comunicação localizado</strong>
+          <p style="font-size:12px;margin-top:4px">Tente ajustar os filtros de período, casa ou termo de busca.</p>
+        </td>
+      </tr>
+    `;
+    if(el('commPaginationSummary')) el('commPaginationSummary').textContent = 'Exibindo 0 registros.';
+    return;
+  }
+
+  const html = filteredRows.map(item => {
+    const v = item.visit;
+    const c = item.client;
+    const vch = item.activeVoucher || item.latestVoucher;
+    const lastCm = item.lastComm;
+    const clientName = v.name || (c ? c.name : 'Cliente sem nome');
+    const clientPhone = v.phone || (c ? c.phone : '');
+    const hKey = normalizeHouseKey(v.house || (c ? c.firstHouse : 'Bravo Café'));
+    const b = getHouseBranding(hKey);
+
+    let dateFmt = v.date || '';
+    if(dateFmt === tStr) dateFmt = '<span class="badge" style="background:#ecfdf5;color:#059669;font-weight:800">Hoje</span> ' + (v.arrival || '');
+    else if(dateFmt === yStr) dateFmt = '<span class="badge" style="background:#f1f5f9;color:#475569;font-weight:700">Ontem</span> ' + (v.arrival || '');
+    else {
+      const parts = dateFmt.split('-');
+      if(parts.length === 3) dateFmt = `${parts[2]}/${parts[1]}/${parts[0]} ${v.arrival || ''}`;
+    }
+
+    let segBadge = '';
+    const totVisits = c ? (c.totalVisits || 1) : 1;
+    if(totVisits === 1) segBadge = '<span class="badge" style="background:#fff7ed;color:#ea580c;font-size:10.5px;padding:2px 6px">Novo</span>';
+    else if(totVisits >= 5) segBadge = '<span class="badge gold" style="font-size:10.5px;padding:2px 6px">👑 VIP</span>';
+    else segBadge = `<span class="badge blue" style="font-size:10.5px;padding:2px 6px">🔁 ${totVisits} visitas</span>`;
+
+    const prios = (c && c.priorities) ? c.priorities : (v.priorities || []);
+    let prioPill = '';
+    if(prios && prios.length > 0){
+      prioPill = `<span class="badge" style="background:#fee2e2;color:#b91c1c;font-size:10px;padding:2px 5px;font-weight:800" title="Prioridade: ${prios.join(', ')}">⭐ ${prios[0]}</span>`;
+    }
+
+    let voucherCell = '';
+    if(vch){
+      const daysRem = getVoucherDaysRemaining(vch);
+      let statusTag = '';
+      if(vch.status === 'utilizado'){
+        statusTag = '<span class="badge" style="background:#e2e8f0;color:#475569;font-size:10px">✔️ Utilizado</span>';
+      } else if(daysRem <= 0 || vch.status === 'expirado'){
+        statusTag = '<span class="badge" style="background:#f1f5f9;color:#94a3b8;font-size:10px">Expirado</span>';
+      } else if(daysRem <= 3){
+        statusTag = `<span class="badge danger" style="font-size:10px;font-weight:800;animation:pulse 1.5s infinite">⏰ Expira em ${daysRem}d</span>`;
+      } else {
+        statusTag = `<span class="badge good" style="font-size:10px;background:#ecfdf5;color:#059669;font-weight:700">● ${daysRem}d restantes</span>`;
+      }
+
+      voucherCell = `
+        <div style="display:flex;flex-direction:column;gap:3px">
+          <div style="display:flex;align-items:center;gap:6px">
+            <span class="vch-code-pill" style="font-size:11px;padding:2px 7px" onclick="copyVoucherCode('${vch.code}')" title="Clique para copiar código">${esc(vch.code)} 📋</span>
+            <span class="badge blue" style="font-size:10px;padding:1px 5px">${vch.discountPercent || 12}% OFF</span>
+          </div>
+          <div>${statusTag}</div>
+        </div>
+      `;
+    } else {
+      voucherCell = `
+        <button type="button" class="btn" onclick="openIssueVoucherModalForClient('${c ? c.id : ''}', '${esc(clientName)}', '${esc(clientPhone)}', '${hKey}')" style="font-size:11px;padding:3px 8px;background:#f8fafc;border:1px dashed #cbd5e1;color:#475569;font-weight:600" title="Emitir voucher de 12% para este cliente">
+          ＋ Emitir Voucher
+        </button>
+      `;
+    }
+
+    let wppStatusCell = '';
+    if(lastCm){
+      const sentTimeStr = lastCm.sentAt ? new Date(lastCm.sentAt).toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}) : '';
+      const sentDateStr = lastCm.sentAt ? new Date(lastCm.sentAt).toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit'}) : '';
+      wppStatusCell = `
+        <div style="display:flex;flex-direction:column;gap:2px">
+          <span class="badge good" style="font-size:10.5px;background:#ecfdf5;color:#047857;font-weight:750;display:inline-flex;align-items:center;gap:4px" title="${lastCm.text ? esc(lastCm.text.slice(0, 100)) + '...' : ''}">
+            ✓ Enviado (${sentDateStr} ${sentTimeStr})
+          </span>
+          <span style="font-size:10.5px;color:var(--muted)">Tipo: ${esc(lastCm.type || 'WhatsApp')}</span>
+        </div>
+      `;
+    } else {
+      wppStatusCell = `
+        <span class="badge warn" style="font-size:10.5px;background:#fffbeb;color:#b45309;font-weight:750;display:inline-flex;align-items:center;gap:4px">
+          ⚠️ Pendente de Envio
+        </span>
+      `;
+    }
+
+    const tableBadge = v.table ? `<span class="badge" style="background:#f1f5f9;color:#334155;font-size:11px">Mesa ${esc(v.table)}</span>` : '<span style="color:#94a3b8;font-size:11px">—</span>';
+
+    const cId = c ? c.id : '';
+    const vId = v.id || '';
+    const vchId = vch ? vch.id : '';
+
+    return `
+      <tr>
+        <td style="white-space:nowrap;font-size:12px">
+          ${dateFmt}
+        </td>
+        <td>
+          <div style="display:flex;flex-direction:column;gap:2px">
+            <strong style="cursor:pointer;color:#0f172a" onclick="${cId ? `goProfile('${cId}')` : ''}" title="Ver ficha do cliente">${esc(clientName)}</strong>
+            <div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap">
+              ${segBadge}
+              ${prioPill}
+            </div>
+          </div>
+        </td>
+        <td style="font-size:12px;font-family:monospace;white-space:nowrap">
+          <span style="cursor:pointer;color:#2563eb" onclick="copyVoucherCode('${clientPhone}')" title="Clique para copiar telefone">${fmtPhone(clientPhone)} 📋</span>
+        </td>
+        <td style="font-size:12px">
+          <div style="display:flex;flex-direction:column;gap:2px">
+            <span class="vch-house-tag" style="background:${b.color}15;color:${b.color};border:1px solid ${b.color}40;font-size:10.5px;padding:1px 6px">${b.label}</span>
+            <div>${tableBadge}</div>
+          </div>
+        </td>
+        <td>
+          ${voucherCell}
+        </td>
+        <td>
+          ${wppStatusCell}
+        </td>
+        <td style="text-align:right;white-space:nowrap">
+          <div style="display:inline-flex;gap:6px;align-items:center">
+            <button type="button" class="btn primary" onclick="openCommunicationModal('${cId}', '${vId}', '${vchId}', 'voucher')" style="font-size:11.5px;padding:6px 10px;background:#25d366;border-color:#22c55e;color:#fff;font-weight:750" title="Compor e enviar mensagem WhatsApp com Voucher & Avaliação Google">
+              💬 Enviar WPP
+            </button>
+            <button type="button" class="btn" onclick="openCommunicationModal('${cId}', '${vId}', '${vchId}', 'oferta')" style="font-size:11px;padding:6px 8px;background:#fff;border:1.5px solid #cbd5e1;font-weight:600;color:#000" title="Enviar Oferta / Foto do Prato / Cardápio / Vídeo">
+              📷 Mídia
+            </button>
+            <button type="button" class="btn" onclick="openClientCommunicationHistoryModal('${cId}', '${esc(clientName)}', '${esc(clientPhone)}')" style="font-size:11px;padding:6px 8px;background:#f8fafc;border:1.5px solid #cbd5e1;color:#475569" title="Ver histórico de mensagens deste cliente">
+              📋
+            </button>
+            <button type="button" class="btn ghost" onclick="quickMarkCommunicationSent('${vId}', '${cId}', '${esc(clientPhone)}', '${esc(clientName)}', '${hKey}')" style="font-size:11px;padding:6px 8px;color:#059669;font-weight:800" title="Marcar como enviado manualmente">
+              ✓
+            </button>
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join('');
+
+  tbody.innerHTML = html;
+  if(el('commPaginationSummary')){
+    el('commPaginationSummary').textContent = `Exibindo ${filteredRows.length} de ${rawVisits.length} check-in(s) e interação(ões) no período.`;
+  }
+}
+
+function quickMarkCommunicationSent(visitId, clientId, phone, clientName, house){
+  const user = (typeof getCurrentUser === 'function') ? getCurrentUser() : null;
+  const operatorName = user ? user.name : 'Atendimento';
+
+  if(!state.communications) state.communications = [];
+  const commObj = {
+    id: 'comm_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+    visitId: visitId || null,
+    clientId: clientId || null,
+    phone: phone,
+    clientName: clientName,
+    house: house,
+    type: 'Registro Manual',
+    text: 'Mensagem enviada externamente ou confirmada pelo operador.',
+    mediaUrl: '',
+    sentAt: new Date().toISOString(),
+    sentBy: operatorName,
+    channel: 'WhatsApp'
+  };
+
+  state.communications.unshift(commObj);
+  syncCommunicationsToRemote();
+  renderCommunication();
+  toast('✓ Comunicação marcada como enviada.');
+}
+
+let activeCommComposerData = null;
+
+function openCommunicationModal(clientId, visitId, voucherId, defaultTab = 'voucher'){
+  const client = (state.clients || []).find(c => c.id === clientId) || null;
+  const visit = (state.visits || []).find(v => v.id === visitId) || null;
+  const allV = Array.isArray(state.vouchers) ? state.vouchers : [];
+  let vch = allV.find(vc => vc.id === voucherId) || null;
+
+  if(!vch && client){
+    vch = allV.find(vc => vc.clientId === client.id && vc.status === 'ativo' && getVoucherDaysRemaining(vc) > 0) || null;
+  }
+  if(!vch && visit && visit.phone){
+    const dp = digits(visit.phone);
+    vch = allV.find(vc => digits(vc.clientPhone) === dp && vc.status === 'ativo' && getVoucherDaysRemaining(vc) > 0) || null;
+  }
+
+  const clientName = client ? client.name : (visit ? visit.name : 'Cliente');
+  const clientPhone = client ? client.phone : (visit ? visit.phone : '');
+  const houseKey = normalizeHouseKey((visit ? visit.house : '') || (client ? client.firstHouse : '') || (vch ? vch.house : '') || 'Bravo Café');
+  const hSettings = getHouseSettings(houseKey);
+  const b = getHouseBranding(houseKey);
+
+  activeCommComposerData = {
+    clientId,
+    visitId,
+    voucherId: vch ? vch.id : null,
+    clientName,
+    clientPhone,
+    houseKey,
+    hSettings,
+    branding: b,
+    voucher: vch,
+    activeTab: defaultTab,
+    mediaUrl: ''
+  };
+
+  el('modalTitle').innerHTML = `💬 WhatsApp CRM • ${esc(clientName)} (${b.label})`;
+  el('modalBody').innerHTML = buildCommComposerModalHtml(activeCommComposerData);
+  el('modal').classList.add('show');
+
+  switchCommTab(defaultTab);
+}
+
+function buildCommComposerModalHtml(data){
+  const b = data.branding;
+  const firstName = data.clientName.split(' ')[0] || data.clientName;
+  const vch = data.voucher;
+
+  return `
+    <div style="display:flex;flex-direction:column;gap:14px;max-width:850px">
+      <div style="display:flex;justify-content:space-between;align-items:center;background:#f8fafc;padding:10px 14px;border-radius:10px;border:1px solid #e2e8f0;flex-wrap:wrap;gap:8px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:18px">👤</span>
+          <div>
+            <strong style="font-size:13px;color:#0f172a">${esc(data.clientName)}</strong>
+            <span style="font-size:12px;color:var(--muted);margin-left:6px">${fmtPhone(data.clientPhone)}</span>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="vch-house-tag" style="background:${b.color}15;color:${b.color};border:1.5px solid ${b.color}40;font-size:11px">${b.label}</span>
+          ${vch ? `<span class="vch-code-pill" style="font-size:11px">🎟️ ${esc(vch.code)} (${vch.discountPercent||12}%)</span>` : '<span class="badge" style="background:#f1f5f9;color:#64748b;font-size:11px">Sem voucher ativo</span>'}
+        </div>
+      </div>
+
+      <div class="comm-tabs-wrap">
+        <button type="button" class="comm-tab-btn active" id="commTab_voucher" onclick="switchCommTab('voucher')">
+          🎟️ Voucher & Google
+        </button>
+        <button type="button" class="comm-tab-btn" id="commTab_oferta" onclick="switchCommTab('oferta')">
+          🎁 Oferta / Cortesia
+        </button>
+        <button type="button" class="comm-tab-btn" id="commTab_midia" onclick="switchCommTab('midia')">
+          📷 Cardápio / Foto Prato
+        </button>
+        <button type="button" class="comm-tab-btn" id="commTab_video" onclick="switchCommTab('video')">
+          🎥 Vídeo / Experiência
+        </button>
+        <button type="button" class="comm-tab-btn" id="commTab_reengajamento" onclick="switchCommTab('reengajamento')">
+          👋 Reengajamento
+        </button>
+        <button type="button" class="comm-tab-btn" id="commTab_livre" onclick="switchCommTab('livre')">
+          ✍️ Mensagem Livre
+        </button>
+      </div>
+
+      <div class="comm-composer-layout">
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <label style="font-size:12px;font-weight:750;color:#000">Texto da Mensagem (WhatsApp):</label>
+            <span id="commCharCounter" style="font-size:11px;color:var(--muted)">0 caracteres</span>
+          </div>
+
+          <div style="display:flex;flex-wrap:wrap;gap:5px;align-items:center;background:#f8fafc;padding:8px 10px;border-radius:8px;border:1px solid #e2e8f0">
+            <span style="font-size:11px;font-weight:700;color:#475569;margin-right:2px">Inserir:</span>
+            <button type="button" class="comm-quick-tag" onclick="insertVariableIntoCommMsg('{primeiro_nome}')" title="Inserir primeiro nome">+ Primeiro Nome</button>
+            <button type="button" class="comm-quick-tag" onclick="insertVariableIntoCommMsg('{casa}')" title="Inserir nome da casa">+ Casa</button>
+            <button type="button" class="comm-quick-tag" onclick="insertVariableIntoCommMsg('{codigo_voucher}')" title="Inserir código do voucher">+ Voucher</button>
+            <button type="button" class="comm-quick-tag" onclick="insertVariableIntoCommMsg('{desconto}')" title="Inserir percentual de desconto">+ Desconto</button>
+            <button type="button" class="comm-quick-tag" onclick="insertVariableIntoCommMsg('{validade_data}')" title="Inserir data limite de validade">+ Validade</button>
+            <button type="button" class="comm-quick-tag" onclick="insertVariableIntoCommMsg('{link_google}')" title="Inserir link do Google Meu Negócio">+ Link Google</button>
+            <button type="button" class="comm-quick-tag" onclick="insertVariableIntoCommMsg('{link_midia}')" title="Inserir link da mídia/cardápio">+ Link Mídia</button>
+          </div>
+
+          <textarea id="commMessageText" class="control" rows="8" style="font-size:13px;line-height:1.5;padding:10px;font-family:inherit;color:#000;border:1.5px solid #cbd5e1;border-radius:10px" oninput="updateCommLivePreview()"></textarea>
+
+          <div style="background:#f8fafc;padding:10px 12px;border-radius:10px;border:1px solid #e2e8f0;display:flex;flex-direction:column;gap:6px">
+            <label style="font-size:12px;font-weight:750;color:#000;display:flex;align-items:center;gap:5px">
+              <span>📎 Link de Mídia (Foto do Prato, Cardápio Digital ou Vídeo):</span>
+              <small style="color:var(--muted);font-weight:normal">(Opcional)</small>
+            </label>
+            <input type="url" id="commMediaUrl" class="control" placeholder="https://exemplo.com/cardapio.pdf ou link da foto / reels" style="font-size:12px;padding:8px 10px;border:1.5px solid #cbd5e1" oninput="handleCommMediaUrlChange(this.value)">
+            <div style="font-size:11px;color:var(--muted)">O link será incorporado à mensagem e exibido no preview ao lado.</div>
+          </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div style="font-size:12px;font-weight:750;color:#000;display:flex;align-items:center;justify-content:space-between">
+            <span>Visualização em Tempo Real (WhatsApp):</span>
+            <span style="font-size:10px;color:#059669;font-weight:700">● Conectado</span>
+          </div>
+
+          <div class="wpp-live-chat-wrap">
+            <div style="font-size:10.5px;text-align:center;color:#64748b;background:rgba(255,255,255,0.7);padding:2px 8px;border-radius:6px;align-self:center">
+              HOJE • MENSAGEM OFICIAL ${b.label.toUpperCase()}
+            </div>
+
+            <div id="commLiveMediaPreview" style="display:none;background:#fff;border-radius:10px;overflow:hidden;border:1px solid #cbd5e1;max-width:90%;margin-left:auto">
+              <img id="commLiveImg" src="" alt="Mídia" style="max-height:140px;width:100%;object-fit:cover;display:none" onerror="this.style.display='none'">
+              <div id="commLiveLinkBanner" style="padding:6px 10px;font-size:11px;color:#2563eb;font-weight:600;display:none">
+                🔗 Link anexado
+              </div>
+            </div>
+
+            <div class="wpp-chat-bubble" id="commLiveBubble">
+            </div>
+          </div>
+
+          <div style="font-size:11px;color:#64748b;line-height:1.4">
+            💡 Dica: O WhatsApp abrirá diretamente na conversa com <strong>${esc(data.clientName)}</strong> com o texto pré-digitado pronto para o envio.
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex;justify-content:space-between;align-items:center;border-top:1px solid #e2e8f0;padding-top:14px;margin-top:6px;flex-wrap:wrap;gap:8px">
+        <button type="button" class="btn" onclick="closeModal()" style="font-weight:600">
+          Cancelar
+        </button>
+
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <button type="button" class="btn" onclick="confirmRegisterCommunicationOnly()" style="font-size:12px;background:#fff;border:1.5px solid #cbd5e1;font-weight:700;color:#0f172a" title="Registrar como enviado no histórico sem abrir o WhatsApp">
+            ✓ Apenas Marcar como Enviado
+          </button>
+          <button type="button" class="btn primary" onclick="sendCommunicationViaWhatsApp(true)" style="background:#25d366;border-color:#22c55e;color:#fff;font-size:13px;font-weight:750;padding:9px 14px" title="Abrir no aplicativo WhatsApp oficial">
+            📱 WhatsApp App
+          </button>
+          <button type="button" class="btn primary" onclick="sendCommunicationViaWhatsApp(false)" style="background:#128c7e;border-color:#0f766e;color:#fff;font-size:13px;font-weight:750;padding:9px 16px" title="Abrir no WhatsApp Web do navegador">
+            🟢 WhatsApp Web
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function switchCommTab(tabKey){
+  if(!activeCommComposerData) return;
+  activeCommComposerData.activeTab = tabKey;
+
+  document.querySelectorAll('.comm-tab-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.id === `commTab_${tabKey}`);
+  });
+
+  const tmpls = Array.isArray(state.wppTemplates) ? state.wppTemplates : getDefaultWppTemplates();
+  let selectedTmpl = null;
+
+  if(tabKey === 'voucher'){
+    selectedTmpl = tmpls.find(t => t.id === 'tmpl-1') || tmpls[0];
+  } else if(tabKey === 'oferta'){
+    selectedTmpl = tmpls.find(t => t.id === 'tmpl-5' || t.category === 'oferta') || tmpls[0];
+  } else if(tabKey === 'midia'){
+    selectedTmpl = tmpls.find(t => t.id === 'tmpl-6' || t.category === 'midia') || tmpls[0];
+  } else if(tabKey === 'video'){
+    selectedTmpl = tmpls.find(t => t.id === 'tmpl-7' || t.category === 'video') || tmpls[0];
+  } else if(tabKey === 'reengajamento'){
+    selectedTmpl = tmpls.find(t => t.id === 'tmpl-8' || t.category === 'reengajamento') || tmpls[0];
+  } else if(tabKey === 'livre'){
+    selectedTmpl = { text: "Olá, {primeiro_nome}!\n\nEsperamos que você esteja tendo um excelente dia! ✨\n\nEquipe {casa}." };
+  }
+
+  const rawText = selectedTmpl ? selectedTmpl.text : '';
+  const resolvedText = resolveCommTemplateVariables(rawText, activeCommComposerData);
+
+  const textarea = el('commMessageText');
+  if(textarea){
+    textarea.value = resolvedText;
+    updateCommLivePreview();
+  }
+}
+
+function resolveCommTemplateVariables(templateStr, data){
+  if(!templateStr) return '';
+  const firstName = data.clientName.split(' ')[0] || data.clientName;
+  const vch = data.voucher;
+  const daysRem = vch ? getVoucherDaysRemaining(vch) : 30;
+  let expDateStr = '';
+  if(vch && vch.expiresAt){
+    const d = new Date(vch.expiresAt);
+    expDateStr = d.toLocaleDateString('pt-BR');
+  } else {
+    const future = new Date();
+    future.setDate(future.getDate() + 30);
+    expDateStr = future.toLocaleDateString('pt-BR');
+  }
+
+  const googleUrl = (data.hSettings && data.hSettings.googleReviewUrl) ? data.hSettings.googleReviewUrl : 'https://g.page/r/bravo-cafe/review';
+  const mediaUrl = data.mediaUrl || el('commMediaUrl')?.value || '';
+
+  return templateStr
+    .replace(/\{cliente_nome\}|\{nome_completo\}/g, data.clientName)
+    .replace(/\{primeiro_nome\}/g, firstName)
+    .replace(/\{casa\}/g, data.houseKey)
+    .replace(/\{codigo_voucher\}|\{voucher\}/g, vch ? vch.code : 'VCH-EXCLUSIVO')
+    .replace(/\{desconto\}/g, `${(vch && vch.discountPercent) || 12}%`)
+    .replace(/\{data_validade\}|\{validade_data\}/g, expDateStr)
+    .replace(/\{dias_restantes\}|\{validade_dias\}/g, String(Math.max(daysRem, 1)))
+    .replace(/\{link_google\}/g, googleUrl)
+    .replace(/\{link_midia\}|\{link_cardapio\}|\{link_video\}/g, mediaUrl || 'https://instagram.com/bravocafe');
+}
+
+function insertVariableIntoCommMsg(tag){
+  const textarea = el('commMessageText');
+  if(!textarea) return;
+  const start = textarea.selectionStart;
+  const end = textarea.selectionEnd;
+  const val = textarea.value;
+  textarea.value = val.substring(0, start) + tag + val.substring(end);
+  textarea.selectionStart = textarea.selectionEnd = start + tag.length;
+  textarea.focus();
+  updateCommLivePreview();
+}
+
+function handleCommMediaUrlChange(url){
+  if(activeCommComposerData) activeCommComposerData.mediaUrl = url;
+  const previewBox = el('commLiveMediaPreview');
+  const img = el('commLiveImg');
+  const banner = el('commLiveLinkBanner');
+
+  if(!url || !url.trim()){
+    if(previewBox) previewBox.style.display = 'none';
+    return;
+  }
+
+  if(previewBox) previewBox.style.display = 'block';
+  const isImg = url.match(/\.(jpeg|jpg|gif|png|webp)($|\?)/i);
+  if(isImg && img){
+    img.src = url;
+    img.style.display = 'block';
+    if(banner) banner.style.display = 'none';
+  } else {
+    if(img) img.style.display = 'none';
+    if(banner){
+      banner.style.display = 'block';
+      banner.textContent = '📎 Link de mídia: ' + url.slice(0, 45) + '...';
+    }
+  }
+  updateCommLivePreview();
+}
+
+function updateCommLivePreview(){
+  const textarea = el('commMessageText');
+  const bubble = el('commLiveBubble');
+  const counter = el('commCharCounter');
+  if(!textarea || !bubble) return;
+
+  const raw = textarea.value;
+  if(counter) counter.textContent = `${raw.length} caracteres`;
+
+  let text = activeCommComposerData ? resolveCommTemplateVariables(raw, activeCommComposerData) : raw;
+
+  let formatted = esc(text)
+    .replace(/\*([^\*]+)\*/g, '<strong>$1</strong>')
+    .replace(/_([^_]+)_/g, '<em>$1</em>')
+    .replace(/\n/g, '<br>');
+
+  const nowTime = new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
+
+  bubble.innerHTML = `
+    <div>${formatted}</div>
+    <div class="wpp-chat-meta">
+      <span>${nowTime}</span>
+      <span class="wpp-chat-ticks">✓✓</span>
+    </div>
+  `;
+}
+
+function sendCommunicationViaWhatsApp(useApp = false){
+  if(!activeCommComposerData) return;
+  const textarea = el('commMessageText');
+  if(!textarea || !textarea.value.trim()){
+    toast('Por favor, informe o texto da mensagem.');
+    return;
+  }
+
+  let finalMsg = resolveCommTemplateVariables(textarea.value, activeCommComposerData);
+  const mediaUrl = activeCommComposerData.mediaUrl || el('commMediaUrl')?.value || '';
+  if(mediaUrl && !finalMsg.includes(mediaUrl)){
+    finalMsg += '\n\n' + mediaUrl;
+  }
+
+  let phone = digits(activeCommComposerData.clientPhone);
+  if(!phone){
+    toast('Cliente sem telefone cadastrado.');
+    return;
+  }
+  if(!phone.startsWith('55') && phone.length <= 11){
+    phone = '55' + phone;
+  }
+
+  const encodedText = encodeURIComponent(finalMsg);
+  const targetUrl = useApp
+    ? `https://api.whatsapp.com/send?phone=${phone}&text=${encodedText}`
+    : `https://web.whatsapp.com/send?phone=${phone}&text=${encodedText}`;
+
+  recordCommunicationEntry({
+    visitId: activeCommComposerData.visitId,
+    clientId: activeCommComposerData.clientId,
+    voucherId: activeCommComposerData.voucherId,
+    phone: activeCommComposerData.clientPhone,
+    clientName: activeCommComposerData.clientName,
+    house: activeCommComposerData.houseKey,
+    type: getCommTypeLabel(activeCommComposerData.activeTab),
+    text: finalMsg,
+    mediaUrl: mediaUrl,
+    channel: 'WhatsApp'
+  });
+
+  if(activeCommComposerData.voucher){
+    activeCommComposerData.voucher.sentWpp = true;
+    activeCommComposerData.voucher.wppSentAt = new Date().toISOString();
+    save();
+    if(typeof dbSyncVouchers === 'function') dbSyncVouchers(state.vouchers);
+  }
+
+  window.open(targetUrl, '_blank');
+  closeModal();
+  renderCommunication();
+  toast('✓ Mensagem enviada para o WhatsApp e registrada no CRM!');
+}
+
+function confirmRegisterCommunicationOnly(){
+  if(!activeCommComposerData) return;
+  const textarea = el('commMessageText');
+  const finalMsg = textarea ? textarea.value.trim() : '';
+  const mediaUrl = activeCommComposerData.mediaUrl || el('commMediaUrl')?.value || '';
+
+  recordCommunicationEntry({
+    visitId: activeCommComposerData.visitId,
+    clientId: activeCommComposerData.clientId,
+    voucherId: activeCommComposerData.voucherId,
+    phone: activeCommComposerData.clientPhone,
+    clientName: activeCommComposerData.clientName,
+    house: activeCommComposerData.houseKey,
+    type: getCommTypeLabel(activeCommComposerData.activeTab),
+    text: finalMsg,
+    mediaUrl: mediaUrl,
+    channel: 'Registro Manual'
+  });
+
+  if(activeCommComposerData.voucher){
+    activeCommComposerData.voucher.sentWpp = true;
+    activeCommComposerData.voucher.wppSentAt = new Date().toISOString();
+    save();
+    if(typeof dbSyncVouchers === 'function') dbSyncVouchers(state.vouchers);
+  }
+
+  closeModal();
+  renderCommunication();
+  toast('✓ Comunicação gravada no histórico do cliente.');
+}
+
+function getCommTypeLabel(tabKey){
+  if(tabKey === 'voucher') return 'Voucher & Avaliação Google';
+  if(tabKey === 'oferta') return 'Oferta & Cortesia';
+  if(tabKey === 'midia') return 'Cardápio / Foto';
+  if(tabKey === 'video') return 'Vídeo Experiência';
+  if(tabKey === 'reengajamento') return 'Reengajamento';
+  return 'Mensagem Livre';
+}
+
+function recordCommunicationEntry(entry){
+  if(!state.communications) state.communications = [];
+  const user = (typeof getCurrentUser === 'function') ? getCurrentUser() : null;
+  const commObj = {
+    id: 'comm_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+    visitId: entry.visitId || null,
+    clientId: entry.clientId || null,
+    voucherId: entry.voucherId || null,
+    phone: entry.phone,
+    clientName: entry.clientName,
+    house: entry.house,
+    type: entry.type || 'WhatsApp',
+    text: entry.text,
+    mediaUrl: entry.mediaUrl || '',
+    sentAt: new Date().toISOString(),
+    sentBy: user ? user.name : 'Recepção / MKT',
+    channel: entry.channel || 'WhatsApp'
+  };
+
+  state.communications.unshift(commObj);
+  syncCommunicationsToRemote();
+}
+
+function openClientCommunicationHistoryModal(clientId, clientName, phone){
+  const allComms = Array.isArray(state.communications) ? state.communications : [];
+  const dp = digits(phone);
+  const clientComms = allComms.filter(cm => {
+    if(clientId && cm.clientId === clientId) return true;
+    if(dp && cm.phone && digits(cm.phone) === dp) return true;
+    return false;
+  }).sort((a,b) => new Date(b.sentAt||0) - new Date(a.sentAt||0));
+
+  el('modalTitle').innerHTML = `📋 Histórico de Mensagens • ${esc(clientName)}`;
+  if(clientComms.length === 0){
+    el('modalBody').innerHTML = `
+      <div style="text-align:center;padding:32px 14px;color:var(--muted)">
+        <div style="font-size:32px;margin-bottom:8px">💬</div>
+        <strong>Nenhuma comunicação registrada para ${esc(clientName)}</strong>
+        <p style="font-size:12px;margin-top:4px">Você pode enviar uma mensagem pelo WhatsApp a qualquer momento.</p>
+        <button type="button" class="btn primary" onclick="openCommunicationModal('${clientId}', '', '', 'voucher')" style="margin-top:12px;background:#25d366;border-color:#22c55e">
+          💬 Enviar Mensagem Agora
+        </button>
+      </div>
+    `;
+  } else {
+    const listHtml = clientComms.map(cm => {
+      const dt = new Date(cm.sentAt);
+      const dtStr = dt.toLocaleDateString('pt-BR') + ' às ' + dt.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
+      return `
+        <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:12px;margin-bottom:10px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;flex-wrap:wrap;gap:6px">
+            <div style="display:flex;align-items:center;gap:6px">
+              <span class="badge blue" style="font-size:10.5px">${esc(cm.type)}</span>
+              <span class="badge" style="background:#ecfdf5;color:#047857;font-size:10.5px">via ${esc(cm.channel||'WhatsApp')}</span>
+              <span style="font-size:11px;color:var(--muted)">por ${esc(cm.sentBy||'Sistema')}</span>
+            </div>
+            <span style="font-size:11px;color:var(--muted)">${dtStr}</span>
+          </div>
+          <div style="font-size:12.5px;color:#1e293b;line-height:1.45;white-space:pre-wrap;background:#fff;padding:8px 10px;border-radius:8px;border:1px solid #f1f5f9">${esc(cm.text)}</div>
+          ${cm.mediaUrl ? `<div style="margin-top:6px;font-size:11.5px"><a href="${esc(cm.mediaUrl)}" target="_blank" style="color:#2563eb;text-decoration:none">🔗 Link de mídia: ${esc(cm.mediaUrl)}</a></div>` : ''}
+        </div>
+      `;
+    }).join('');
+
+    el('modalBody').innerHTML = `
+      <div style="max-height:550px;overflow-y:auto;padding-right:4px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <span style="font-size:12px;color:var(--muted)">Total de mensagens registradas: <strong>${clientComms.length}</strong></span>
+          <button type="button" class="btn primary" onclick="openCommunicationModal('${clientId}', '', '', 'voucher')" style="font-size:11.5px;padding:5px 10px;background:#25d366;border-color:#22c55e">
+            💬 Nova Mensagem
+          </button>
+        </div>
+        ${listHtml}
+      </div>
+    `;
+  }
+  el('modal').classList.add('show');
+}
+
+function openFreeCommunicationModal(){
+  el('modalTitle').innerHTML = `💬 Nova Comunicação Livre (WhatsApp CRM)`;
+  el('modalBody').innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div class="field">
+        <label style="font-size:12px;font-weight:700">Selecione o Cliente ou informe o telefone:</label>
+        <input type="text" id="freeCommClientSearch" class="control" placeholder="Buscar cliente por nome ou celular..." oninput="filterFreeCommClientDropdown(this.value)">
+        <div id="freeCommClientResults" style="max-height:140px;overflow-y:auto;background:#fff;border:1px solid #cbd5e1;border-radius:8px;margin-top:4px;display:none"></div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="field">
+          <label style="font-size:12px;font-weight:700">Nome do Destinatário *</label>
+          <input type="text" id="freeCommName" class="control" placeholder="Ex.: Gabriel">
+        </div>
+        <div class="field">
+          <label style="font-size:12px;font-weight:700">Telefone com DDD *</label>
+          <input type="tel" id="freeCommPhone" class="control" placeholder="(22) 99999-9999">
+        </div>
+      </div>
+
+      <div class="field">
+        <label style="font-size:12px;font-weight:700">Casa de Referência *</label>
+        <select id="freeCommHouse" class="control">
+          <option value="Bravo Café">Bravo Café</option>
+          <option value="Café da Bravo Pousada">Café da Bravo Pousada</option>
+          <option value="Íconico">Iconiko Cozinha Japonesa</option>
+          <option value="Leña">Leña Casa Italiana</option>
+        </select>
+      </div>
+
+      <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:8px">
+        <button type="button" class="btn" onclick="closeModal()">Cancelar</button>
+        <button type="button" class="btn primary" onclick="startFreeCommunicationFromModal()" style="background:#25d366;border-color:#22c55e">
+          Avançar para Mensagem →
+        </button>
+      </div>
+    </div>
+  `;
+  el('modal').classList.add('show');
+}
+
+function filterFreeCommClientDropdown(query){
+  const res = el('freeCommClientResults');
+  if(!res) return;
+  if(!query || query.length < 2){
+    res.style.display = 'none';
+    return;
+  }
+  const fQuery = typeof foldText === 'function' ? foldText(query) : query.toLowerCase();
+  const dQuery = digits(query);
+  const clients = (state.clients || []).filter(c => {
+    const fName = typeof foldText === 'function' ? foldText(c.name||'') : (c.name||'').toLowerCase();
+    const phone = digits(c.phone||'');
+    return fName.includes(fQuery) || (dQuery && phone.includes(dQuery));
+  }).slice(0, 10);
+
+  if(clients.length === 0){
+    res.style.display = 'none';
+    return;
+  }
+
+  res.style.display = 'block';
+  res.innerHTML = clients.map(c => `
+    <div style="padding:8px 10px;cursor:pointer;border-bottom:1px solid #f1f5f9;font-size:12px" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='#fff'" onclick="selectFreeCommClient('${c.id}', '${esc(c.name)}', '${esc(c.phone)}', '${esc(c.firstHouse||'Bravo Café')}')">
+      <strong>${esc(c.name)}</strong> • <span style="color:var(--muted)">${fmtPhone(c.phone)}</span> • <span class="badge blue" style="font-size:10px">${esc(c.firstHouse||'Bravo Café')}</span>
+    </div>
+  `).join('');
+}
+
+function selectFreeCommClient(id, name, phone, house){
+  if(el('freeCommName')) el('freeCommName').value = name;
+  if(el('freeCommPhone')) el('freeCommPhone').value = phone;
+  if(el('freeCommHouse')) el('freeCommHouse').value = normalizeHouseKey(house);
+  const res = el('freeCommClientResults');
+  if(res) res.style.display = 'none';
+  if(el('freeCommClientSearch')) el('freeCommClientSearch').value = name;
+}
+
+function startFreeCommunicationFromModal(){
+  const name = el('freeCommName')?.value.trim();
+  const phone = el('freeCommPhone')?.value.trim();
+  const house = el('freeCommHouse')?.value || 'Bravo Café';
+  if(!name || !phone){
+    toast('Informe o nome e o telefone.');
+    return;
+  }
+
+  let client = (state.clients || []).find(c => digits(c.phone) === digits(phone));
+  const clientId = client ? client.id : '';
+
+  openCommunicationModal(clientId, '', '', 'voucher');
+}
+
+function openIssueVoucherModalForClient(clientId, clientName, clientPhone, house){
+  const hKey = normalizeHouseKey(house || 'Bravo Café');
+  const hSettings = getHouseSettings(hKey);
+  const vch = createClientVoucher(
+    { id: clientId, name: clientName, phone: clientPhone },
+    hKey,
+    hSettings.voucherDiscountPercent || 12,
+    hSettings.voucherValidityDays || 30
+  );
+
+  save();
+  if(typeof dbSyncVouchers === 'function') dbSyncVouchers(state.vouchers);
+  toast(`✓ Voucher de 12% emitido com sucesso: ${vch.code}`);
+  renderCommunication();
+  openCommunicationModal(clientId, '', vch.id, 'voucher');
+}
+
+function exportCommunicationCSV(){
+  const tbody = el('commTableBody');
+  if(!tbody) return;
+
+  const rows = Array.isArray(state.visits) ? [...state.visits] : [];
+  let csv = '\ufeffData;Horario;Casa;Cliente;Telefone;Mesa;Voucher_Codigo;Voucher_Status;Voucher_Desconto;Status_WhatsApp;Total_Mensagens_Enviadas;Ultima_Mensagem_Data\n';
+
+  rows.forEach(v => {
+    if(!v) return;
+    const client = getVisitClient(v);
+    const vchs = getVisitVouchers(v, client);
+    const comms = getVisitCommunications(v, client);
+    const vch = vchs[0] || null;
+    const lastCm = comms[0] || null;
+
+    const dt = v.date || '';
+    const hr = v.arrival || '';
+    const h = v.house || '';
+    const name = (v.name || (client ? client.name : '')).replace(/;/g, ' ');
+    const phone = fmtPhone(v.phone || (client ? client.phone : ''));
+    const table = v.table || '';
+    const vCode = vch ? vch.code : '';
+    const vStatus = vch ? vch.status : '';
+    const vDisc = vch ? `${vch.discountPercent||12}%` : '';
+    const wppStatus = comms.length > 0 ? 'Enviado' : 'Pendente';
+    const totalComms = comms.length;
+    const lastCmDate = lastCm ? lastCm.sentAt : '';
+
+    csv += `"${dt}";"${hr}";"${h}";"${name}";"${phone}";"${table}";"${vCode}";"${vStatus}";"${vDisc}";"${wppStatus}";"${totalComms}";"${lastCmDate}"\n`;
+  });
+
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `grupo_qu4tro_relatorio_comunicacao_${today()}.csv`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+  toast('✓ Relatório de Comunicação exportado com sucesso.');
+}
+
 function renderVouchers(){
   if(typeof syncRescueVouchers === 'function') syncRescueVouchers();
   let all = Array.isArray(state.vouchers) ? state.vouchers : [];
@@ -9572,6 +10965,7 @@ function refreshActiveView(){
   else if(activeView === 'waitlist') { if(typeof renderWaitlist==='function') renderWaitlist(); if(typeof updateOpWaitlistBadge==='function') updateOpWaitlistBadge(); }
   else if(activeView === 'tables') { if(typeof renderFloorplan==='function') renderFloorplan(); }
   else if(activeView === 'qrcodes') renderQRCodes();
+  else if(activeView === 'communication') { if(typeof renderCommunication === 'function') renderCommunication(); }
   else if(activeView === 'vouchers') renderVouchers();
   else if(activeView === 'settings') renderSettings();
   else if(activeView === 'users') renderUsers();
@@ -9580,6 +10974,7 @@ function refreshActiveView(){
 }
 function refreshAll(){
   if(typeof updateDuplicateBadgesAndBanners === 'function') updateDuplicateBadgesAndBanners();
+  if(typeof updateCommunicationBadges === 'function') updateCommunicationBadges();
   refreshActiveView();
 }
 refreshAll();
