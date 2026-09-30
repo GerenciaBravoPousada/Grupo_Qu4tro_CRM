@@ -631,6 +631,92 @@ body[data-house] .sidebar{background:linear-gradient(180deg,var(--nav),color-mix
   transform: translateY(-1px);
 }
 
+/* ========================================================
+   CRM WHATSAPP TEMPLATES & PREVIEW STYLES
+   ======================================================== */
+.wpp-chat-container {
+  background: #efeae2;
+  background-image: radial-gradient(#d1d7db 0.75px, transparent 0.75px);
+  background-size: 14px 14px;
+  border-radius: 12px;
+  padding: 16px;
+  border: 1px solid #d1d7db;
+  max-height: 280px;
+  overflow-y: auto;
+}
+.wpp-preview-bubble {
+  background: #dcf8c6;
+  border-radius: 7.5px 7.5px 2px 7.5px;
+  padding: 10px 14px;
+  font-size: 13px;
+  color: #111b21;
+  line-height: 1.48;
+  white-space: pre-wrap;
+  word-break: break-word;
+  box-shadow: 0 1px 1.5px rgba(11, 20, 26, 0.13);
+  position: relative;
+  max-width: 94%;
+  margin-left: auto;
+}
+.wpp-preview-bubble strong {
+  font-weight: 700;
+  color: #0c1317;
+}
+.wpp-bubble-meta {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  font-size: 10px;
+  color: #667781;
+  margin-top: 4px;
+}
+.wpp-double-check {
+  color: #53bdeb;
+  font-size: 11px;
+  font-weight: 800;
+}
+.wpp-tag-chips-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+.wpp-tag-chip {
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 3px 8px;
+  font-size: 11px;
+  font-family: monospace;
+  color: #0369a1;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .15s;
+  user-select: none;
+}
+.wpp-tag-chip:hover {
+  background: #e0f2fe;
+  border-color: #38bdf8;
+  color: #0284c7;
+  transform: translateY(-1px);
+}
+.wpp-template-card {
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 14px;
+  margin-bottom: 12px;
+  transition: all .2s;
+}
+.wpp-template-card:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+}
+.wpp-template-card.is-default {
+  border-color: #22c55e;
+  background: #f0fdf4;
+}
 
 /* Switch Toggle Component */
 .switch {
@@ -1460,6 +1546,7 @@ input:checked + .slider:before {
         <p>Controle de vouchers promocionais emitidos, monitoramento de prazos de validade (30 dias) e envio automático via WhatsApp.</p>
       </div>
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <button type="button" class="btn" style="background:#25D366;color:#fff;border-color:#16a34a;font-weight:700" onclick="openWppTemplatesManagerModal()" title="Gerenciar e editar os textos e modelos de mensagem do WhatsApp">💬 Modelos WhatsApp</button>
         <button type="button" class="btn primary" onclick="openNewVoucherModal()">＋ Emitir Voucher Manual</button>
         <button type="button" class="btn" onclick="go('qrcodes')">⚙️ Configurar QR & Google</button>
       </div>
@@ -2210,6 +2297,15 @@ async function processOutboxQueue(){
           };
           const { error } = await sb.from('customers').upsert(payload, { onConflict: 'id' });
           resError = error;
+        } else if (item.action === 'SYNC_WPP_TEMPLATES') {
+          const payload = {
+            id: '00000000-0000-0000-0000-000000000007',
+            name: '__SYSTEM_WPP_TEMPLATES__',
+            phone: 'SYSTEM_WPP_TEMPLATES',
+            notes: JSON.stringify(item.payload)
+          };
+          const { error } = await sb.from('customers').upsert(payload, { onConflict: 'id' });
+          resError = error;
         }
 
         if (!resError) {
@@ -2473,6 +2569,12 @@ async function dbSyncVouchers(vchs){
   if(navigator.onLine) processOutboxQueue();
 }
 
+async function dbSyncWppTemplates(templates){
+  if(!templates) return;
+  await addToOutbox('SYNC_WPP_TEMPLATES', templates);
+  if(navigator.onLine) processOutboxQueue();
+}
+
 
 async function runRescueSyncForBeatriz(force = false){
   return;
@@ -2713,6 +2815,16 @@ async function pullAllFromSupabase(){
               state.vouchers = Array.from(vMap.values()).sort((a,b) => new Date(b.createdAt||0) - new Date(a.createdAt||0));
               saveStateToStorage();
               if(typeof renderVouchers === 'function' && el('view-vouchers')?.classList.contains('active')) renderVouchers();
+            }
+          } catch(e){}
+          return;
+        }
+        if(rc.name === '__SYSTEM_WPP_TEMPLATES__'){
+          try {
+            const parsedTmpls = JSON.parse(rc.notes);
+            if(Array.isArray(parsedTmpls) && parsedTmpls.length > 0){
+              state.wppTemplates = parsedTmpls;
+              saveStateToStorage();
             }
           } catch(e){}
           return;
@@ -3087,10 +3199,42 @@ const SEED_USERS = [
   }
 ];
 
+function getDefaultWppTemplates(){
+  return [
+    {
+      id: 'tmpl-1',
+      title: 'Entrega de Voucher & Agradecimento (Padrão)',
+      isDefault: true,
+      text: "Olá, *{cliente_nome}*! Tudo bem?\n\nAqui é da equipe do *{casa}*! Muito obrigado pela sua visita e pelo seu carinho em nos avaliar no Google Meu Negócio! ⭐⭐⭐⭐⭐\n\nConforme prometido, aqui está o seu *Voucher Exclusivo de {desconto} de Desconto* para sua próxima visita:\n\n🎟️ Código do Voucher: *{codigo_voucher}*\n🎁 Benefício: *{desconto} de Desconto no valor da conta*\n⏳ Validade: *{data_validade}* (Restam *{dias_restantes} dias*)\n\nBasta apresentar esta mensagem ou o código do voucher ao nosso garçom ou na recepção no fechamento da sua conta em até 30 dias.\n\nSerá um imenso prazer receber você novamente! ❤️✨"
+    },
+    {
+      id: 'tmpl-2',
+      title: 'Lembrete de Vencimento (Urgente - 72h)',
+      isDefault: false,
+      text: "Olá, *{cliente_nome}*! Tudo bem? Aqui é do *{casa}*! ⏳\n\nPassando para lembrar com carinho que o seu *Voucher de {desconto} de Desconto* está pertinho de expirar!\n\n🎟️ Seu Código: *{codigo_voucher}*\n⏰ Validade: *{data_validade}* (Restam apenas *{dias_restantes} dias*)\n\nVenha saborear seus pratos e cafés favoritos conosco antes que ele vença! 🍽️☕\n\nApresente este código no fechamento da conta. Esperamos por você!"
+    },
+    {
+      id: 'tmpl-3',
+      title: 'Lembrete Amigável (Faltam 7 dias)',
+      isDefault: false,
+      text: "Olá, *{cliente_nome}*! Saudades de você por aqui no *{casa}*! 😊\n\nLembramos que você tem um presente especial te esperando: seu *Voucher de {desconto} de Desconto*!\n\n🎟️ Código do Voucher: *{codigo_voucher}*\n📅 Validade: até *{data_validade}*\n\nAproveite esta semana ou chame alguém especial para comemorar com a gente! ✨"
+    },
+    {
+      id: 'tmpl-4',
+      title: 'Agradecimento VIP Especial',
+      isDefault: false,
+      text: "Olá, *{cliente_nome}*! É uma enorme satisfação ter você como cliente VIP do *{casa}*! 🌟\n\nMuito obrigado por avaliar nossa casa com tanto carinho. Aqui está o seu benefício exclusivo:\n\n🎟️ Código: *{codigo_voucher}*\n🎁 Desconto: *{desconto}*\n⏳ Validade: *{data_validade}*\n\nApresente esta mensagem na sua próxima visita. Até breve! ❤️"
+    }
+  ];
+}
+
 const STORE='grupo_qu4tro_gestao_clientes_v1';
 let state=loadState(), currentClient=null, clientPage=1, selectedSegment=null;
 const pageSize=40;
 function loadState(){let s;try{const raw=localStorage.getItem(STORE);s=raw?JSON.parse(raw):structuredClone(SEED_DATA)}catch(e){s=structuredClone(SEED_DATA)}if(!s.settings)s.settings=structuredClone(DEFAULT_SETTINGS);else s.settings=Object.assign({},DEFAULT_SETTINGS,s.settings);
+  if(!s.wppTemplates || !Array.isArray(s.wppTemplates) || s.wppTemplates.length === 0){
+    s.wppTemplates = getDefaultWppTemplates();
+  }
   if(!s.waitlist){
     s.waitlist = [];
   }
@@ -8605,30 +8749,130 @@ function copyVoucherCode(code){
   navigator.clipboard?.writeText(code).then(() => toast(`Código ${code} copiado!`)).catch(() => toast(code));
 }
 
+function getWppTemplates(){
+  if(!state.wppTemplates || !Array.isArray(state.wppTemplates) || state.wppTemplates.length === 0){
+    state.wppTemplates = getDefaultWppTemplates();
+    save();
+  }
+  return state.wppTemplates;
+}
+
+function renderWppTemplateText(templateText, v, client){
+  if(!templateText) return '';
+  const fullName = (v.clientName || client?.name || 'Cliente').trim();
+  const firstName = fullName.split(' ')[0] || 'Cliente';
+  const phone = fmtPhone(v.clientPhone || client?.phone || '');
+  const house = v.house || 'Bravo Café';
+  const code = v.code || '';
+  const discount = (v.discountPercent || 12) + '%';
+  const expDateFmt = fmtDate((v.expiresAt || '').split('T')[0]);
+  const daysRem = getVoucherDaysRemaining(v);
+  const daysRemText = daysRem > 0 ? String(daysRem) : '0';
+
+  let rendered = templateText;
+  rendered = rendered.replace(/\{cliente_nome\}/gi, firstName);
+  rendered = rendered.replace(/\{nome\}/gi, firstName);
+  rendered = rendered.replace(/\{cliente_nome_completo\}/gi, fullName);
+  rendered = rendered.replace(/\{cliente_telefone\}/gi, phone);
+  rendered = rendered.replace(/\{telefone\}/gi, phone);
+  rendered = rendered.replace(/\{casa\}/gi, house);
+  rendered = rendered.replace(/\{restaurante\}/gi, house);
+  rendered = rendered.replace(/\{codigo_voucher\}/gi, code);
+  rendered = rendered.replace(/\{voucher\}/gi, code);
+  rendered = rendered.replace(/\{desconto\}/gi, discount);
+  rendered = rendered.replace(/\{data_validade\}/gi, expDateFmt);
+  rendered = rendered.replace(/\{validade\}/gi, expDateFmt);
+  rendered = rendered.replace(/\{dias_restantes\}/gi, daysRemText);
+  return rendered;
+}
+
 function sendVoucherWpp(voucherId){
+  openSendVoucherWppModal(voucherId);
+}
+
+function openSendVoucherWppModal(voucherId){
   const v = (state.vouchers || []).find(x => x.id === voucherId);
   if(!v){ toast('Voucher não encontrado.'); return; }
+  const client = (state.clients || []).find(c => c.id === v.clientId);
+  
+  const templates = getWppTemplates();
+  let defaultIdx = templates.findIndex(t => t.isDefault);
+  if(defaultIdx === -1) defaultIdx = 0;
+  const initialTmpl = templates[defaultIdx] || templates[0];
+
+  const tmplOptions = templates.map((t, idx) => 
+    `<option value="${esc(t.id)}" ${idx === defaultIdx ? 'selected' : ''}>${esc(t.title)}${t.isDefault ? ' ⭐ (Padrão)' : ''}</option>`
+  ).join('');
+
+  const initialMsg = renderWppTemplateText(initialTmpl ? initialTmpl.text : '', v, client);
+
+  el('modalTitle').textContent = 'Enviar Mensagem com Voucher via WhatsApp';
+  el('modalBody').innerHTML = `
+    <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:12px 14px;margin-bottom:14px;font-size:12.5px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px">
+      <div><strong>Destinatário:</strong> ${esc(v.clientName || 'Cliente')} (${esc(fmtPhone(v.clientPhone))})</div>
+      <div><strong>Casa:</strong> <span class="badge blue" style="font-size:11px">${esc(v.house)}</span> • <strong>Voucher:</strong> <code style="font-weight:700;color:#047857">${esc(v.code)}</code></div>
+    </div>
+
+    <div class="field" style="margin-bottom:14px">
+      <label style="font-weight:700;display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <span>Escolha o Modelo de Mensagem:</span>
+        <button type="button" class="btn ghost" style="font-size:11px;padding:2px 8px;text-decoration:underline" onclick="closeModal(); openWppTemplatesManagerModal();">⚙️ Gerenciar Modelos</button>
+      </label>
+      <select id="swppModelSelect" class="control" style="font-weight:600;font-size:13.5px" onchange="onSwppModelChange('${esc(v.id)}')">
+        ${tmplOptions}
+      </select>
+    </div>
+
+    <div class="field" style="margin-bottom:16px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <label style="font-weight:700">Prévia da Mensagem (Você pode alterar qualquer informação antes do envio):</label>
+        <span style="font-size:11px;color:var(--muted)">✏️ Totalmente editável</span>
+      </div>
+      <textarea id="swppMessageText" class="control" rows="12" style="font-family:inherit;font-size:13px;line-height:1.55;padding:10px 12px;background:#ffffff;border:1px solid #cbd5e1;border-radius:8px;resize:vertical">${esc(initialMsg)}</textarea>
+    </div>
+
+    <div style="display:flex;justify-content:flex-end;align-items:center;gap:10px;padding-top:12px;border-top:1px solid #e2e8f0">
+      <button type="button" class="btn" style="padding:9px 18px;font-weight:600" onclick="closeModal()">Cancelar</button>
+      <button type="button" class="btn primary" style="background:#25D366;color:#fff;border-color:#16a34a;font-weight:700;padding:9px 20px;font-size:13.5px;display:flex;align-items:center;gap:6px" onclick="confirmAndSendVoucherWpp('${esc(v.id)}')">
+        <span>💬 Enviar</span>
+      </button>
+    </div>
+  `;
+
+  el('modal').classList.add('show');
+}
+
+function onSwppModelChange(voucherId){
+  const v = (state.vouchers || []).find(x => x.id === voucherId);
+  if(!v) return;
+  const client = (state.clients || []).find(c => c.id === v.clientId);
+  const tmplId = el('swppModelSelect')?.value;
+  const templates = getWppTemplates();
+  const tmpl = templates.find(t => t.id === tmplId);
+  if(tmpl && el('swppMessageText')){
+    el('swppMessageText').value = renderWppTemplateText(tmpl.text, v, client);
+  }
+}
+
+function confirmAndSendVoucherWpp(voucherId){
+  const v = (state.vouchers || []).find(x => x.id === voucherId);
+  if(!v){ toast('Voucher não encontrado.'); return; }
+  const text = (el('swppMessageText')?.value || '').trim();
+  if(!text){
+    toast('A mensagem não pode estar vazia.');
+    return;
+  }
+
   let phone = digits(v.clientPhone);
-  if(!phone){ toast('Telefone do cliente não encontrado.'); return; }
+  if(!phone){
+    toast('Telefone do cliente inválido ou não informado.');
+    return;
+  }
   if(!phone.startsWith('55') && (phone.length === 10 || phone.length === 11)){
     phone = '55' + phone;
   }
 
-  const daysRem = getVoucherDaysRemaining(v);
-  const expDateFmt = fmtDate((v.expiresAt||'').split('T')[0]);
-  const firstName = (v.clientName || 'Cliente').split(' ')[0];
-  const houseEmoji = v.house.includes('Café') ? '☕' : (v.house.includes('Íconico') ? '🍣' : '🍕');
-
-  const msg = `Olá, *${firstName}*! ${houseEmoji} Tudo bem?\n\n` +
-    `Aqui é da equipe do *${v.house}*! Muito obrigado pela sua visita e pelo seu carinho em nos avaliar no Google Meu Negócio! ⭐⭐⭐⭐⭐\n\n` +
-    `Conforme prometido, aqui está o seu *Voucher Exclusivo de ${v.discountPercent || 12}% de Desconto* para sua próxima visita:\n\n` +
-    `🎟️ Código do Voucher: *${v.code}*\n` +
-    `🎁 Benefício: *${v.discountPercent || 12}% de Desconto no valor da conta*\n` +
-    `⏳ Validade: *${expDateFmt}* (Restam *${daysRem > 0 ? daysRem + ' dias' : 'últimos dias'}*)\n\n` +
-    `Basta apresentar esta mensagem ou o código do voucher ao nosso garçom ou na recepção no fechamento da sua conta em até 30 dias.\n\n` +
-    `Será um imenso prazer receber você novamente! ❤️✨`;
-
-  const wppUrl = `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
+  const wppUrl = `https://wa.me/${phone}?text=${encodeURIComponent(text)}`;
   window.open(wppUrl, '_blank');
 
   v.sentWpp = true;
@@ -8636,7 +8880,209 @@ function sendVoucherWpp(voucherId){
   save();
   if(typeof dbSyncVouchers === 'function') dbSyncVouchers(state.vouchers);
   renderVouchers();
+  closeModal();
+  const firstName = (v.clientName || 'Cliente').split(' ')[0];
   toast(`WhatsApp aberto para ${firstName}! Voucher marcado como enviado.`);
+}
+
+function openWppTemplatesManagerModal(){
+  const templates = getWppTemplates();
+  const total = templates.length;
+  const canAdd = total < 5;
+
+  el('modalTitle').textContent = `Gerenciar Modelos de Mensagem WhatsApp (${total} de até 5)`;
+  
+  const tmplCards = templates.map((t, idx) => {
+    const preview = esc(t.text).replace(/\n/g, '<br>').slice(0, 140) + (t.text.length > 140 ? '...' : '');
+    return `
+      <div style="background:#ffffff;border:1px solid ${t.isDefault ? '#10b981' : '#e2e8f0'};border-radius:10px;padding:14px;box-shadow:0 1px 3px rgba(0,0,0,0.05);margin-bottom:12px;position:relative">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:8px">
+          <div style="display:flex;align-items:center;gap:8px">
+            <strong style="font-size:14px;color:#0f172a">${idx + 1}. ${esc(t.title)}</strong>
+            ${t.isDefault ? '<span class="badge good" style="font-size:11px;background:#d1fae5;color:#065f46;border:1px solid #a7f3d0">⭐ Padrão de Envio</span>' : ''}
+          </div>
+          <div style="display:flex;gap:6px">
+            <button type="button" class="btn" style="font-size:11.5px;padding:4px 10px;font-weight:600" onclick="openWppTemplateEditorModal('${esc(t.id)}')">✏️ Editar</button>
+            ${total > 1 ? `<button type="button" class="btn danger" style="font-size:11.5px;padding:4px 8px" onclick="deleteWppTemplate('${esc(t.id)}')">🗑️</button>` : ''}
+          </div>
+        </div>
+        <div style="font-size:12px;color:#475569;background:#f8fafc;padding:10px 12px;border-radius:6px;line-height:1.45;max-height:80px;overflow:hidden">
+          ${preview}
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  el('modalBody').innerHTML = `
+    <div style="margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+      <div style="font-size:13px;color:var(--muted)">
+        Cadastre até 5 modelos personalizados com tags dinâmicas para o envio rápido via WhatsApp.
+      </div>
+      ${canAdd ? `
+        <button type="button" class="btn primary" style="background:#059669;color:#fff;border-color:#047857;font-weight:700;font-size:12px;padding:6px 14px" onclick="openWppTemplateEditorModal(null)">
+          ＋ Novo Modelo (${total}/5)
+        </button>
+      ` : `
+        <span class="badge" style="background:#f1f5f9;color:#64748b;border:1px solid #cbd5e1;font-size:11.5px">Limite de 5 modelos atingido</span>
+      `}
+    </div>
+
+    <div style="max-height:420px;overflow-y:auto;padding-right:4px">
+      ${tmplCards}
+    </div>
+
+    <div style="display:flex;justify-content:flex-end;gap:10px;padding-top:14px;border-top:1px solid #e2e8f0;margin-top:8px">
+      <button type="button" class="btn" onclick="closeModal()">Fechar</button>
+    </div>
+  `;
+
+  el('modal').classList.add('show');
+}
+
+function openWppTemplateEditorModal(templateId = null){
+  const templates = getWppTemplates();
+  const isEditing = !!templateId;
+  const tmpl = isEditing ? templates.find(t => t.id === templateId) : null;
+  
+  if(!isEditing && templates.length >= 5){
+    toast('Limite máximo de 5 modelos atingido. Exclua ou edite um modelo existente.');
+    return;
+  }
+
+  const titleVal = tmpl ? tmpl.title : '';
+  const textVal = tmpl ? tmpl.text : '';
+  const isDefaultVal = tmpl ? !!tmpl.isDefault : (templates.length === 0);
+
+  el('modalTitle').textContent = isEditing ? 'Editar Modelo de Mensagem WhatsApp' : 'Cadastrar Novo Modelo de WhatsApp';
+  el('modalBody').innerHTML = `
+    <form id="wppTmplForm" onsubmit="event.preventDefault(); saveWppTemplate('${esc(templateId || '')}');">
+      <div class="field" style="margin-bottom:12px">
+        <label style="font-weight:700;margin-bottom:4px;display:block">Título / Identificação do Modelo *</label>
+        <input type="text" id="wppTmplTitleInput" class="control" required value="${esc(titleVal)}" placeholder="Ex: Entrega do Voucher 12%, Lembrete 72h..." style="font-weight:600">
+      </div>
+
+      <div class="field" style="margin-bottom:10px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <label style="font-weight:700">Tags Disponíveis (Clique no botão para inserir no texto):</label>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;background:#f8fafc;padding:8px 10px;border:1px solid #e2e8f0;border-radius:8px">
+          <button type="button" class="btn" style="font-size:11px;padding:3px 8px;background:#ffffff;border:1px solid #cbd5e1" onclick="insertWppTag('cliente_nome')">+ {cliente_nome}</button>
+          <button type="button" class="btn" style="font-size:11px;padding:3px 8px;background:#ffffff;border:1px solid #cbd5e1" onclick="insertWppTag('casa')">+ {casa}</button>
+          <button type="button" class="btn" style="font-size:11px;padding:3px 8px;background:#ffffff;border:1px solid #cbd5e1" onclick="insertWppTag('codigo_voucher')">+ {codigo_voucher}</button>
+          <button type="button" class="btn" style="font-size:11px;padding:3px 8px;background:#ffffff;border:1px solid #cbd5e1" onclick="insertWppTag('desconto')">+ {desconto}</button>
+          <button type="button" class="btn" style="font-size:11px;padding:3px 8px;background:#ffffff;border:1px solid #cbd5e1" onclick="insertWppTag('data_validade')">+ {data_validade}</button>
+          <button type="button" class="btn" style="font-size:11px;padding:3px 8px;background:#ffffff;border:1px solid #cbd5e1" onclick="insertWppTag('dias_restantes')">+ {dias_restantes}</button>
+          <button type="button" class="btn" style="font-size:11px;padding:3px 8px;background:#ffffff;border:1px solid #cbd5e1" onclick="insertWppTag('cliente_nome_completo')">+ {cliente_nome_completo}</button>
+          <button type="button" class="btn" style="font-size:11px;padding:3px 8px;background:#ffffff;border:1px solid #cbd5e1" onclick="insertWppTag('cliente_telefone')">+ {cliente_telefone}</button>
+        </div>
+      </div>
+
+      <div class="field" style="margin-bottom:14px">
+        <label style="font-weight:700;margin-bottom:4px;display:block">Texto da Mensagem *</label>
+        <textarea id="wppTmplTextInput" class="control" required rows="9" style="font-family:inherit;font-size:13px;line-height:1.5;resize:vertical" placeholder="Digite aqui o texto do modelo de mensagem com as tags desejadas...">${esc(textVal)}</textarea>
+      </div>
+
+      <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:10px 14px;margin-bottom:16px">
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;margin:0;font-weight:600;font-size:13px;color:#166534">
+          <input type="checkbox" id="wppTmplDefaultCheckbox" ${isDefaultVal ? 'checked' : ''} style="width:17px;height:17px;accent-color:#10b981">
+          <span>⭐ Marcar este modelo como padrão (será pré-selecionado no envio de vouchers)</span>
+        </label>
+      </div>
+
+      <div style="display:flex;justify-content:flex-end;align-items:center;gap:10px;padding-top:12px;border-top:1px solid #e2e8f0">
+        <button type="button" class="btn" onclick="openWppTemplatesManagerModal()">← Voltar</button>
+        <button type="submit" class="btn primary" style="background:#059669;color:#fff;border-color:#047857;font-weight:700">💾 Salvar Modelo</button>
+      </div>
+    </form>
+  `;
+
+  el('modal').classList.add('show');
+}
+
+function insertWppTag(tagName){
+  const textarea = el('wppTmplTextInput');
+  if(!textarea) return;
+  const tag = `{${tagName}}`;
+  const start = textarea.selectionStart || 0;
+  const end = textarea.selectionEnd || 0;
+  const text = textarea.value;
+  textarea.value = text.substring(0, start) + tag + text.substring(end);
+  textarea.selectionStart = textarea.selectionEnd = start + tag.length;
+  textarea.focus();
+}
+
+function saveWppTemplate(templateId){
+  const title = (el('wppTmplTitleInput')?.value || '').trim();
+  const text = (el('wppTmplTextInput')?.value || '').trim();
+  const isDefault = !!el('wppTmplDefaultCheckbox')?.checked;
+
+  if(!title || !text){
+    toast('Preencha o título e o texto do modelo.');
+    return;
+  }
+
+  const templates = getWppTemplates();
+
+  if(templateId){
+    const tmpl = templates.find(t => t.id === templateId);
+    if(tmpl){
+      tmpl.title = title;
+      tmpl.text = text;
+      if(isDefault){
+        templates.forEach(t => t.isDefault = false);
+        tmpl.isDefault = true;
+      } else if(tmpl.isDefault && templates.length > 1){
+        tmpl.isDefault = false;
+        if(!templates.some(t => t.isDefault)){
+          templates[0].isDefault = true;
+        }
+      }
+    }
+  } else {
+    if(templates.length >= 5){
+      toast('Limite de 5 modelos atingido.');
+      return;
+    }
+    const newTmpl = {
+      id: 'tmpl-' + Date.now(),
+      title: title,
+      text: text,
+      isDefault: isDefault || templates.length === 0
+    };
+    if(newTmpl.isDefault){
+      templates.forEach(t => t.isDefault = false);
+    }
+    templates.push(newTmpl);
+  }
+
+  state.wppTemplates = templates;
+  save();
+  if(typeof dbSyncWppTemplates === 'function') dbSyncWppTemplates(state.wppTemplates);
+  toast('Modelo de WhatsApp salvo com sucesso!');
+  openWppTemplatesManagerModal();
+}
+
+function deleteWppTemplate(templateId){
+  const templates = getWppTemplates();
+  if(templates.length <= 1){
+    toast('É necessário manter pelo menos um modelo cadastrado.');
+    return;
+  }
+  const tmpl = templates.find(t => t.id === templateId);
+  if(!tmpl) return;
+
+  if(!confirm(`Deseja realmente excluir o modelo "${tmpl.title}"?`)) return;
+
+  const wasDefault = tmpl.isDefault;
+  state.wppTemplates = templates.filter(t => t.id !== templateId);
+  if(wasDefault && state.wppTemplates.length > 0){
+    state.wppTemplates[0].isDefault = true;
+  }
+
+  save();
+  if(typeof dbSyncWppTemplates === 'function') dbSyncWppTemplates(state.wppTemplates);
+  toast('Modelo excluído.');
+  openWppTemplatesManagerModal();
 }
 
 function toggleVoucherUsed(voucherId){
