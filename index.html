@@ -3176,12 +3176,17 @@ async function pullAllFromSupabase(){
           try {
             const parsedVchs = JSON.parse(rc.notes);
             if(Array.isArray(parsedVchs)){
+              const delSet = new Set(state.deletedVouchers || []);
               const vMap = new Map();
               (state.vouchers || []).forEach(v => {
-                if(v && v.id && !String(v.id).startsWith('vch-seed-')) vMap.set(v.id, v);
+                if(v && v.id && !delSet.has(v.id) && !delSet.has(v.code) && !String(v.id).startsWith('vch-seed-')) {
+                  vMap.set(v.id, v);
+                }
               });
               parsedVchs.forEach(v => {
-                if(v && v.id && !String(v.id).startsWith('vch-seed-')) vMap.set(v.id, v);
+                if(v && v.id && !delSet.has(v.id) && !delSet.has(v.code) && !String(v.id).startsWith('vch-seed-')) {
+                  vMap.set(v.id, v);
+                }
               });
               state.vouchers = Array.from(vMap.values()).sort((a,b) => new Date(b.createdAt||0) - new Date(a.createdAt||0));
               saveStateToStorage();
@@ -3351,7 +3356,6 @@ async function pullAllFromSupabase(){
     } // end if(sb)
 
     save();
-    if(typeof syncRescueVouchers === 'function') syncRescueVouchers();
 
   } catch(err){
     console.warn('pullAllFromSupabase error:', err);
@@ -3651,10 +3655,14 @@ function loadState(){let s;try{const raw=localStorage.getItem(STORE);s=raw?JSON.
   if(!s.waitlist){
     s.waitlist = [];
   }
+  if(!s.deletedVouchers || !Array.isArray(s.deletedVouchers)){
+    s.deletedVouchers = [];
+  }
   if(!s.vouchers || !Array.isArray(s.vouchers)){
     s.vouchers = [];
   } else {
-    s.vouchers = s.vouchers.filter(v => v && !String(v.id).startsWith('vch-seed-'));
+    const delSet = new Set(s.deletedVouchers);
+    s.vouchers = s.vouchers.filter(v => v && !delSet.has(v.id) && !delSet.has(v.code) && !String(v.id).startsWith('vch-seed-'));
   }
   if(!s.communications || !Array.isArray(s.communications)){
     s.communications = [];
@@ -9019,60 +9027,8 @@ function getFilteredVouchers(){
 }
 
 function syncRescueVouchers(){
-  if(!state.vouchers) state.vouchers = [];
-  
-  // 1. Remove qualquer resquício de voucher seed antigo
-  const beforeCount = state.vouchers.length;
-  state.vouchers = state.vouchers.filter(v => v && !String(v.id).startsWith('vch-seed-'));
-  let changed = (state.vouchers.length !== beforeCount);
-
-  // 2. Resgata e vincula vouchers para clientes que fizeram Auto Check-in (como o teste 'Jean texte')
-  (state.clients || []).forEach(c => {
-    if(!c || !c.name || c.name.startsWith('__SYSTEM_')) return;
-    const isPublicCheckin = c.registrationChannel === 'QR Code Saída' || 
-                            c.source === 'QR Code Saída' || 
-                            (c.registrationChannel && c.registrationChannel.includes('Saída')) ||
-                            (c.registration_channel && c.registration_channel.includes('Saída'));
-    
-    if(isPublicCheckin){
-      const normClientPhone = normalizePhone(c.phone);
-      const hasVoucher = state.vouchers.some(v => v.clientId === c.id || (normClientPhone && normalizePhone(v.clientPhone) === normClientPhone));
-      
-      if(!hasVoucher){
-        const hKey = normalizeHouseKey(c.firstHouse || c.first_house || c.registrationHouse || 'Bravo Café');
-        const regDate = c.registeredAt || c.created_at || new Date().toISOString();
-        const createdDate = new Date(regDate);
-        const expDate = new Date(createdDate.getTime() + 30 * 24 * 60 * 60 * 1000);
-        
-        const rescuedVoucher = {
-          id: generateUUID(),
-          code: generateVoucherCode(hKey),
-          clientId: c.id,
-          clientName: c.name,
-          clientPhone: c.phone,
-          house: hKey,
-          discountPercent: 12,
-          discountText: '12% OFF',
-          createdAt: createdDate.toISOString(),
-          expiresAt: expDate.toISOString(),
-          status: 'ativo',
-          sentWpp: false,
-          wppSentAt: null,
-          usedAt: null,
-          source: 'QR Check-in Saída'
-        };
-        state.vouchers.unshift(rescuedVoucher);
-        if(!c.vouchers) c.vouchers = [];
-        c.vouchers.unshift(rescuedVoucher);
-        changed = true;
-      }
-    }
-  });
-
-  if(changed){
-    save();
-    if(typeof dbSyncVouchers === 'function') dbSyncVouchers(state.vouchers);
-  }
+  // Migração concluída: desativado permanentemente para garantir que vouchers excluídos não sejam recriados
+  return;
 }
 
 /* =========================================================================
@@ -10174,7 +10130,6 @@ function exportCommunicationCSV(){
 }
 
 function renderVouchers(){
-  if(typeof syncRescueVouchers === 'function') syncRescueVouchers();
   let all = Array.isArray(state.vouchers) ? state.vouchers : [];
   
   // Atualiza status de expiração
@@ -10674,21 +10629,46 @@ function toggleVoucherUsed(voucherId){
 }
 
 function deleteVoucher(voucherId){
-  const v = (state.vouchers || []).find(x => x.id === voucherId);
+  const v = (state.vouchers || []).find(x => x.id === voucherId || x.code === voucherId);
   if(!v) return;
   if(!confirm(`Deseja realmente excluir o voucher ${v.code} emitido para ${v.clientName}?`)) return;
 
-  state.vouchers = state.vouchers.filter(x => x.id !== voucherId);
-  if(v.clientId){
-    const client = state.clients.find(c => c.id === v.clientId);
-    if(client && Array.isArray(client.vouchers)){
-      client.vouchers = client.vouchers.filter(x => x.id !== voucherId);
+  // 1. Registra tombstone para impedir qualquer restauração via sincronização remota
+  if(!state.deletedVouchers) state.deletedVouchers = [];
+  if(v.id && !state.deletedVouchers.includes(v.id)) state.deletedVouchers.push(v.id);
+  if(v.code && !state.deletedVouchers.includes(v.code)) state.deletedVouchers.push(v.code);
+
+  // 2. Remove da lista ativa de vouchers
+  state.vouchers = (state.vouchers || []).filter(x => x.id !== voucherId && x.code !== v.code && x.id !== v.id);
+
+  // 3. Remove da ficha do cliente vinculado (por ID ou telefone)
+  const normPhone = v.clientPhone ? normalizePhone(v.clientPhone) : '';
+  (state.clients || []).forEach(c => {
+    const isMatchingClient = (v.clientId && c.id === v.clientId) || 
+                             (normPhone && normalizePhone(c.phone) === normPhone);
+    if(isMatchingClient){
+      c.voucherDeleted = true;
+      if(c.voucherId === v.id || c.voucherId === voucherId) c.voucherId = null;
+      if(Array.isArray(c.vouchers)){
+        c.vouchers = c.vouchers.filter(x => x.id !== voucherId && x.code !== v.code && x.id !== v.id);
+      }
     }
-  }
-  save();
+  });
+
+  // 4. Salva imediatamente no armazenamento local
+  saveStateToStorage();
+
+  // 5. Envia imediatamente a exclusão para a nuvem (Supabase)
   if(typeof dbSyncVouchers === 'function') dbSyncVouchers(state.vouchers);
+
+  // 6. Atualiza imediatamente a renderização da tabela de vouchers e comunicações
   renderVouchers();
-  toast('Voucher excluído.');
+  if(typeof renderCommunication === 'function') renderCommunication();
+  if(typeof updateCommunicationBadges === 'function') updateCommunicationBadges();
+  if(document.getElementById('view-profile')?.classList.contains('active')){
+    if(currentClient) openProfile(currentClient.id);
+  }
+  toast(`✓ Voucher ${v.code} excluído definitivamente.`);
 }
 
 function openNewVoucherModal(targetClientId = null){
