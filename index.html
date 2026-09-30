@@ -1321,7 +1321,7 @@ input:checked + .slider:before {
   <span class="sync-dot online" id="syncDot"></span>
   <span class="sync-text desktop-only" id="syncStatusText">Conectado</span>
   <span class="sync-badge" id="syncPendingBadge" style="display:none">0</span>
-</div><div class="user-session-chip" id="topUserChip" onclick="openUserSessionModal()" title="Gerenciar sessão / perfil do usuário"><div class="user-avatar-sm" id="topUserAvatar">GB</div><div class="user-chip-meta desktop-only"><span class="user-chip-name" id="topUserName">Gerência Bravo</span><span class="user-chip-role" id="topUserRole">Master</span></div><span style="font-size:10px;color:var(--muted);margin-left:2px">▾</span></div><img id="topHouseLogo" class="session-house-logo desktop-only" alt="Casa atual" onerror="this.style.display='none'" onload="this.style.display=''"><div class="session-chip desktop-only"><span>Empresa:</span><select id="sessionHouse" onchange="changeSessionHouse(this.value)"><option value="Bravo Café">Bravo Café</option><option value="Café da Bravo Pousada">Café da Bravo Pousada</option><option value="Íconico">Iconiko Cozinha Japonesa</option><option value="Leña">Leña Casa Italiana</option></select></div><button class="btn desktop-only" id="topbarNewCheckinBtn" onclick="go('checkin')">＋ Novo check-in</button><button class="btn primary" onclick="go('clients')">⌕ Buscar cliente</button></div></header>
+</div><div class="user-session-chip" id="topUserChip" onclick="openUserSessionModal()" title="Gerenciar sessão / perfil do usuário"><div class="user-avatar-sm" id="topUserAvatar">GB</div><div class="user-chip-meta desktop-only"><span class="user-chip-name" id="topUserName">Gerência Bravo</span><span class="user-chip-role" id="topUserRole">Master</span></div><span style="font-size:10px;color:var(--muted);margin-left:2px">▾</span></div><img id="topHouseLogo" class="session-house-logo desktop-only" alt="Casa atual" onerror="this.style.display='none'" onload="this.style.display=''"><div class="session-chip desktop-only"><span>Empresa:</span><select id="sessionHouse" onchange="changeSessionHouse(this.value)"><option value="Bravo Café">Bravo Café</option><option value="Café da Bravo Pousada">Café da Bravo Pousada</option><option value="Íconico">Iconiko Cozinha Japonesa</option><option value="Leña">Leña Casa Italiana</option></select></div><div class="session-chip" id="dashTopPeriodWrap" style="display:inline-flex;align-items:center;gap:6px"><span>Período:</span><select id="dashPeriod" style="border:0;background:transparent;font-weight:700;font-size:12px;color:var(--ink);outline:none;cursor:pointer"><option value="all">Todo o Período</option><option value="today">Hoje</option><option value="yesterday">Ontem</option><option value="7">Últimos 7 dias</option><option value="14">Últimos 14 dias</option><option value="30">Últimos 30 dias</option><option value="60">Últimos 60 dias</option><option value="90">Últimos 90 dias</option><option value="180">Últimos 180 dias</option><option value="custom">📅 Período específico...</option></select></div><button type="button" id="btnCustomPeriodEdit" class="btn ghost" style="display:none;padding:5px 11px;font-size:12px;border:1px solid var(--accent);border-radius:10px;background:#fff8ee;color:#8d642f;font-weight:700;white-space:nowrap" onclick="openCustomPeriodModal()" title="Alterar período específico">📅 <span id="customPeriodBadgeText"></span> ✎</button><button class="btn desktop-only" id="topbarNewCheckinBtn" onclick="go('checkin')" style="display:none">＋ Novo check-in</button><button class="btn primary" id="topbarSearchClientBtn" onclick="go('clients')" style="display:none">⌕ Buscar cliente</button></div></header>
  <div class="content">
   <div class="house-context-banner op-banner" id="houseContextBanner" style="display:none">
    <div class="op-house-info">
@@ -1365,7 +1365,6 @@ input:checked + .slider:before {
    </nav>
   </div>
   <section class="view active" id="view-dashboard">
-   <div class="hero" style="justify-content:flex-end;margin-bottom:14px"><div class="filters"><select id="dashPeriod" class="control"><option value="all">Todo o Período</option><option value="today">Hoje</option><option value="yesterday">Ontem</option><option value="7">Últimos 7 dias</option><option value="14">Últimos 14 dias</option><option value="30">Últimos 30 dias</option><option value="60">Últimos 60 dias</option><option value="90">Últimos 90 dias</option><option value="180">Últimos 180 dias</option><option value="custom">📅 Período específico...</option></select><button type="button" id="btnCustomPeriodEdit" class="btn ghost" style="display:none;padding:7px 12px;font-size:12px;border:1px solid var(--accent);border-radius:10px;background:#fff8ee;color:#8d642f;font-weight:700" onclick="openCustomPeriodModal()" title="Alterar período específico">📅 <span id="customPeriodBadgeText"></span> ✎</button></div></div>
    <div class="cards" id="metrics"></div>
    <!-- MONITOR DE AUDITORIA E PRESENÇA DAS RECEPÇÕES -->
    <div id="operatorPresenceSection" style="margin-bottom:18px"></div>
@@ -3985,10 +3984,30 @@ function go(view){
   if(banner){
     banner.style.display = hideBannerViews.includes(view) ? 'none' : 'flex';
   }
+
+  // Na Visão Geral (Dashboard), sobe o filtro de período para o topo e oculta os botões "+ Novo check-in" e "Buscar cliente"
+  const isDashboard = (view === 'dashboard');
+  const dashPeriodWrap = el('dashTopPeriodWrap');
+  if(dashPeriodWrap){
+    dashPeriodWrap.style.display = isDashboard ? 'inline-flex' : 'none';
+  }
+  const btnCustomPeriod = el('btnCustomPeriodEdit');
+  if(btnCustomPeriod){
+    if(!isDashboard){
+      btnCustomPeriod.style.display = 'none';
+    } else {
+      btnCustomPeriod.style.display = (el('dashPeriod')?.value === 'custom') ? 'inline-flex' : 'none';
+    }
+  }
+
   const topNewCheckin = el('topbarNewCheckinBtn');
-  const hideTopNewCheckinViews = ['vouchers', 'communication', 'qrcodes', 'segments', 'intelligence', 'settings', 'users', 'data'];
+  const topSearchClient = el('topbarSearchClientBtn');
+  const hideTopNewCheckinViews = ['dashboard', 'vouchers', 'communication', 'qrcodes', 'segments', 'intelligence', 'settings', 'users', 'data'];
   if(topNewCheckin){
     topNewCheckin.style.display = hideTopNewCheckinViews.includes(view) ? 'none' : '';
+  }
+  if(topSearchClient){
+    topSearchClient.style.display = isDashboard ? 'none' : '';
   }
 
   if(view === 'checkin-list'){
