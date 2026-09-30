@@ -4868,8 +4868,8 @@ function renderQuickInsights(){
     </div>
   `;
 }
-el('dashHouse').onchange = renderDashboard;
-el('dashPeriod').onchange = handleDashPeriodChange;
+if(el('dashHouse')) el('dashHouse').onchange = renderDashboard;
+if(el('dashPeriod')) el('dashPeriod').onchange = handleDashPeriodChange;
 
 /* ==========================================================================
    CONSULTA E EDIÇÃO DE CHECK-INS DO SALÃO
