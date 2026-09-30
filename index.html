@@ -1323,7 +1323,7 @@ input:checked + .slider:before {
   <span class="sync-badge" id="syncPendingBadge" style="display:none">0</span>
 </div><div class="user-session-chip" id="topUserChip" onclick="openUserSessionModal()" title="Gerenciar sessão / perfil do usuário"><div class="user-avatar-sm" id="topUserAvatar">GB</div><div class="user-chip-meta desktop-only"><span class="user-chip-name" id="topUserName">Gerência Bravo</span><span class="user-chip-role" id="topUserRole">Master</span></div><span style="font-size:10px;color:var(--muted);margin-left:2px">▾</span></div><img id="topHouseLogo" class="session-house-logo desktop-only" alt="Casa atual" onerror="this.style.display='none'" onload="this.style.display=''"><div class="session-chip desktop-only"><span>Empresa:</span><select id="sessionHouse" onchange="changeSessionHouse(this.value)"><option value="Bravo Café">Bravo Café</option><option value="Café da Bravo Pousada">Café da Bravo Pousada</option><option value="Íconico">Iconiko Cozinha Japonesa</option><option value="Leña">Leña Casa Italiana</option></select></div><button class="btn desktop-only" id="topbarNewCheckinBtn" onclick="go('checkin')">＋ Novo check-in</button><button class="btn primary" onclick="go('clients')">⌕ Buscar cliente</button></div></header>
  <div class="content">
-  <div class="house-context-banner op-banner" id="houseContextBanner">
+  <div class="house-context-banner op-banner" id="houseContextBanner" style="display:none">
    <div class="op-house-info">
     <img id="contextHouseLogo" alt="Casa da sessão" onerror="this.style.display='none'" onload="this.style.display=''">
     <div>
@@ -1365,7 +1365,7 @@ input:checked + .slider:before {
    </nav>
   </div>
   <section class="view active" id="view-dashboard">
-   <div class="hero"><div><h2>Visão Geral</h2><p>Leitura operacional e estratégica da base de clientes.</p></div><div class="filters"><select id="dashHouse" class="control"><option value="all">Todas as casas</option><option value="Bravo Café">Bravo Café</option><option value="Café da Bravo Pousada">Café da Bravo Pousada</option><option value="Íconico">Iconiko</option><option value="Leña">Leña</option></select><select id="dashPeriod" class="control"><option value="all">Todo o Período</option><option value="today">Hoje</option><option value="yesterday">Ontem</option><option value="7">Últimos 7 dias</option><option value="14">Últimos 14 dias</option><option value="30">Últimos 30 dias</option><option value="60">Últimos 60 dias</option><option value="90">Últimos 90 dias</option><option value="180">Últimos 180 dias</option><option value="custom">📅 Período específico...</option></select><button type="button" id="btnCustomPeriodEdit" class="btn ghost" style="display:none;padding:7px 12px;font-size:12px;border:1px solid var(--accent);border-radius:10px;background:#fff8ee;color:#8d642f;font-weight:700" onclick="openCustomPeriodModal()" title="Alterar período específico">📅 <span id="customPeriodBadgeText"></span> ✎</button></div></div>
+   <div class="hero" style="justify-content:flex-end;margin-bottom:14px"><div class="filters"><select id="dashPeriod" class="control"><option value="all">Todo o Período</option><option value="today">Hoje</option><option value="yesterday">Ontem</option><option value="7">Últimos 7 dias</option><option value="14">Últimos 14 dias</option><option value="30">Últimos 30 dias</option><option value="60">Últimos 60 dias</option><option value="90">Últimos 90 dias</option><option value="180">Últimos 180 dias</option><option value="custom">📅 Período específico...</option></select><button type="button" id="btnCustomPeriodEdit" class="btn ghost" style="display:none;padding:7px 12px;font-size:12px;border:1px solid var(--accent);border-radius:10px;background:#fff8ee;color:#8d642f;font-weight:700" onclick="openCustomPeriodModal()" title="Alterar período específico">📅 <span id="customPeriodBadgeText"></span> ✎</button></div></div>
    <div class="cards" id="metrics"></div>
    <!-- MONITOR DE AUDITORIA E PRESENÇA DAS RECEPÇÕES -->
    <div id="operatorPresenceSection" style="margin-bottom:18px"></div>
@@ -3979,15 +3979,16 @@ function go(view){
   const targetView = el('view-'+view);
   if(targetView) targetView.classList.add('active');
 
-  // Ocultar barra operacional rápida e botão "+ Novo check-in" em visões gerenciais/administrativas (vouchers, qrcodes, etc)
+  // Ocultar barra operacional rápida em visões gerenciais/administrativas (dashboard, vouchers, qrcodes, etc)
   const banner = el('houseContextBanner');
-  const hideBannerViews = ['vouchers', 'communication', 'qrcodes', 'segments', 'intelligence', 'settings', 'users', 'data'];
+  const hideBannerViews = ['dashboard', 'vouchers', 'communication', 'qrcodes', 'segments', 'intelligence', 'settings', 'users', 'data'];
   if(banner){
     banner.style.display = hideBannerViews.includes(view) ? 'none' : 'flex';
   }
   const topNewCheckin = el('topbarNewCheckinBtn');
+  const hideTopNewCheckinViews = ['vouchers', 'communication', 'qrcodes', 'segments', 'intelligence', 'settings', 'users', 'data'];
   if(topNewCheckin){
-    topNewCheckin.style.display = hideBannerViews.includes(view) ? 'none' : '';
+    topNewCheckin.style.display = hideTopNewCheckinViews.includes(view) ? 'none' : '';
   }
 
   if(view === 'checkin-list'){
@@ -4143,7 +4144,8 @@ function filteredVisits(){
   const u = (typeof getCurrentUser === 'function') ? getCurrentUser() : null;
   const userHouses = getUserHouses(u);
   const isMaster = !u || u.role === 'Master';
-  let a = [...state.visits], h = el('dashHouse')?.value || 'all', p = el('dashPeriod')?.value || 'all';
+  const sessionH = (typeof getSessionHouse === 'function') ? getSessionHouse() : '';
+  let a = [...state.visits], h = el('dashHouse')?.value || sessionH || 'all', p = el('dashPeriod')?.value || 'all';
   const normH = normalizeHouseKey(h);
   if(normH !== 'all'){
     a = a.filter(v => normalizeHouseKey(v.house) === normH);
@@ -4388,7 +4390,8 @@ function renderCrossSellingCard(){
   const cc = (state.clients || []).map(calcClient);
   const totalClients = Math.max(1, cc.length);
 
-  const hFilter = el('dashHouse')?.value || 'all';
+  const sessionH = (typeof getSessionHouse === 'function') ? getSessionHouse() : '';
+  const hFilter = el('dashHouse')?.value || sessionH || 'all';
   const normH = normalizeHouseKey(hFilter);
 
   // Clientes multi-casa (frequentaram 2 ou mais marcas do grupo)
@@ -5858,8 +5861,8 @@ function calculateNameSimilarity(nameA, nameB) {
 }
 
 function calculatePhoneSimilarity(phoneA, phoneB) {
-  let a = digits(phoneA);
-  let b = digits(phoneB);
+  let a = normalizePhone(phoneA);
+  let b = normalizePhone(phoneB);
   if (!a || !b) return 0;
   if (a.startsWith('55') && a.length > 10) a = a.slice(2);
   if (b.startsWith('55') && b.length > 10) b = b.slice(2);
@@ -5904,13 +5907,15 @@ function findPotentialDuplicate(name, phone, selectedId) {
       }
     } else if (nameSim === 1.0) {
       matchScore = 0.90;
-      matchReason = `Mesmo nome com telefone diferente (${fmtPhone(client.phone)})`;
+      const fPhone = typeof formatPhoneLive === 'function' ? formatPhoneLive(client.phone) : client.phone;
+      matchReason = `Mesmo nome com telefone diferente (${fPhone})`;
     } else if (nameSim >= 0.78) {
       matchScore = nameSim;
       matchReason = `Nome muito semelhante (${Math.round(nameSim * 100)}% de similaridade com "${client.name}")`;
     } else if (phoneSim >= 0.85 && nameSim >= 0.40) {
       matchScore = 0.85;
-      matchReason = `Telefone quase idêntico (${fmtPhone(client.phone)}) e nome similar`;
+      const fPhone = typeof formatPhoneLive === 'function' ? formatPhoneLive(client.phone) : client.phone;
+      matchReason = `Telefone quase idêntico (${fPhone}) e nome similar`;
     }
 
     if (matchScore > highestScore && matchScore >= 0.75) {
