@@ -1190,7 +1190,7 @@ input:checked + .slider:before {
   <span class="sync-dot online" id="syncDot"></span>
   <span class="sync-text desktop-only" id="syncStatusText">Conectado</span>
   <span class="sync-badge" id="syncPendingBadge" style="display:none">0</span>
-</div><div class="user-session-chip" id="topUserChip" onclick="openUserSessionModal()" title="Gerenciar sessão / perfil do usuário"><div class="user-avatar-sm" id="topUserAvatar">GB</div><div class="user-chip-meta desktop-only"><span class="user-chip-name" id="topUserName">Gerência Bravo</span><span class="user-chip-role" id="topUserRole">Master</span></div><span style="font-size:10px;color:var(--muted);margin-left:2px">▾</span></div><img id="topHouseLogo" class="session-house-logo desktop-only" alt="Casa atual" onerror="this.style.display='none'" onload="this.style.display=''"><div class="session-chip desktop-only"><span>Empresa:</span><select id="sessionHouse" onchange="changeSessionHouse(this.value)"><option value="Bravo Café">Bravo Café</option><option value="Café da Bravo Pousada">Café da Bravo Pousada</option><option value="Íconico">Iconiko Cozinha Japonesa</option><option value="Leña">Leña Casa Italiana</option></select></div><button class="btn desktop-only" onclick="go('checkin')">＋ Novo check-in</button><button class="btn primary" onclick="go('clients')">⌕ Buscar cliente</button></div></header>
+</div><div class="user-session-chip" id="topUserChip" onclick="openUserSessionModal()" title="Gerenciar sessão / perfil do usuário"><div class="user-avatar-sm" id="topUserAvatar">GB</div><div class="user-chip-meta desktop-only"><span class="user-chip-name" id="topUserName">Gerência Bravo</span><span class="user-chip-role" id="topUserRole">Master</span></div><span style="font-size:10px;color:var(--muted);margin-left:2px">▾</span></div><img id="topHouseLogo" class="session-house-logo desktop-only" alt="Casa atual" onerror="this.style.display='none'" onload="this.style.display=''"><div class="session-chip desktop-only"><span>Empresa:</span><select id="sessionHouse" onchange="changeSessionHouse(this.value)"><option value="Bravo Café">Bravo Café</option><option value="Café da Bravo Pousada">Café da Bravo Pousada</option><option value="Íconico">Iconiko Cozinha Japonesa</option><option value="Leña">Leña Casa Italiana</option></select></div><button class="btn desktop-only" id="topbarNewCheckinBtn" onclick="go('checkin')">＋ Novo check-in</button><button class="btn primary" onclick="go('clients')">⌕ Buscar cliente</button></div></header>
  <div class="content">
   <div class="house-context-banner op-banner" id="houseContextBanner">
    <div class="op-house-info">
@@ -1634,15 +1634,17 @@ input:checked + .slider:before {
   
   <!-- SEÇÃO / GUIA: VOUCHERS & AVALIAÇÕES GOOGLE -->
   <section class="view" id="view-vouchers">
-    <div class="hero">
-      <div>
-        <h2>Vouchers & Avaliações Google</h2>
-        <p>Controle de vouchers promocionais emitidos, monitoramento de prazos de validade (30 dias) e envio automático via WhatsApp.</p>
+    <!-- Header Bar: Título, Busca e Botões na mesma linha -->
+    <div class="vouchers-header-bar" style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px;flex-wrap:wrap">
+      <h2 style="margin:0;font-size:20px;font-weight:750;white-space:nowrap;letter-spacing:-0.4px">Vouchers & Avaliações Google</h2>
+      <div style="flex:1;min-width:220px;max-width:320px">
+        <input type="text" id="voucherSearch" class="control" style="width:100%;height:38px;border-radius:10px;padding:8px 12px;font-size:12.5px" placeholder="🔍 Buscar cliente, telefone ou voucher..." oninput="renderVouchersList()">
       </div>
-      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <button type="button" class="btn primary" style="font-weight:700" onclick="openNewVoucherModal()" title="Emitir manualmente um novo voucher com desconto">＋ Emitir Voucher Manual</button>
         <button type="button" class="btn" style="background:#25D366;color:#fff;border-color:#16a34a;font-weight:700" onclick="openWppTemplatesManagerModal()" title="Gerenciar e editar os textos e modelos de mensagem do WhatsApp">💬 Modelos WhatsApp</button>
-        <button type="button" class="btn primary" onclick="openNewVoucherModal()">＋ Emitir Voucher Manual</button>
-        <button type="button" class="btn" onclick="go('qrcodes')">⚙️ Configurar QR & Google</button>
+        <button type="button" class="btn" onclick="go('qrcodes')" title="Configurar links do Google Meu Negócio e QR Codes">⚙️ Configurar QR & Google</button>
+        <button type="button" class="btn" onclick="exportVouchersCSV()" title="Exportar planilha de vouchers em formato CSV">⇩ Exportar CSV</button>
       </div>
     </div>
 
@@ -1678,30 +1680,10 @@ input:checked + .slider:before {
       </button>
     </div>
 
-    <!-- Card with Controls and List -->
-    <div class="card">
-      <div class="voucher-filter-bar">
-
-        <!-- Controls row: House filter + Search + CSV -->
-        <div class="voucher-controls-row">
-          <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:240px">
-            <input type="text" id="voucherSearch" class="control" placeholder="🔍 Buscar por cliente, telefone ou código do voucher..." oninput="renderVouchersList()">
-          </div>
-          <div style="display:flex;align-items:center;gap:8px">
-            <select id="voucherHouseFilter" class="control" onchange="renderVouchersList()" style="font-weight:600">
-              <option value="all">Todas as Casas</option>
-              <option value="Bravo Café">Bravo Café</option>
-              <option value="Café da Bravo Pousada">Café da Bravo Pousada</option>
-              <option value="Íconico">Iconiko Cozinha Japonesa</option>
-              <option value="Leña">Leña Casa Italiana</option>
-            </select>
-            <button type="button" class="btn" onclick="exportVouchersCSV()" title="Exportar planilha de vouchers">⇩ Exportar CSV</button>
-          </div>
-        </div>
-      </div>
-
+    <!-- Card with Vouchers Table -->
+    <div class="card" style="padding:14px">
       <!-- Vouchers Table -->
-      <div class="table-wrap" style="margin-top:14px;overflow-x:auto">
+      <div class="table-wrap" style="overflow-x:auto">
         <table class="table" id="vouchersTable">
           <thead>
             <tr>
@@ -3651,11 +3633,15 @@ function go(view){
   const targetView = el('view-'+view);
   if(targetView) targetView.classList.add('active');
 
-  // Ocultar barra operacional rápida nas visões de Inteligência e Sistema
+  // Ocultar barra operacional rápida e botão "+ Novo check-in" em visões gerenciais/administrativas (vouchers, qrcodes, etc)
   const banner = el('houseContextBanner');
+  const hideBannerViews = ['vouchers', 'qrcodes', 'segments', 'intelligence', 'settings', 'users', 'data'];
   if(banner){
-    const hideBannerViews = ['segments', 'intelligence', 'settings', 'users', 'data'];
     banner.style.display = hideBannerViews.includes(view) ? 'none' : 'flex';
+  }
+  const topNewCheckin = el('topbarNewCheckinBtn');
+  if(topNewCheckin){
+    topNewCheckin.style.display = hideBannerViews.includes(view) ? 'none' : '';
   }
 
   if(view === 'checkin-list'){
@@ -6065,6 +6051,9 @@ function applySessionHouse(){
   // 7. Sincroniza Segmentos & Inteligência
   if(el('view-segments')?.classList.contains('active')) renderSegments();
   if(el('view-intelligence')?.classList.contains('active')) renderIntelligence();
+
+  // 8. Sincroniza Vouchers
+  if(el('view-vouchers')?.classList.contains('active')) renderVouchers();
 }
 
 function changeSessionHouse(h){
@@ -8644,20 +8633,27 @@ function getFilteredVouchers(){
     list = list.filter(v => v.status === 'expirado' || (v.status !== 'utilizado' && getVoucherDaysRemaining(v) <= 0));
   }
 
-  // House filter
-  const hFilter = el('voucherHouseFilter')?.value;
-  if(hFilter && hFilter !== 'all'){
-    list = list.filter(v => normalizeHouseKey(v.house) === normalizeHouseKey(hFilter));
+  // Filtro de Casa baseado no seletor principal (sessionHouse) do topo do CRM
+  const sessionH = (typeof getSessionHouse === 'function') ? normalizeHouseKey(getSessionHouse() || 'all') : 'all';
+  if(sessionH && sessionH !== 'all'){
+    list = list.filter(v => normalizeHouseKey(v.house) === sessionH);
   }
 
-  // Search filter
-  const q = (el('voucherSearch')?.value || '').trim().toLowerCase();
-  if(q){
-    list = list.filter(v => 
-      (v.code || '').toLowerCase().includes(q) ||
-      (v.clientName || '').toLowerCase().includes(q) ||
-      (v.clientPhone || '').includes(q)
-    );
+  // Busca: nome do cliente (ou parte), telefone (ou parte) e código do voucher (ou parte)
+  const qRaw = (el('voucherSearch')?.value || '').trim();
+  if(qRaw){
+    const qLower = qRaw.toLowerCase();
+    const qFolded = typeof foldText === 'function' ? foldText(qRaw) : qLower;
+    const qDigits = normalizePhone(qRaw);
+    list = list.filter(v => {
+      const codeMatch = (v.code || '').toLowerCase().includes(qLower);
+      const nameFolded = typeof foldText === 'function' ? foldText(v.clientName || '') : (v.clientName || '').toLowerCase();
+      const nameMatch = nameFolded.includes(qFolded);
+      const phoneRaw = (v.clientPhone || '').toString();
+      const phoneDigits = normalizePhone(phoneRaw);
+      const phoneMatch = phoneRaw.includes(qRaw) || (qDigits && phoneDigits.includes(qDigits));
+      return codeMatch || nameMatch || phoneMatch;
+    });
   }
 
   return list;
@@ -8722,7 +8718,7 @@ function syncRescueVouchers(){
 
 function renderVouchers(){
   if(typeof syncRescueVouchers === 'function') syncRescueVouchers();
-  const all = Array.isArray(state.vouchers) ? state.vouchers : [];
+  let all = Array.isArray(state.vouchers) ? state.vouchers : [];
   
   // Atualiza status de expiração
   all.forEach(v => {
@@ -8733,6 +8729,12 @@ function renderVouchers(){
       }
     }
   });
+
+  // Filtra métricas de cards pela empresa/casa selecionada no seletor principal do topo
+  const sessionH = (typeof getSessionHouse === 'function') ? normalizeHouseKey(getSessionHouse() || 'all') : 'all';
+  if(sessionH && sessionH !== 'all'){
+    all = all.filter(v => normalizeHouseKey(v.house) === sessionH);
+  }
 
   const total = all.length;
   const pendingWpp = all.filter(v => !v.sentWpp && v.status === 'ativo').length;
