@@ -805,64 +805,158 @@ input:checked + .slider:before {
   flex-direction: column;
   gap: 12px;
 }
-.voucher-filter-pills {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 7px;
+/* Voucher KPI Filter Card-Buttons */
+.voucher-kpi-filter-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 10px;
+  overflow: visible;
 }
-.vch-pill {
-  padding: 6px 13px;
-  border-radius: 20px;
-  border: 1px solid var(--line);
-  background: #fff;
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--muted);
+@media (max-width: 1100px) {
+  .voucher-kpi-filter-strip {
+    display: flex;
+    overflow-x: auto;
+    padding-bottom: 6px;
+  }
+}
+.kpi-chip.vch-card-btn {
+  background: #ffffff;
+  border: 1.5px solid var(--line);
+  border-radius: 12px;
+  padding: 11px 13px;
   cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  transition: all .15s;
+  text-align: left;
+  font-family: inherit;
+  position: relative;
+  transition: all .2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 68px;
+  min-width: 135px;
+  user-select: none;
+  outline: none;
 }
-.vch-pill:hover {
-  background: #f8fafc;
-  color: var(--ink);
+.kpi-chip.vch-card-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
   border-color: #94a3b8;
 }
-.vch-pill.active {
-  background: var(--ink);
-  color: #fff;
-  border-color: var(--ink);
+.kpi-chip.vch-card-btn .vch-card-label {
+  font-size: 11px;
+  font-weight: 650;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 5px;
+  white-space: nowrap;
 }
-.vch-pill.warn.active {
-  background: #d97706;
-  color: #fff;
-  border-color: #d97706;
+.kpi-chip.vch-card-btn .vch-card-val {
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 1.1;
+  color: var(--ink);
 }
-.vch-pill.danger.active {
-  background: #dc2626;
-  color: #fff;
-  border-color: #dc2626;
+
+/* Specific Accent Borders */
+.kpi-chip.vch-card-btn[data-filter="all"] {
+  border-left: 3.5px solid #334155;
 }
-.vch-pill.orange.active {
-  background: #ea580c;
-  color: #fff;
-  border-color: #ea580c;
+.kpi-chip.vch-card-btn.warn {
+  border-left: 3.5px solid #f59e0b;
 }
-.vch-pill.good.active {
-  background: #059669;
-  color: #fff;
-  border-color: #059669;
+.kpi-chip.vch-card-btn.danger {
+  border-left: 3.5px solid #ef4444;
 }
-.vch-pill.blue.active {
-  background: #4f46e5;
-  color: #fff;
-  border-color: #4f46e5;
+.kpi-chip.vch-card-btn.orange {
+  border-left: 3.5px solid #f97316;
 }
-.vch-pill.gray.active {
-  background: #475569;
-  color: #fff;
-  border-color: #475569;
+.kpi-chip.vch-card-btn.good {
+  border-left: 3.5px solid #10b981;
+}
+.kpi-chip.vch-card-btn.blue {
+  border-left: 3.5px solid #6366f1;
+}
+.kpi-chip.vch-card-btn.gray {
+  border-left: 3.5px solid #94a3b8;
+}
+
+/* Active / Selected States */
+.kpi-chip.vch-card-btn.active {
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+  transform: translateY(-2px);
+}
+.kpi-chip.vch-card-btn[data-filter="all"].active {
+  border-color: #334155;
+  background: #f8fafc;
+}
+.kpi-chip.vch-card-btn[data-filter="all"].active .vch-card-label {
+  color: #0f172a;
+  font-weight: 750;
+}
+.kpi-chip.vch-card-btn.warn.active {
+  border-color: #f59e0b;
+  background: #fffbeb;
+}
+.kpi-chip.vch-card-btn.warn.active .vch-card-label {
+  color: #92400e;
+  font-weight: 750;
+}
+.kpi-chip.vch-card-btn.danger.active {
+  border-color: #ef4444;
+  background: #fef2f2;
+}
+.kpi-chip.vch-card-btn.danger.active .vch-card-label {
+  color: #991b1b;
+  font-weight: 750;
+}
+.kpi-chip.vch-card-btn.orange.active {
+  border-color: #f97316;
+  background: #fff7ed;
+}
+.kpi-chip.vch-card-btn.orange.active .vch-card-label {
+  color: #9a3412;
+  font-weight: 750;
+}
+.kpi-chip.vch-card-btn.good.active {
+  border-color: #10b981;
+  background: #f0fdf4;
+}
+.kpi-chip.vch-card-btn.good.active .vch-card-label {
+  color: #065f46;
+  font-weight: 750;
+}
+.kpi-chip.vch-card-btn.blue.active {
+  border-color: #6366f1;
+  background: #eef2ff;
+}
+.kpi-chip.vch-card-btn.blue.active .vch-card-label {
+  color: #3730a3;
+  font-weight: 750;
+}
+.kpi-chip.vch-card-btn.gray.active {
+  border-color: #64748b;
+  background: #f8fafc;
+}
+.kpi-chip.vch-card-btn.gray.active .vch-card-label {
+  color: #334155;
+  font-weight: 750;
+}
+
+/* Subtle Active Badge Indicator inside selected card */
+.kpi-chip.vch-card-btn.active::after {
+  content: '✓ Ativo';
+  position: absolute;
+  top: 9px;
+  right: 9px;
+  font-size: 9.5px;
+  font-weight: 750;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.06);
+  color: currentColor;
 }
 
 .voucher-controls-row {
@@ -1552,29 +1646,41 @@ input:checked + .slider:before {
       </div>
     </div>
 
-    <!-- KPI Strip -->
-    <div class="kpi-strip" style="margin-bottom:18px">
-      <div class="kpi-chip"><span>Total de Vouchers</span><strong id="kpiVouchersTotal">0</strong></div>
-      <div class="kpi-chip" style="border-left:3px solid #f59e0b"><span>⚠️ Pendentes Envio WPP</span><strong id="kpiVouchersPendingWpp" style="color:#d97706">0</strong></div>
-      <div class="kpi-chip" style="border-left:3px solid #ef4444"><span>⏰ Vencendo em 72h</span><strong id="kpiVouchersExp72h" style="color:#dc2626">0</strong></div>
-      <div class="kpi-chip" style="border-left:3px solid #f97316"><span>📅 Vencendo em 7 dias</span><strong id="kpiVouchersExp7d" style="color:#ea580c">0</strong></div>
-      <div class="kpi-chip" style="border-left:3px solid #10b981"><span>🟢 Vouchers Ativos</span><strong id="kpiVouchersActive" style="color:#059669">0</strong></div>
-      <div class="kpi-chip" style="border-left:3px solid #6366f1"><span>✔️ Já Utilizados</span><strong id="kpiVouchersUsed" style="color:#4f46e5">0</strong></div>
+    <!-- KPI Strip / Filtros Interativos por Cards -->
+    <div class="kpi-strip voucher-kpi-filter-strip" id="voucherKpiStrip" style="margin-bottom:18px">
+      <button type="button" class="kpi-chip vch-card-btn active" data-filter="all" onclick="setVoucherFilter('all')" title="Exibir todos os vouchers">
+        <span class="vch-card-label">Total de Vouchers</span>
+        <strong id="kpiVouchersTotal" class="vch-card-val">0</strong>
+      </button>
+      <button type="button" class="kpi-chip vch-card-btn warn" data-filter="pending_wpp" onclick="setVoucherFilter('pending_wpp')" title="Filtrar vouchers não enviados pelo WhatsApp">
+        <span class="vch-card-label">⚠️ Pendentes Envio WPP</span>
+        <strong id="kpiVouchersPendingWpp" class="vch-card-val" style="color:#d97706">0</strong>
+      </button>
+      <button type="button" class="kpi-chip vch-card-btn danger" data-filter="exp_72h" onclick="setVoucherFilter('exp_72h')" title="Filtrar vouchers vencendo em até 72 horas">
+        <span class="vch-card-label">⏰ Vencendo em 72h</span>
+        <strong id="kpiVouchersExp72h" class="vch-card-val" style="color:#dc2626">0</strong>
+      </button>
+      <button type="button" class="kpi-chip vch-card-btn orange" data-filter="exp_7d" onclick="setVoucherFilter('exp_7d')" title="Filtrar vouchers vencendo em até 7 dias">
+        <span class="vch-card-label">📅 Vencendo em 7 dias</span>
+        <strong id="kpiVouchersExp7d" class="vch-card-val" style="color:#ea580c">0</strong>
+      </button>
+      <button type="button" class="kpi-chip vch-card-btn good" data-filter="active" onclick="setVoucherFilter('active')" title="Filtrar apenas vouchers válidos e ativos">
+        <span class="vch-card-label">🟢 Vouchers Ativos</span>
+        <strong id="kpiVouchersActive" class="vch-card-val" style="color:#059669">0</strong>
+      </button>
+      <button type="button" class="kpi-chip vch-card-btn blue" data-filter="used" onclick="setVoucherFilter('used')" title="Filtrar vouchers já utilizados pelos clientes">
+        <span class="vch-card-label">✔️ Já Utilizados</span>
+        <strong id="kpiVouchersUsed" class="vch-card-val" style="color:#4f46e5">0</strong>
+      </button>
+      <button type="button" class="kpi-chip vch-card-btn gray" data-filter="expired" onclick="setVoucherFilter('expired')" title="Filtrar vouchers que expiraram após os 30 dias">
+        <span class="vch-card-label">❌ Expirados</span>
+        <strong id="kpiVouchersExpired" class="vch-card-val" style="color:#64748b">0</strong>
+      </button>
     </div>
 
-    <!-- Card with Filters and List -->
+    <!-- Card with Controls and List -->
     <div class="card">
       <div class="voucher-filter-bar">
-        <!-- Quick filter pills -->
-        <div class="voucher-filter-pills" id="voucherFilterPills">
-          <button type="button" class="vch-pill active" data-filter="all" onclick="setVoucherFilter('all')">Todos (<span id="countAllVch">0</span>)</button>
-          <button type="button" class="vch-pill warn" data-filter="pending_wpp" onclick="setVoucherFilter('pending_wpp')">💬 Não Enviados WPP (<span id="countPendingWpp">0</span>)</button>
-          <button type="button" class="vch-pill danger" data-filter="exp_72h" onclick="setVoucherFilter('exp_72h')">⏰ Vencendo em 72h (<span id="countExp72h">0</span>)</button>
-          <button type="button" class="vch-pill orange" data-filter="exp_7d" onclick="setVoucherFilter('exp_7d')">📅 Vencendo em 7 dias (<span id="countExp7d">0</span>)</button>
-          <button type="button" class="vch-pill good" data-filter="active" onclick="setVoucherFilter('active')">🟢 Ativos</button>
-          <button type="button" class="vch-pill blue" data-filter="used" onclick="setVoucherFilter('used')">✔️ Utilizados</button>
-          <button type="button" class="vch-pill gray" data-filter="expired" onclick="setVoucherFilter('expired')">❌ Expirados</button>
-        </div>
 
         <!-- Controls row: House filter + Search + CSV -->
         <div class="voucher-controls-row">
@@ -8498,7 +8604,7 @@ function renderQRReviewSettings(){
 
 function setVoucherFilter(filter){
   currentVoucherFilter = filter;
-  document.querySelectorAll('#voucherFilterPills .vch-pill').forEach(b => {
+  document.querySelectorAll('#voucherKpiStrip .vch-card-btn').forEach(b => {
     b.classList.toggle('active', b.dataset.filter === filter);
   });
   renderVouchersList();
@@ -8640,6 +8746,7 @@ function renderVouchers(){
   }).length;
   const active = all.filter(v => v.status === 'ativo' && getVoucherDaysRemaining(v) > 0).length;
   const used = all.filter(v => v.status === 'utilizado').length;
+  const expired = all.filter(v => v.status === 'expirado' || (v.status !== 'utilizado' && getVoucherDaysRemaining(v) <= 0)).length;
 
   if(el('kpiVouchersTotal')) el('kpiVouchersTotal').textContent = total;
   if(el('kpiVouchersPendingWpp')) el('kpiVouchersPendingWpp').textContent = pendingWpp;
@@ -8647,11 +8754,12 @@ function renderVouchers(){
   if(el('kpiVouchersExp7d')) el('kpiVouchersExp7d').textContent = exp7d;
   if(el('kpiVouchersActive')) el('kpiVouchersActive').textContent = active;
   if(el('kpiVouchersUsed')) el('kpiVouchersUsed').textContent = used;
+  if(el('kpiVouchersExpired')) el('kpiVouchersExpired').textContent = expired;
 
-  if(el('countAllVch')) el('countAllVch').textContent = total;
-  if(el('countPendingWpp')) el('countPendingWpp').textContent = pendingWpp;
-  if(el('countExp72h')) el('countExp72h').textContent = exp72h;
-  if(el('countExp7d')) el('countExp7d').textContent = exp7d;
+  // Sincroniza estado visual do card selecionado
+  document.querySelectorAll('#voucherKpiStrip .vch-card-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.filter === (currentVoucherFilter || 'all'));
+  });
 
   // Atualiza badge de pendência no menu lateral
   const badge = el('vouchersPendingBadge');
