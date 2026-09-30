@@ -1286,7 +1286,7 @@ input:checked + .slider:before {
   <section class="view" id="view-clients">
    <div class="hero"><div><h2>Clientes</h2><p>Cadastro único, recorrência e histórico por pessoa.</p></div><div class="filters"><select id="clientHouse" class="control"><option value="all">Todas as casas</option><option value="iconico">Visitou Íconico</option><option value="lena">Visitou Leña</option><option value="cafe">Visitou Bravo Café</option><option value="pousada">Visitou Café da Bravo Pousada</option><option value="both">Visitou mais de uma casa</option></select><select id="clientSegment" class="control"><option value="all">Todos os segmentos</option><option value="new">1 visita</option><option value="recurring">2+ visitas</option><option value="vip">5+ visitas</option></select><select id="clientPriority" class="control"><option value="all">Todas as prioridades</option><option value="any">⭐ Com prioridade (qualquer)</option><option value="Gestante">🤰 Gestante</option><option value="Idoso">🧓 Idoso</option><option value="PCD">♿ PCD</option><option value='Com Criança "no colo"'>👶 Com Criança "no colo"</option></select></div></div>
    <div id="clientsDupBanner" class="duplicate-alert-banner" style="display:none"></div>
-   <div class="table-card"><div class="table-head"><div class="search"><span>⌕</span><input id="clientSearch" placeholder="Buscar por nome ou telefone..."></div><div class="actions-row"><button class="btn" onclick="openNewClient()">＋ Cliente</button><button class="btn" onclick="exportCSV('clients')">⇩ CSV</button></div></div><div class="table-wrap"><table class="data-table"><thead><tr><th>Cliente</th><th>Telefone</th><th>Última visita</th><th>Íconico</th><th>Leña</th><th>Bravo Café</th><th>Bravo Pousada</th><th>Total</th><th>Segmento</th><th></th></tr></thead><tbody id="clientsBody"></tbody></table></div><div class="pager"><span id="clientCount"></span><div><button class="iconbtn" id="prevClients">←</button> <span id="clientPageLabel"></span> <button class="iconbtn" id="nextClients">→</button></div></div></div>
+   <div class="table-card"><div class="table-head"><div class="search"><span>⌕</span><input id="clientSearch" type="search" placeholder="Buscar por nome ou telefone..." autocomplete="off" oninput="clientPage=1;renderClients()"></div><div class="actions-row"><button class="btn" onclick="openNewClient()">＋ Cliente</button><button class="btn" onclick="exportCSV('clients')">⇩ CSV</button></div></div><div class="table-wrap"><table class="data-table"><thead><tr><th>Cliente</th><th>Telefone</th><th>Última visita</th><th>Íconico</th><th>Leña</th><th>Bravo Café</th><th>Bravo Pousada</th><th>Total</th><th>Segmento</th><th></th></tr></thead><tbody id="clientsBody"></tbody></table></div><div class="pager"><span id="clientCount"></span><div><button class="iconbtn" id="prevClients">←</button> <span id="clientPageLabel"></span> <button class="iconbtn" id="nextClients">→</button></div></div></div>
   </section>
 
   <section class="view" id="view-profile">
@@ -4802,12 +4802,15 @@ function renderCheckinList(){
   }
 
   if(query){
-    list = list.filter(v => 
-      (v.name && v.name.toLowerCase().includes(query)) ||
-      (v.phone && digits(v.phone).includes(digits(query))) ||
-      (v.table && String(v.table).toLowerCase().includes(query)) ||
-      (v.notes && v.notes.toLowerCase().includes(query))
-    );
+    const fQuery = typeof foldText === 'function' ? foldText(query) : query.toLowerCase();
+    const dQuery = digits(query);
+    list = list.filter(v => {
+      const nameMatch = v.name && (typeof foldText === 'function' ? foldText(v.name).includes(fQuery) : v.name.toLowerCase().includes(fQuery));
+      const phoneMatch = dQuery.length > 0 && v.phone && digits(v.phone).includes(dQuery);
+      const tableMatch = v.table && String(v.table).toLowerCase().includes(fQuery);
+      const notesMatch = v.notes && (typeof foldText === 'function' ? foldText(v.notes).includes(fQuery) : v.notes.toLowerCase().includes(fQuery));
+      return nameMatch || phoneMatch || tableMatch || notesMatch;
+    });
   }
 
   const order = el('checkinListOrderFilter')?.value || 'asc';
@@ -5366,12 +5369,23 @@ function openEditClientModal(id){
 }
 
 function getFilteredClients(){
-  const q = el('clientSearch').value.trim().toLowerCase(),
-        hf = el('clientHouse').value,
-        sf = el('clientSegment').value,
+  const qRaw = (el('clientSearch')?.value || '').trim(),
+        hf = el('clientHouse')?.value || 'all',
+        sf = el('clientSegment')?.value || 'all',
         pf = el('clientPriority')?.value || 'all';
+
+  const qFolded = typeof foldText === 'function' ? foldText(qRaw) : qRaw.toLowerCase();
+  const qDigits = digits(qRaw);
+
   return state.clients.map(calcClient)
-    .filter(c => !q || c.name.toLowerCase().includes(q) || digits(c.phone).includes(digits(q)))
+    .filter(c => {
+      if(!qRaw) return true;
+      const nameFolded = typeof foldText === 'function' ? foldText(c.name || '') : (c.name || '').toLowerCase();
+      const nameMatch = nameFolded.includes(qFolded);
+      const phoneDigits = digits(c.phone || '');
+      const phoneMatch = qDigits.length > 0 && phoneDigits.includes(qDigits);
+      return nameMatch || phoneMatch;
+    })
     .filter(c => {
       if(hf === 'all') return true;
       if(hf === 'iconico') return (c.iconico > 0 || normalizeHouseKey(c.firstHouse) === 'Íconico' || clientVisits(c).some(v => normalizeHouseKey(v.house) === 'Íconico'));
@@ -6446,7 +6460,9 @@ function renderReservations(){
     const matchHouse = (h === 'all'
       ? (isMaster || (allowedHouses && allowedHouses.includes(rHouse)))
       : (rHouse === h && (isMaster || (allowedHouses && allowedHouses.includes(h)))));
-    const matchSearch = (!q || r.name.toLowerCase().includes(q) || digits(r.phone).includes(digits(q)));
+    const fq = typeof foldText === 'function' ? foldText(q) : q.toLowerCase();
+    const dq = digits(q);
+    const matchSearch = (!q || (r.name && (typeof foldText === 'function' ? foldText(r.name).includes(fq) : r.name.toLowerCase().includes(fq))) || (dq.length > 0 && digits(r.phone).includes(dq)));
     const matchStatus = (s === 'all' || r.status === s);
     
     // Validar Reservada para (r.date)
@@ -7323,7 +7339,14 @@ function renderUsers(){
   }
 
   if(q){
-    list=list.filter(u=>u.name.toLowerCase().includes(q)||u.email.toLowerCase().includes(q)||digits(u.phone).includes(digits(q)));
+    const fq = typeof foldText === 'function' ? foldText(q) : q.toLowerCase();
+    const dq = digits(q);
+    list = list.filter(u => {
+      const nameMatch = u.name && (typeof foldText === 'function' ? foldText(u.name).includes(fq) : u.name.toLowerCase().includes(fq));
+      const emailMatch = u.email && u.email.toLowerCase().includes(fq);
+      const phoneMatch = dq.length > 0 && digits(u.phone).includes(dq);
+      return nameMatch || emailMatch || phoneMatch;
+    });
   }
   if(fHouse!=='all'){
     list=list.filter(u=>u.houses&&u.houses.includes(fHouse));
