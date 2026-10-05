@@ -1,8 +1,9 @@
 /* Service Worker para GRUPO QU4TRO CRM - PWA Offline-First */
-const CACHE_NAME = 'qu4tro-crm-v1.0.46';
+const CACHE_NAME = 'qu4tro-crm-v1.0.47';
 const PRECACHE_ASSETS = [
   './',
   './index.html',
+  './crm-sync.js',
   './manifest.json',
   './qrcode.min.js',
   './icon-192.png',
@@ -52,7 +53,7 @@ self.addEventListener('fetch', event => {
         // Se for GET, retorna array vazio para o cliente operar offline
         if (event.request.method === 'GET') {
           return new Response(JSON.stringify([]), {
-            status: 200,
+            status: 503,
             headers: { 'Content-Type': 'application/json' }
           });
         }
