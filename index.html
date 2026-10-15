@@ -4192,10 +4192,18 @@ function filteredVisits(){
   const sessionH = (typeof getSessionHouse === 'function') ? getSessionHouse() : '';
   let a = [...state.visits], h = el('dashHouse')?.value || sessionH || 'all', p = el('dashPeriod')?.value || 'all';
   const normH = normalizeHouseKey(h);
-  if(normH !== 'all'){
-    a = a.filter(v => normalizeHouseKey(v.house) === normH);
-  } else if(!isMaster){
-    a = a.filter(v => userHouses.includes(normalizeHouseKey(v.house)));
+  if(!isMaster && !userHouses.includes('all')){
+    // Usuário restrito (não Master e sem acesso a Todas as Casas): trava estritamente nas casas autorizadas
+    if(normH !== 'all' && userHouses.includes(normH)){
+      a = a.filter(v => normalizeHouseKey(v.house) === normH);
+    } else {
+      a = a.filter(v => userHouses.includes(normalizeHouseKey(v.house)));
+    }
+  } else {
+    // Usuário Master ou com acesso a Todas as Casas
+    if(normH !== 'all'){
+      a = a.filter(v => normalizeHouseKey(v.house) === normH);
+    }
   }
   if(p === 'all'){
     return a;
@@ -6300,7 +6308,7 @@ function clearSelectedCheckinClient(){
 function startCheckinForProfile(){if(!currentClient)return;go('checkin');selectCheckinClient(currentClient.id)}
 
 function houseLabel(h){return h==='Leña'?'Leña Casa Italiana':h==='Íconico'?'Iconiko Cozinha Japonesa':h==='Bravo Café'?'Bravo Café':(h==='Café da Bravo Pousada'||h==='cafedabravopousada')?'Café da Bravo Pousada':h||'—'}
-function getSessionHouse(){return sessionStorage.getItem('qu4tro_reception_house')||''}
+// getSessionHouse com validação e controle de acesso definido adiante
 const HOUSE_BRANDING = {
   'Bravo Café': {
     label: 'Bravo Café',
@@ -6355,7 +6363,20 @@ function houseLabel(h){
 }
 
 function getSessionHouse(){
-  return sessionStorage.getItem('qu4tro_reception_house') || '';
+  const raw = sessionStorage.getItem('qu4tro_reception_house') || '';
+  const u = (typeof getCurrentUser === 'function') ? getCurrentUser() : null;
+  if(u && u.role !== 'Master'){
+    const userHouses = getUserHouses(u);
+    if(!userHouses.includes('all')){
+      const normRaw = normalizeHouseKey(raw);
+      if(!userHouses.includes(normRaw)){
+        const validHouse = userHouses[0] || 'Bravo Café';
+        sessionStorage.setItem('qu4tro_reception_house', validHouse);
+        return validHouse;
+      }
+    }
+  }
+  return raw;
 }
 
 function getHouseBranding(h){
@@ -6407,8 +6428,8 @@ function applySessionHouse(){
   const u = (typeof getCurrentUser === 'function') ? getCurrentUser() : null;
   const houses = getUserHouses(u);
   let h = getSessionHouse();
-  if(!h || (!houses.includes(h) && normalizeHouseKey(h) !== 'all')){
-    h = houses[0] || 'all';
+  if(!h || !houses.includes(h)){
+    h = houses.includes('all') ? 'all' : (houses[0] || 'Bravo Café');
     sessionStorage.setItem('qu4tro_reception_house', h);
   }
   const top = el('sessionHouse');
@@ -6767,7 +6788,7 @@ function setupReservationHouseFilter(forceSession=false){
   const defaultHouse = userHouses.includes('all') ? 'all' : (userHouses[0] || 'all');
   const session = normalizeHouseKey(getSessionHouse()) || defaultHouse;
   const previous = select.value;
-  const activeHouse = session || defaultHouse;
+  const activeHouse = userHouses.includes(session) ? session : defaultHouse;
   const ordered = [activeHouse, ...userHouses.filter(h => h !== activeHouse)];
   
   select.innerHTML = ordered.map((h, i) => {
@@ -7284,8 +7305,8 @@ function checkAppAuthentication(){
     const userAllowedHouses = getUserHouses(validUser);
     if(userAllowedHouses.includes('all')){
       sessionStorage.setItem('qu4tro_reception_house', 'all');
-    } else if(validUser.houses && validUser.houses.length > 0){
-      sessionStorage.setItem('qu4tro_reception_house', validUser.houses[0]);
+    } else if(userAllowedHouses.length > 0){
+      sessionStorage.setItem('qu4tro_reception_house', userAllowedHouses[0]);
     }
 
     applyCurrentUser();
@@ -7522,7 +7543,14 @@ function handleLoginSubmit(e){
   setStoredAuthUserId(user.id);
   save();
   closeModal();
+  const userAllowedHouses = getUserHouses(user);
+  if(userAllowedHouses.includes('all')){
+    sessionStorage.setItem('qu4tro_reception_house', 'all');
+  } else if(userAllowedHouses.length > 0){
+    sessionStorage.setItem('qu4tro_reception_house', userAllowedHouses[0]);
+  }
   applyCurrentUser();
+  applySessionHouse();
   const curView = document.querySelector('.view.active');
   const viewId = curView ? curView.id.replace('view-', '') : 'dashboard';
   if(!isViewAllowedForRole(viewId, user.role)){
@@ -7541,7 +7569,14 @@ function quickLoginAs(userId){
   setStoredAuthUserId(user.id);
   save();
   closeModal();
+  const userAllowedHouses = getUserHouses(user);
+  if(userAllowedHouses.includes('all')){
+    sessionStorage.setItem('qu4tro_reception_house', 'all');
+  } else if(userAllowedHouses.length > 0){
+    sessionStorage.setItem('qu4tro_reception_house', userAllowedHouses[0]);
+  }
   applyCurrentUser();
+  applySessionHouse();
   const curView = document.querySelector('.view.active');
   const viewId = curView ? curView.id.replace('view-', '') : 'dashboard';
   if(!isViewAllowedForRole(viewId, user.role)){
@@ -11056,10 +11091,11 @@ function setupWaitlistHouseFilter(forceSession = false){
   const defaultHouse = userHouses.includes('all') ? 'all' : (userHouses[0] || 'all');
   const session = normalizeHouseKey(getSessionHouse()) || defaultHouse;
   const previous = select.value;
-  const ordered = [session, ...userHouses.filter(h => h !== session)];
+  const activeHouse = userHouses.includes(session) ? session : defaultHouse;
+  const ordered = [activeHouse, ...userHouses.filter(h => h !== activeHouse)];
   
   select.innerHTML = ordered.map(h => {
-    const isCurrent = normalizeHouseKey(h) === session;
+    const isCurrent = normalizeHouseKey(h) === activeHouse;
     const label = h === 'all' ? 'Todas as casas (autorizadas)' : houseLabel(h);
     return `<option value="${esc(h)}">${isCurrent ? '⭐ Esta empresa • ' : ''}${esc(label)}</option>`;
   }).join('');
@@ -11067,7 +11103,7 @@ function setupWaitlistHouseFilter(forceSession = false){
   if(!forceSession && previous && select.options && Array.from(select.options).some(o => o.value === previous)){
     select.value = previous;
   } else {
-    select.value = session;
+    select.value = activeHouse;
   }
 }
 
