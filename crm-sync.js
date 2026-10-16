@@ -89,8 +89,11 @@ async function pullAllFromSupabase() {
 }
 async function crmManualRefresh(){
   try {
-    if(state && state.crmCache) state.crmCache.versions = {};
-    if(state) state.__visitsPurgedV2 = false;
+    if(state){
+      delete state.crmCache;
+      state.__visitsPurgedV2 = false;
+      state.__syncRev = '2026-10-16-v4';
+    }
     await pullAllFromSupabase();
     toast('Dados sincronizados com o banco.');
   } catch(e){

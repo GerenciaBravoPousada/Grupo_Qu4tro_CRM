@@ -3743,6 +3743,12 @@ function loadState(){let s;try{const raw=localStorage.getItem(STORE);s=raw?JSON.
   if(Array.isArray(s.clients)){
     s.clients = s.clients.filter(c => c.id !== 'd1a08337-74ee-4422-bf61-0a17212ab837');
   }
+  const SYNC_REVISION = '2026-10-16-v4';
+  if(s.__syncRev !== SYNC_REVISION){
+    s.__syncRev = SYNC_REVISION;
+    s.__visitsPurgedV2 = false;
+    delete s.crmCache;
+  }
   if(!s.pendingDuplicates || !Array.isArray(s.pendingDuplicates)){
     s.pendingDuplicates = [];
   }
