@@ -88,7 +88,14 @@ async function pullAllFromSupabase() {
   return crmRefreshPromise;
 }
 async function crmManualRefresh(){
-  try { await pullAllFromSupabase(); toast('Dados atualizados.'); } catch(_){}
+  try {
+    if(state && state.crmCache) state.crmCache.versions = {};
+    if(state) state.__visitsPurgedV2 = false;
+    await pullAllFromSupabase();
+    toast('Dados sincronizados com o banco.');
+  } catch(e){
+    toast('Erro ao atualizar: ' + (e.message || e), 'warn');
+  }
 }
 function crmRenderStatus(){
   const stamp=document.getElementById('crmLastRefresh');

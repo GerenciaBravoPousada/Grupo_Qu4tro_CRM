@@ -3293,8 +3293,8 @@ async function pullAllFromSupabaseLegacy(){
     state.clients=state.clients.filter(c=>remoteIds.has(c.id));
     crmMarkRead('customers', true);
     }
-    if(crmShouldPull('visits')) {
-    // 5. PULL VISITS (FULL SYNC PAGINATED)
+    if(!state.__visitsPurgedV2 || crmShouldPull('visits')) {
+    // 5. PULL VISITS (FULL SYNC PAGINATED & AUTHORITATIVE PURGE)
     let allVisits = [];
     let vPage = 0;
     const vStep = 1000;
@@ -3308,25 +3308,17 @@ async function pullAllFromSupabaseLegacy(){
     }
 
     if(allVisits.length > 0){
-      let visitsUpdated = false;
-      function samePhoneMatch(p1, p2){
-        if(!p1 || !p2) return false;
-        let d1 = String(p1).replace(/\D/g, '');
-        let d2 = String(p2).replace(/\D/g, '');
-        if(d1.startsWith('55') && d1.length > 10) d1 = d1.slice(2);
-        if(d2.startsWith('55') && d2.length > 10) d2 = d2.slice(2);
-        return d1 && d2 && d1 === d2;
-      }
+      const remoteIds = new Set(allVisits.map(rv => rv.id));
+      const remoteSigs = new Set();
+      const mappedVisits = allVisits.map(rv => {
+        let cleanP = String(rv.customer_phone || '').replace(/\D/g, '');
+        if(cleanP.startsWith('55') && cleanP.length > 10) cleanP = cleanP.slice(2);
+        const houseKey = normalizeHouseKey(rv.house);
+        const dateIso = normalizeDateIso(rv.visit_date) || rv.visit_date;
+        const sig = houseKey + '_' + dateIso + '_' + cleanP;
+        remoteSigs.add(sig);
 
-      allVisits.forEach(rv => {
-        const localIdx = state.visits.findIndex(v => {
-          if(v.id && rv.id && v.id === rv.id) return true;
-          const sameP = samePhoneMatch(v.phone, rv.customer_phone);
-          const sameD = (v.date === rv.visit_date || normalizeDateIso(v.date) === normalizeDateIso(rv.visit_date));
-          const sameA = (v.arrival === rv.arrival_time);
-          return sameP && sameD && sameA;
-        });
-        const visitObj = {
+        return {
           id: rv.id,
           customer_id: rv.customer_id,
           clientId: rv.customer_id,
@@ -3346,16 +3338,24 @@ async function pullAllFromSupabaseLegacy(){
           operatorReception: rv.operator_reception || rv.house,
           syncedToSupabase: true
         };
-
-        if(localIdx !== -1){
-          state.visits[localIdx] = Object.assign(state.visits[localIdx], visitObj);
-        } else {
-          state.visits.push(visitObj);
-        }
-        visitsUpdated = true;
       });
 
-      // Deduplicação estrita de visitas locais
+      // Preserva apenas check-ins locais que ainda não subiram para o Supabase (ex: criados offline hoje)
+      const pendingLocalVisits = (state.visits || []).filter(v => {
+        if(!v) return false;
+        if(v.id && remoteIds.has(v.id)) return false;
+        let cleanP = String(v.phone || '').replace(/\D/g, '');
+        if(cleanP.startsWith('55') && cleanP.length > 10) cleanP = cleanP.slice(2);
+        const houseKey = normalizeHouseKey(v.house);
+        const dateIso = normalizeDateIso(v.date) || v.date;
+        const sig = houseKey + '_' + dateIso + '_' + cleanP;
+        if(remoteSigs.has(sig)) return false;
+        return v.syncedToSupabase === false && v.date === today();
+      });
+
+      state.visits = [...pendingLocalVisits, ...mappedVisits];
+
+      // Deduplicação estrita de segurança
       const seenVisits = new Set();
       state.visits = state.visits.filter(v => {
         let cleanP = String(v.phone || '').replace(/\D/g, '');
@@ -3371,12 +3371,11 @@ async function pullAllFromSupabaseLegacy(){
         return true;
       });
 
-      if(visitsUpdated){
-        renderCheckinStats();
-        renderDashboard();
-        renderClients();
-        if(typeof renderCheckinList === 'function') renderCheckinList();
-      }
+      state.__visitsPurgedV2 = true;
+      renderCheckinStats();
+      renderDashboard();
+      renderClients();
+      if(typeof renderCheckinList === 'function') renderCheckinList();
     }
     crmMarkRead('visits', true);
     }
@@ -4419,9 +4418,47 @@ function clearCustomPeriod(){
   renderDashboard();
   toast('Filtro redefinido para todo o período.');
 }
-function renderDashboard(){const vv=filteredVisits();const phones=new Set(vv.map(v=>digits(v.phone)).filter(Boolean));const newN=vv.filter(v=>(v.status||'').toLowerCase().includes('novo')).length, recN=vv.filter(v=>(v.status||'').toLowerCase().includes('recorr')).length;const people=vv.reduce((s,v)=>s+(+v.people||0),0);const avg=vv.length?people/vv.length:0;const metrics=[['Clientes únicos',phones.size.toLocaleString('pt-BR'),'na seleção'],['Visitas',vv.length.toLocaleString('pt-BR'),'registros'],['Pessoas atendidas',people.toLocaleString('pt-BR'),`${avg.toFixed(1)} por visita`],['Taxa recorrência',((recN/Math.max(1,newN+recN))*100).toFixed(1)+'%','das visitas classificadas']];el('metrics').innerHTML=metrics.map(m=>`<div class="card metric"><div class="label">${m[0]}</div><div class="value">${m[1]}</div><div class="delta">${m[2]}</div></div>`).join('');
- const counts={};vv.forEach(v=>counts[v.source||'Não informado']=(counts[v.source||'Não informado']||0)+1);const top=Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,7),max=top[0]?.[1]||1;el('sourceBars').innerHTML=top.map(([k,n])=>`<div class="barrow"><span title="${esc(k)}">${esc(k.length>18?k.slice(0,17)+'…':k)}</span><div class="bartrack"><div class="bar" style="width:${n/max*100}%"></div></div><strong>${n}</strong></div>`).join('')||'<div class="empty">Sem dados</div>';
- const total=Math.max(1,newN+recN),pct=newN/total*100;el('statusDonut').innerHTML=`<div class="donut" style="background:conic-gradient(${COLORS.Novo} 0 ${pct}%,${COLORS.Recorrente} ${pct}% 100%)"><div class="donut-center"><strong>${total}</strong><span>visitas</span></div></div><div class="legend"><div><span class="dot" style="background:${COLORS.Novo}"></span>Novo <b>${newN}</b></div><div><span class="dot" style="background:${COLORS.Recorrente}"></span>Recorrente <b>${recN}</b></div></div>`;
+function renderDashboard(){
+  const vv = filteredVisits();
+  const phones = new Set(vv.map(v => digits(v.phone)).filter(Boolean));
+  
+  // Classificação completa de 100% das visitas entre Novo e Recorrente:
+  // - VIP e Recorrente contam como Recorrente (VIPs são clientes recorrentes de 5+ visitas).
+  // - Para visitas sem status explícito, verifica se o cliente já realizou visita anterior (Recorrente) ou se é a primeira (Novo).
+  const seenP = new Set();
+  let newN = 0, recN = 0;
+  vv.forEach(v => {
+    const st = (v.status || '').toLowerCase();
+    const p = digits(v.phone);
+    let isRec = st.includes('recorr') || st.includes('vip');
+    let isNew = st.includes('novo');
+    if(!isRec && !isNew){
+      if(p && seenP.has(p)) isRec = true;
+      else isNew = true;
+    }
+    if(p) seenP.add(p);
+    if(isRec) recN++;
+    else newN++;
+  });
+
+  const people = vv.reduce((s, v) => s + (+v.people || 0), 0);
+  const avg = vv.length ? people / vv.length : 0;
+  const metrics = [
+    ['Clientes únicos', phones.size.toLocaleString('pt-BR'), 'na seleção'],
+    ['Visitas', vv.length.toLocaleString('pt-BR'), 'registros'],
+    ['Pessoas atendidas', people.toLocaleString('pt-BR'), `${avg.toFixed(1)} por visita`],
+    ['Taxa recorrência', ((recN / Math.max(1, vv.length)) * 100).toFixed(1) + '%', 'do total de visitas']
+  ];
+  el('metrics').innerHTML = metrics.map(m => `<div class="card metric"><div class="label">${m[0]}</div><div class="value">${m[1]}</div><div class="delta">${m[2]}</div></div>`).join('');
+
+  const counts = {};
+  vv.forEach(v => counts[v.source || 'Não informado'] = (counts[v.source || 'Não informado'] || 0) + 1);
+  const top = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 7), max = top[0]?.[1] || 1;
+  el('sourceBars').innerHTML = top.map(([k, n]) => `<div class="barrow"><span title="${esc(k)}">${esc(k.length > 18 ? k.slice(0, 17) + '…' : k)}</span><div class="bartrack"><div class="bar" style="width:${n / max * 100}%"></div></div><strong>${n}</strong></div>`).join('') || '<div class="empty">Sem dados</div>';
+
+  const total = vv.length;
+  const pct = total ? (newN / total * 100) : 0;
+  el('statusDonut').innerHTML = `<div class="donut" style="background:conic-gradient(${COLORS.Novo} 0 ${pct}%,${COLORS.Recorrente} ${pct}% 100%)"><div class="donut-center"><strong>${total.toLocaleString('pt-BR')}</strong><span>visitas</span></div></div><div class="legend"><div><span class="dot" style="background:${COLORS.Novo}"></span>Novo <b>${newN.toLocaleString('pt-BR')}</b></div><div><span class="dot" style="background:${COLORS.Recorrente}"></span>Recorrente <b>${recN.toLocaleString('pt-BR')}</b></div></div>`;
   const hc={'Íconico':0, 'Leña':0, 'Bravo Café':0, 'Café da Bravo Pousada':0};
   vv.forEach(v=>{
     const k = normalizeHouseKey(v.house);
