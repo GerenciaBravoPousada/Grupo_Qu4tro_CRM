@@ -123,6 +123,17 @@ body[data-house] .sidebar{background:linear-gradient(180deg,var(--nav),color-mix
 .badge-house-iconiko{background:#e0e7ff;color:#3730a3;border:1px solid #c7d2fe}
 .badge-house-cafe{background:#f5ebe6;color:#78350f;border:1px solid #e6ceba}
 
+/* Origem dos Clientes Layout Tuning */
+#sourceBars .barrow{display:grid;grid-template-columns:160px minmax(50px,1fr) 95px;gap:12px;align-items:center;margin:9px 0;font-size:12px;padding-right:6px}
+#sourceBars .bartrack{max-width:80%;height:8px;background:#edf1f4;border-radius:999px;overflow:hidden}
+#sourceBars .source-val{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;display:flex;justify-content:flex-end;align-items:baseline;gap:4px}
+#sourceBars .source-val strong{font-size:12px;color:var(--ink)}
+#sourceBars .source-val span{font-size:10.5px;color:var(--muted)}
+@media(max-width:768px){
+  #sourceBars .barrow{grid-template-columns:130px minmax(40px,1fr) 85px;gap:8px}
+  #sourceBars .bartrack{max-width:90%}
+}
+
 /* Settings House Selector Bar */
 .settings-house-bar{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;background:#f8fafc;padding:8px;border-radius:14px;border:1px solid var(--line);margin-bottom:18px}
 .settings-house-tab{display:flex;align-items:center;gap:12px;padding:12px 16px;background:#fff;border:2px solid transparent;border-radius:10px;cursor:pointer;transition:all .2s ease;font-family:inherit;text-align:left}
@@ -4443,21 +4454,35 @@ function setSourceMetric(mode){
 }
 
 function normalizeOrigin(src){
-  if(!src) return 'Passagem/Passante';
+  if(!src) return 'Outros';
   const s = String(src).trim();
   const l = s.toLowerCase();
-  if(l.includes('passan') || l.includes('passag') || l.includes('extra') || l.includes('walk-in') || l.includes('não informado') || l === '(vazio)' || l === 'outro' || l === 'outros') {
+
+  // 1. Da casa
+  if(l === 'da casa' || l === 'da  casa') return 'Da casa';
+
+  // 2. Instagram
+  if(l.includes('insta')) return 'Instagram';
+
+  // 3. Google
+  if(l.includes('google')) return 'Google';
+
+  // 4. Indicação
+  if(l.includes('indica')) return 'Indicação';
+
+  // 5. Passagem/Passante (unifica Passagem, Passantes, Extra/Passante, Passantes / Extras, Walk-in)
+  if(l.includes('passan') || l.includes('passag') || l.includes('extra') || l.includes('walk-in')) {
     return 'Passagem/Passante';
   }
-  if(l === 'da casa' || l === 'da  casa') return 'Da casa';
-  if(l.includes('indica') || l.includes('parceria')) return 'Indicação';
-  if(l.includes('insta')) return 'Instagram';
-  if(l.includes('google')) return 'Google';
+
+  // 6. Influencer / Parceria MKT (unifica Influenciador, Influencer, Parceria MKT)
+  if(l.includes('influenc') || l.includes('parceria')) return 'Influencer / Parceria MKT';
+
+  // 7. TikTok
   if(l.includes('tiktok')) return 'TikTok';
-  if(l.includes('influenc')) return 'Influenciador';
-  if(l.includes('reserva')) return 'Reserva';
-  if(l.includes('fila')) return 'Fila de Espera';
-  return 'Passagem/Passante';
+
+  // Qualquer outra opção (Reserva, Fila de Espera, Não informado, Outro, Outros, etc.) -> Outros
+  return 'Outros';
 }
 
 function renderDashboard(){
@@ -4564,7 +4589,11 @@ function renderDashboard(){
   const max = sortedSources[0]?.[1] || 1;
   el('sourceBars').innerHTML = sortedSources.map(([k, n]) => {
     const pct = totalSourceUnits ? ((n / totalSourceUnits) * 100).toFixed(1) : '0.0';
-    return `<div class="barrow"><span title="${esc(k)}">${esc(k.length > 18 ? k.slice(0, 17) + '…' : k)}</span><div class="bartrack"><div class="bar" style="width:${n / max * 100}%"></div></div><div style="min-width:70px;text-align:right"><strong>${n.toLocaleString('pt-BR')}</strong> <span style="font-size:10px;color:var(--muted);margin-left:2px">(${pct}%)</span></div></div>`;
+    return `<div class="barrow">
+      <span title="${esc(k)}" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(k)}</span>
+      <div class="bartrack"><div class="bar" style="width:${n / max * 100}%"></div></div>
+      <div class="source-val"><strong>${n.toLocaleString('pt-BR')}</strong> <span>(${pct}%)</span></div>
+    </div>`;
   }).join('') || '<div class="empty">Sem dados</div>';
 
   const total = vv.length;
