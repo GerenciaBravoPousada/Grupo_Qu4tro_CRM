@@ -1371,7 +1371,25 @@ input:checked + .slider:before {
    <div class="cards" id="metrics"></div>
    <!-- MONITOR DE AUDITORIA E PRESENÇA DAS RECEPÇÕES -->
    <div id="operatorPresenceSection" style="margin-bottom:18px"></div>
-   <div class="grid2"><div class="card"><div class="section-title"><h3>Origem dos clientes</h3><small>visitas filtradas</small></div><div id="sourceBars"></div></div><div class="card"><div class="section-title"><h3>Novo × Recorrente</h3><small>classificação da visita</small></div><div id="statusDonut" class="donut-wrap"></div></div></div>
+   <div class="grid2">
+     <div class="card">
+       <div class="section-title" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+         <div>
+           <h3 style="margin:0">Origem dos clientes</h3>
+           <small id="sourceBarsSubtitle">clientes únicos na seleção</small>
+         </div>
+         <div style="display:inline-flex;background:var(--bg);padding:2px;border-radius:8px;font-size:11px;border:1px solid var(--line)">
+           <button type="button" id="btnSourceClients" onclick="setSourceMetric('clients')" style="padding:3px 10px;border-radius:6px;border:none;cursor:pointer;background:var(--panel);color:var(--ink);font-weight:700;box-shadow:0 1px 3px rgba(0,0,0,.08)">Clientes</button>
+           <button type="button" id="btnSourceVisits" onclick="setSourceMetric('visits')" style="padding:3px 10px;border-radius:6px;border:none;cursor:pointer;background:transparent;color:var(--muted);font-weight:600">Visitas</button>
+         </div>
+       </div>
+       <div id="sourceBars"></div>
+     </div>
+     <div class="card">
+       <div class="section-title"><h3>Novo × Recorrente</h3><small>classificação da visita</small></div>
+       <div id="statusDonut" class="donut-wrap"></div>
+     </div>
+   </div>
    <div class="grid3"><div class="card"><div class="section-title"><h3>Casas</h3><small>visitas no período</small></div><div id="houseBars"></div></div><div class="card"><div class="section-title"><div style="display:flex;align-items:center;gap:6px"><h3>Sinergia & Cross-Selling</h3><span class="badge blue" style="font-size:10px;padding:2px 7px">Ecossistema</span></div><button type="button" class="btn ghost" style="padding:4px 9px;font-size:11px;font-weight:600" onclick="go('segments');showSegment('Cross-selling')" title="Ver lista de clientes multi-casa">Ver clientes →</button></div><div id="crossSellingWidget"></div></div><div class="card"><div class="section-title"><h3>Alertas comerciais</h3><small>retenção e hábito</small></div><div id="quickInsights"></div></div></div>
   </section>
 
@@ -4418,6 +4436,30 @@ function clearCustomPeriod(){
   renderDashboard();
   toast('Filtro redefinido para todo o período.');
 }
+
+function setSourceMetric(mode){
+  window.__sourceMetric = mode;
+  renderDashboard();
+}
+
+function normalizeOrigin(src){
+  if(!src) return 'Passagem/Passante';
+  const s = String(src).trim();
+  const l = s.toLowerCase();
+  if(l.includes('passan') || l.includes('passag') || l.includes('extra') || l.includes('walk-in') || l.includes('não informado') || l === '(vazio)' || l === 'outro' || l === 'outros') {
+    return 'Passagem/Passante';
+  }
+  if(l === 'da casa' || l === 'da  casa') return 'Da casa';
+  if(l.includes('indica') || l.includes('parceria')) return 'Indicação';
+  if(l.includes('insta')) return 'Instagram';
+  if(l.includes('google')) return 'Google';
+  if(l.includes('tiktok')) return 'TikTok';
+  if(l.includes('influenc')) return 'Influenciador';
+  if(l.includes('reserva')) return 'Reserva';
+  if(l.includes('fila')) return 'Fila de Espera';
+  return 'Passagem/Passante';
+}
+
 function renderDashboard(){
   const vv = filteredVisits();
   const phones = new Set(vv.map(v => digits(v.phone)).filter(Boolean));
@@ -4451,10 +4493,79 @@ function renderDashboard(){
   ];
   el('metrics').innerHTML = metrics.map(m => `<div class="card metric"><div class="label">${m[0]}</div><div class="value">${m[1]}</div><div class="delta">${m[2]}</div></div>`).join('');
 
+  const isClientsMode = (window.__sourceMetric !== 'visits');
   const counts = {};
-  vv.forEach(v => counts[v.source || 'Não informado'] = (counts[v.source || 'Não informado'] || 0) + 1);
-  const top = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 7), max = top[0]?.[1] || 1;
-  el('sourceBars').innerHTML = top.map(([k, n]) => `<div class="barrow"><span title="${esc(k)}">${esc(k.length > 18 ? k.slice(0, 17) + '…' : k)}</span><div class="bartrack"><div class="bar" style="width:${n / max * 100}%"></div></div><strong>${n}</strong></div>`).join('') || '<div class="empty">Sem dados</div>';
+  let totalSourceUnits = 0;
+
+  if(isClientsMode){
+    // Modo CLIENTES ÚNICOS: Cada cliente único presente nas visitas filtradas é contabilizado 1 vez pela sua origem
+    const clientSourceMap = new Map();
+    const clientObjMap = new Map();
+    (state.clients || []).forEach(c => {
+      const p = digits(c.phone);
+      if(p && c.source) clientObjMap.set(p, c.source);
+    });
+
+    const sortedVV = [...vv].sort((a,b) => (a.date||'').localeCompare(b.date||'') || (a.arrival||'').localeCompare(b.arrival||''));
+    sortedVV.forEach(v => {
+      const p = digits(v.phone);
+      if(!p) return;
+      if(!clientSourceMap.has(p)){
+        const regSrc = clientObjMap.get(p);
+        clientSourceMap.set(p, normalizeOrigin(regSrc || v.source));
+      }
+    });
+
+    clientSourceMap.forEach(src => {
+      counts[src] = (counts[src] || 0) + 1;
+    });
+    totalSourceUnits = clientSourceMap.size;
+  } else {
+    // Modo VISITAS: Cada atendimento / visita é contabilizado
+    vv.forEach(v => {
+      const src = normalizeOrigin(v.source);
+      counts[src] = (counts[src] || 0) + 1;
+    });
+    totalSourceUnits = vv.length;
+  }
+
+  const subEl = el('sourceBarsSubtitle');
+  if(subEl){
+    subEl.textContent = isClientsMode 
+      ? `${totalSourceUnits.toLocaleString('pt-BR')} clientes únicos` 
+      : `${totalSourceUnits.toLocaleString('pt-BR')} visitas filtradas`;
+  }
+
+  const btnC = el('btnSourceClients');
+  const btnV = el('btnSourceVisits');
+  if(btnC && btnV){
+    if(isClientsMode){
+      btnC.style.background = 'var(--panel)';
+      btnC.style.color = 'var(--ink)';
+      btnC.style.fontWeight = '700';
+      btnC.style.boxShadow = '0 1px 3px rgba(0,0,0,.08)';
+      btnV.style.background = 'transparent';
+      btnV.style.color = 'var(--muted)';
+      btnV.style.fontWeight = '600';
+      btnV.style.boxShadow = 'none';
+    } else {
+      btnV.style.background = 'var(--panel)';
+      btnV.style.color = 'var(--ink)';
+      btnV.style.fontWeight = '700';
+      btnV.style.boxShadow = '0 1px 3px rgba(0,0,0,.08)';
+      btnC.style.background = 'transparent';
+      btnC.style.color = 'var(--muted)';
+      btnC.style.fontWeight = '600';
+      btnC.style.boxShadow = 'none';
+    }
+  }
+
+  const sortedSources = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+  const max = sortedSources[0]?.[1] || 1;
+  el('sourceBars').innerHTML = sortedSources.map(([k, n]) => {
+    const pct = totalSourceUnits ? ((n / totalSourceUnits) * 100).toFixed(1) : '0.0';
+    return `<div class="barrow"><span title="${esc(k)}">${esc(k.length > 18 ? k.slice(0, 17) + '…' : k)}</span><div class="bartrack"><div class="bar" style="width:${n / max * 100}%"></div></div><div style="min-width:70px;text-align:right"><strong>${n.toLocaleString('pt-BR')}</strong> <span style="font-size:10px;color:var(--muted);margin-left:2px">(${pct}%)</span></div></div>`;
+  }).join('') || '<div class="empty">Sem dados</div>';
 
   const total = vv.length;
   const pct = total ? (newN / total * 100) : 0;
