@@ -1,10 +1,10 @@
 /* Service Worker para GRUPO QU4TRO CRM - PWA Offline-First */
-const CACHE_NAME = 'qu4tro-crm-v1.0.53';
+const CACHE_NAME = 'qu4tro-crm-v1.0.54';
 const PRECACHE_ASSETS = [
   './',
   './index.html',
   './crm-sync.js',
-  './reservation-attendance.js',
+  './reservation-attendance.js?v=1.0.54',
   './manifest.json',
   './qrcode.min.js',
   './icon-192.png',
@@ -18,7 +18,7 @@ self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME).then(cache => {
       console.log('[SW] Precaching shell do app...');
-      return cache.addAll(PRECACHE_ASSETS).catch(err => {
+      return cache.addAll(PRECACHE_ASSETS.map(asset => new Request(asset, {cache:'reload'}))).catch(err => {
         console.warn('[SW] Aviso durante precache:', err);
       });
     }).then(() => self.skipWaiting())
@@ -95,6 +95,20 @@ self.addEventListener('fetch', event => {
         }
         return networkResponse;
       }).catch(() => caches.match('./index.html') || caches.match('./'))
+    );
+    return;
+  }
+
+  // Código local: prioriza a rede para não combinar HTML novo com JavaScript antigo.
+  if (url.origin === self.location.origin && url.pathname.endsWith('.js')) {
+    event.respondWith(
+      fetch(event.request, {cache:'no-cache'}).then(response => {
+        if (response && response.status === 200) {
+          const copy = response.clone();
+          event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.put(event.request, copy)));
+        }
+        return response;
+      }).catch(() => caches.match(event.request))
     );
     return;
   }
