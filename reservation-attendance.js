@@ -108,8 +108,9 @@ function renderReservationAttendance(rows, outcomes) {
     ['Canceladas', c.cancelledPeople, c.peopleCancellationRate],
     ['Futuras', c.futurePeople, c.peopleFutureRate]
   ];
-  const renderRow = (cards, label) => `<div class="reservation-kpis" aria-label="${label}">${cards.map(([label,value,rate]) => `<div class="kpi-chip"><span>${label}</span><strong style="white-space:nowrap">${value}${rate === undefined ? '' : ` <small style="font-size:13px;font-weight:600;color:var(--muted)">= ${pct(rate)}</small>`}</strong></div>`).join('')}</div>`;
-  el('reservationAttendanceSummary').innerHTML = renderRow(items, 'Indicadores por reservas') + renderRow(peopleItems, 'Indicadores por pessoas');
+  const tones = ['total', 'attended', 'absent', 'cancelled', 'future'];
+  const renderCards = (cards, group) => cards.map(([label,value,rate], i) => `<div class="kpi-chip kpi-${tones[i]}" aria-label="${group}: ${label}"><span>${label}</span><strong style="white-space:nowrap">${value}${rate === undefined ? '' : ` <small style="font-size:13px;font-weight:600;color:var(--muted)">= ${pct(rate)}</small>`}</strong></div>`).join('');
+  el('reservationAttendanceSummary').innerHTML = `<div class="reservation-kpis" aria-label="Indicadores de reservas e pessoas">${renderCards(items, 'Reservas')}${renderCards(peopleItems, 'Pessoas')}</div>`;
 }
 function reservationAttendanceCell(outcome) {
   const v = outcome.visit;
