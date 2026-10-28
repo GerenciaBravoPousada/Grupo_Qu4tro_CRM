@@ -1255,6 +1255,10 @@ input:checked + .slider:before {
   font-weight: 800;
 }
 
+.reservation-kpis{display:flex;flex-wrap:wrap;gap:8px;align-items:stretch}
+.reservation-kpis .kpi-chip{min-width:0;flex:0 0 auto;padding:9px 11px;border-radius:10px}
+.reservation-kpis .kpi-chip span{white-space:nowrap;font-size:11px}
+.reservation-kpis .kpi-chip strong{display:block;margin-top:3px;font-size:20px}
 </style>
 </head>
 <body>
@@ -1548,7 +1552,7 @@ input:checked + .slider:before {
   </section>
 
   <section class="view" id="view-reservations">
-   <div class="hero"><div><h2>Reservas</h2><p>Pré-check-in e acompanhamento das reservas.</p></div><button class="btn primary" id="btnOpenReservation" onclick="openReservation()">＋ Nova reserva</button></div><div id="reservationOfflineNotice" style="display:none;margin-bottom:14px"></div>
+   <div class="hero" style="justify-content:flex-end"><button class="btn primary" id="btnOpenReservation" onclick="openReservation()">＋ Nova reserva</button></div><div id="reservationOfflineNotice" style="display:none;margin-bottom:14px"></div>
 <div id="reservationAttendanceSummary" style="margin-bottom:16px" aria-live="polite"></div>
 <div class="table-card"><div class="table-head" style="flex-wrap:wrap"><div class="search"><span>⌕</span><input id="reservationSearch" placeholder="Buscar reserva..."></div><div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
   <!-- Seletor 1: Reservadas para (Data da Mesa/Visita) -->
@@ -1592,8 +1596,8 @@ input:checked + .slider:before {
   </div>
 
   <select id="reservationHouse" class="control" title="Filtrar reservas por casa" style="min-width:200px"></select>
-  <select id="reservationAttendanceFilter" class="control" aria-label="Filtrar por presença" onchange="renderReservations()"><option value="all">Todas as presenças</option><option>Compareceu</option><option>Não compareceu</option><option>Cancelada</option><option>Sem conferência</option><option>Aguardando</option></select>
-  <select id="reservationStatus" class="control"><option value="all">Todos os status</option><option>Pendente</option><option>Confirmada</option><option>Convertida</option><option>Cancelada</option></select>
+  <select id="reservationAttendanceFilter" class="control" aria-label="Filtrar por presença" onchange="renderReservations()"><option value="all">Todas as presenças</option><option>Compareceu</option><option>Não compareceu</option><option>Cancelada</option><option>Aguardando</option></select>
+  <select id="reservationStatus" class="control"><option value="all">Todos os status</option><option>Pendente</option><option>Confirmada</option><option>Convertida</option><option>Cancelada</option><option>Não compareceu</option></select>
 </div></div><div class="table-wrap"><table class="data-table"><thead><tr><th>Cliente</th><th>Reservada para</th><th>Feita em</th><th>Hora</th><th>Casa</th><th>Pessoas</th><th>Status da reserva</th><th>Comparecimento</th><th>Ações</th></tr></thead><tbody id="reservationsBody"></tbody></table></div></div>
   </section>
 
@@ -7004,6 +7008,7 @@ function setupReservationHouseFilter(forceSession=false){
 }
 
 function renderReservations(){
+  const outcomes = reservationOutcomes();
   setupReservationHouseFilter(false);
   const q = (el('reservationSearch')?.value || '').toLowerCase().trim();
   const s = el('reservationStatus')?.value || 'all';
@@ -7061,7 +7066,7 @@ function renderReservations(){
     const fq = typeof foldText === 'function' ? foldText(q) : q.toLowerCase();
     const dq = digits(q);
     const matchSearch = (!q || (r.name && (typeof foldText === 'function' ? foldText(r.name).includes(fq) : r.name.toLowerCase().includes(fq))) || (dq.length > 0 && digits(r.phone).includes(dq)));
-    const matchStatus = (s === 'all' || r.status === s);
+    const matchStatus = (s === 'all' || reservationDisplayStatus(r, outcomes.get(r.id)) === s);
     
     // Validar Reservada para (r.date)
     let matchTarget = true;
@@ -7117,7 +7122,6 @@ function renderReservations(){
     emptyLabel += ' para os filtros selecionados.';
   }
 
-  const outcomes = reservationOutcomes();
   renderReservationAttendance(a, outcomes);
   const attendanceFilter = el('reservationAttendanceFilter')?.value || 'all';
   const visible = a.filter(r => attendanceFilter === 'all' || outcomes.get(r.id).status === attendanceFilter);
@@ -7153,7 +7157,7 @@ function renderReservations(){
       <td>${esc(houseLabel(normalizeHouseKey(r.house)))}</td>
       <td>${r.people}</td>
       <td>
-        <span class="badge ${r.status==='Confirmada'?'good':r.status==='Cancelada'?'warn':'blue'}">${esc(r.status)}</span>
+        <span class="badge ${outcome.status==='Não compareceu'?'warn':r.status==='Confirmada'?'good':r.status==='Cancelada'?'warn':'blue'}">${esc(reservationDisplayStatus(r, outcome))}</span>
         ${isExc ? `<span class="badge warn" style="background:#fef3c7;color:#92400e;border-color:#fde68a;font-size:10px;padding:2px 6px;margin-left:4px;cursor:pointer" title="${esc(r.exceptionReason||r.notes)}">Exceção</span>` : ''}
       </td>
       <td>${reservationAttendanceCell(outcome)}</td>

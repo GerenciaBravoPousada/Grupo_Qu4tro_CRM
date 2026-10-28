@@ -41,16 +41,15 @@ const ReservationAttendance = (() => {
       let status;
       if (visit) status = 'Compareceu';
       else if (r.status === 'Cancelada') status = 'Cancelada';
-      else if (meta?.outcome === 'absent' && dateKey(r.date) < today) status = 'Não compareceu';
-      else status = dateKey(r.date) < today ? 'Sem conferência' : 'Aguardando';
+      else status = dateKey(r.date) < today ? 'Não compareceu' : 'Aguardando';
       const candidates = visit || status === 'Cancelada' ? [] : visits.filter(v => !claimed.has(v.id) &&
         dateKey(v.date) === dateKey(r.date) && houseKey(v.house) === houseKey(r.house) && samePerson(r, v));
       return [r.id, {status, visit, candidates, meta}];
     }));
   }
   function summary(rows, outcomes) {
-    const counts = {total: rows.length, attended: 0, absent: 0, cancelled: 0, pending: 0, unreviewed: 0, expectedPeople: 0, actualPeople: 0};
-    const keys = {'Compareceu':'attended', 'Não compareceu':'absent', 'Cancelada':'cancelled', 'Aguardando':'pending', 'Sem conferência':'unreviewed'};
+    const counts = {total: rows.length, attended: 0, absent: 0, cancelled: 0, pending: 0, expectedPeople: 0, actualPeople: 0};
+    const keys = {'Compareceu':'attended', 'Não compareceu':'absent', 'Cancelada':'cancelled', 'Aguardando':'pending'};
     for (const r of rows) {
       const o = outcomes.get(r.id); counts[keys[o.status]]++;
       counts.expectedPeople += Number(r.people) || 0;
@@ -84,11 +83,9 @@ function renderReservationAttendance(rows, outcomes) {
   const c = ReservationAttendance.summary(rows, outcomes);
   const pct = n => n === null ? '—' : n.toLocaleString('pt-BR', {maximumFractionDigits:1}) + '%';
   const items = [['Reservas', c.total], ['Compareceram', c.attended], ['Não compareceram', c.absent],
-    ['Canceladas', c.cancelled], ['Sem conferência', c.unreviewed], ['Aguardando', c.pending],
+    ['Canceladas', c.cancelled], ['Aguardando', c.pending],
     ['Comparecimento', pct(c.attendanceRate)], ['Não comparecimento', pct(c.absenceRate)], ['Cancelamento', pct(c.cancellationRate)]];
-  el('reservationAttendanceSummary').innerHTML = `<div class="kpi-strip">${items.map(([label,value]) => `<div class="kpi-chip"><span>${label}</span><strong>${value}</strong></div>`).join('')}</div>
-    <p style="font-size:12px;color:var(--muted);line-height:1.6">${c.expectedPeople} pessoas previstas • ${c.actualPeople} pessoas com chegada registrada nas reservas vinculadas.<br>
-    Comparecimento e falta: base de ${c.attended + c.absent} reservas com resultado conferido. Cancelamento: base de ${c.total} reservas filtradas. Aguardando e sem conferência ficam fora da taxa de comparecimento. Os indicadores seguem os filtros de data, casa e busca; o filtro de presença abaixo altera apenas a lista.</p>`;
+  el('reservationAttendanceSummary').innerHTML = `<div class="reservation-kpis">${items.map(([label,value]) => `<div class="kpi-chip"><span>${label}</span><strong>${value}</strong></div>`).join('')}</div>`;
 }
 function reservationAttendanceCell(outcome) {
   const v = outcome.visit;
@@ -104,7 +101,6 @@ function openReservationAttendance(id) {
   el('modalBody').innerHTML = `<p><b>${esc(r.name)}</b> • ${fmtDate(r.date)} • ${esc(houseLabel(normalizeHouseKey(r.house)))}</p>
     <p>${reservationAttendanceCell(o)}</p>
     ${o.candidates.length ? `<p>Confira se um destes registros corresponde a esta reserva:</p>${o.candidates.map(v => `<button type="button" class="btn" style="margin:4px" onclick="confirmReservationVisit('${esc(id)}','${esc(v.id)}')">Vincular ${esc(v.name)} • ${esc(v.arrival || 'sem horário')} • ${esc(String(v.people))} pessoas • ${esc(v.operatorReception || 'sem atendente')}</button>`).join('')}` : ''}
-    ${!o.visit && r.status !== 'Cancelada' && normalizeDateIso(r.date) < getLocalDateStr(0) ? `<p>A falta deve ser confirmada pela recepção; a ausência de registro não prova que o cliente faltou.</p><button class="btn danger" onclick="confirmReservationAbsent('${esc(id)}')">Confirmar que não compareceu</button>` : ''}
     ${o.meta ? `<button class="btn" onclick="clearReservationAttendance('${esc(id)}')">Desfazer conferência</button>` : ''}
     <div class="form-actions"><button class="btn" onclick="closeModal()">Fechar</button></div>`;
   el('modal').classList.add('show');
@@ -118,16 +114,15 @@ function confirmReservationVisit(id, visitId) {
   const r = state.reservations.find(x => x.id === id), o = reservationOutcomes().get(id);
   if (!r || !o?.candidates.some(v => v.id === visitId)) { toast('Este check-in não está mais disponível para vínculo.'); return; }
   if (!confirm('Confirma que este check-in corresponde à reserva selecionada?')) return;
+  r.status = 'Convertida';
   saveReservationAttendance(r, {outcome:'attended', visitId});
-}
-function confirmReservationAbsent(id) {
-  const r = state.reservations.find(x => x.id === id), o = reservationOutcomes().get(id);
-  if (!r || o.visit || r.status === 'Cancelada' || normalizeDateIso(r.date) >= getLocalDateStr(0)) return;
-  if (!confirm('A recepção conferiu e confirma que esta reserva não compareceu?')) return;
-  saveReservationAttendance(r, {outcome:'absent'});
 }
 function clearReservationAttendance(id) {
   const r = state.reservations.find(x => x.id === id); if (!r) return;
   if (!confirm('Desfazer a conferência desta reserva? O check-in será preservado.')) return;
   saveReservationAttendance(r, null);
+}
+
+function reservationDisplayStatus(r, outcome) {
+  return outcome.status === 'Não compareceu' ? 'Não compareceu' : r.status;
 }

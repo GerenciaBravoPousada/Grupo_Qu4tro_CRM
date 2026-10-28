@@ -70,15 +70,19 @@ const server=http.createServer((req,res)=>{
    state.reservations.push({id:'55555555-5555-4555-8555-555555555555',name:'Ausência conferida',phone:'22977773333',house:'Leña',date:d,people:2,status:'Confirmada'});
    el('reservationTargetFilter').value='all'; renderReservations();
  });
- assert.equal(await page.evaluate(()=>reservationOutcomes().get(state.reservations[1].id).status),'Sem conferência');
+ assert.equal(await page.evaluate(()=>reservationOutcomes().get(state.reservations[1].id).status),'Não compareceu');
  page.on('dialog',d=>d.accept());
  await page.evaluate(()=>openReservationAttendance(state.reservations[1].id));
  await page.getByRole('button',{name:/Vincular Reserva antiga/}).click();
- await page.evaluate(()=>openReservationAttendance(state.reservations[2].id));
- await page.getByRole('button',{name:'Confirmar que não compareceu'}).click();
+ assert.equal(await page.evaluate(()=>reservationOutcomes().get(state.reservations[2].id).status),'Não compareceu','past reservation without check-in is automatically absent');
  assert.equal(await page.evaluate(()=>reservationOutcomes().get(state.reservations[1].id).status),'Compareceu');
  assert.equal(await page.evaluate(()=>reservationOutcomes().get(state.reservations[2].id).status),'Não compareceu');
  assert((await page.locator('#reservationAttendanceSummary').innerText()).includes('66,7%'));
+ assert(!(await page.locator('#reservationAttendanceSummary').innerText()).includes('pessoas previstas'));
+ assert.equal(await page.locator('#reservationAttendanceSummary .kpi-chip').count(),8);
+ const layout=await page.locator('.reservation-kpis').evaluate(e=>({width:e.clientWidth,scroll:e.scrollWidth,cards:[...e.children].map(c=>c.getBoundingClientRect().width)}));
+ assert(layout.scroll<=layout.width,'cards wrap rather than horizontally overflow');
+ assert(layout.cards.every(w=>w<180),'cards use compact content widths');
  await page.locator('#reservationAttendanceFilter').selectOption('Não compareceu');
  assert.equal(await page.locator('#reservationsBody tr').count(),1);
  assert((await page.locator('#reservationAttendanceSummary').innerText()).includes('66,7%'),'presence filter must not bias rates');
@@ -87,7 +91,7 @@ const server=http.createServer((req,res)=>{
  await page.screenshot({path:'../attendance-desktop.png',fullPage:true});
  await page.evaluate(()=>clearReservationAttendance(state.reservations[1].id));
  assert.equal(await page.evaluate(()=>state.visits.length),2,'undo preserves saved visits');
- assert.equal(await page.evaluate(()=>reservationOutcomes().get(state.reservations[1].id).status),'Sem conferência');
+ assert.equal(await page.evaluate(()=>reservationOutcomes().get(state.reservations[1].id).status),'Não compareceu');
  await page.evaluate(()=>{
    state.reservations.push({id:'66666666-6666-4666-8666-666666666666',name:'Cliente Teste',phone:'22999991111',house:'Leña',date:getLocalDateStr(0),people:2,status:'Confirmada',customerId:state.clients[0].id});
    go('checkin');selectCheckinClient(state.clients[0].id);
