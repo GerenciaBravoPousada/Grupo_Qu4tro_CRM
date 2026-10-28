@@ -4,7 +4,7 @@ const PRECACHE_ASSETS = [
   './',
   './index.html',
   './crm-sync.js',
-  './reservation-attendance.js?v=1.0.54',
+  './reservation-attendance.js?v=1.0.55',
   './manifest.json',
   './qrcode.min.js',
   './icon-192.png',
@@ -128,3 +128,4 @@ self.addEventListener('fetch', event => {
     })
   );
 });
+
