@@ -41,24 +41,36 @@ const ReservationAttendance = (() => {
       let status;
       if (visit) status = 'Compareceu';
       else if (r.status === 'Cancelada') status = 'Cancelada';
-      else status = dateKey(r.date) < today ? 'Não compareceu' : 'Aguardando';
+      else status = dateKey(r.date) < today ? 'Não compareceu' : 'Futuras';
       const candidates = visit || status === 'Cancelada' ? [] : visits.filter(v => !claimed.has(v.id) &&
         dateKey(v.date) === dateKey(r.date) && houseKey(v.house) === houseKey(r.house) && samePerson(r, v));
       return [r.id, {status, visit, candidates, meta}];
     }));
   }
   function summary(rows, outcomes) {
-    const counts = {total: rows.length, attended: 0, absent: 0, cancelled: 0, pending: 0, expectedPeople: 0, actualPeople: 0};
-    const keys = {'Compareceu':'attended', 'Não compareceu':'absent', 'Cancelada':'cancelled', 'Aguardando':'pending'};
+    const counts = {total: rows.length, attended: 0, absent: 0, cancelled: 0, pending: 0, expectedPeople: 0, actualPeople: 0, absentPeople: 0, cancelledPeople: 0, futurePeople: 0};
+    const keys = {'Compareceu':'attended', 'Não compareceu':'absent', 'Cancelada':'cancelled', 'Futuras':'pending'};
     for (const r of rows) {
       const o = outcomes.get(r.id); counts[keys[o.status]]++;
-      counts.expectedPeople += Number(r.people) || 0;
-      if (o.visit) counts.actualPeople += Number(o.visit.people) || 0;
+      const expected = Math.max(0, Number(r.people) || 0);
+      const actual = o.visit ? Math.max(0, Number(o.visit.people) || 0) : 0;
+      counts.expectedPeople += expected;
+      if (o.visit) {
+        counts.actualPeople += actual;
+        counts.absentPeople += Math.max(0, expected - actual);
+      } else if (o.status === 'Não compareceu') counts.absentPeople += expected;
+      else if (o.status === 'Cancelada') counts.cancelledPeople += expected;
+      else counts.futurePeople += expected;
     }
     const settled = counts.attended + counts.absent;
     counts.attendanceRate = settled ? counts.attended / settled * 100 : null;
     counts.absenceRate = settled ? counts.absent / settled * 100 : null;
     counts.cancellationRate = counts.total ? counts.cancelled / counts.total * 100 : null;
+    const settledPeople = counts.actualPeople + counts.absentPeople;
+    counts.peopleAttendanceRate = settledPeople ? counts.actualPeople / settledPeople * 100 : null;
+    counts.peopleAbsenceRate = settledPeople ? counts.absentPeople / settledPeople * 100 : null;
+    counts.peopleCancellationRate = counts.expectedPeople ? counts.cancelledPeople / counts.expectedPeople * 100 : null;
+    counts.peopleFutureRate = counts.expectedPeople ? counts.futurePeople / counts.expectedPeople * 100 : null;
     return counts;
   }
   return {read, clean, write, samePerson, build, summary};
@@ -83,13 +95,21 @@ function renderReservationAttendance(rows, outcomes) {
   const c = ReservationAttendance.summary(rows, outcomes);
   const pct = n => n === null ? '—' : n.toLocaleString('pt-BR', {maximumFractionDigits:1}) + '%';
   const items = [
-    ['Reservas', c.total, c.total ? 100 : null],
+    ['Reservas', c.total],
     ['Compareceram', c.attended, c.attendanceRate],
     ['Não compareceram', c.absent, c.absenceRate],
     ['Canceladas', c.cancelled, c.cancellationRate],
-    ['Aguardando', c.pending, c.total ? c.pending / c.total * 100 : null]
+    ['Futuras', c.pending, c.total ? c.pending / c.total * 100 : null]
   ];
-  el('reservationAttendanceSummary').innerHTML = `<div class="reservation-kpis">${items.map(([label,value,rate]) => `<div class="kpi-chip"><span>${label}</span><strong style="white-space:nowrap">${value} <small style="font-size:13px;font-weight:600;color:var(--muted)">= ${pct(rate)}</small></strong></div>`).join('')}</div>`;
+  const peopleItems = [
+    ['Pessoas', c.expectedPeople],
+    ['Compareceram', c.actualPeople, c.peopleAttendanceRate],
+    ['Não compareceram', c.absentPeople, c.peopleAbsenceRate],
+    ['Canceladas', c.cancelledPeople, c.peopleCancellationRate],
+    ['Futuras', c.futurePeople, c.peopleFutureRate]
+  ];
+  const renderRow = (cards, label) => `<div class="reservation-kpis" aria-label="${label}">${cards.map(([label,value,rate]) => `<div class="kpi-chip"><span>${label}</span><strong style="white-space:nowrap">${value}${rate === undefined ? '' : ` <small style="font-size:13px;font-weight:600;color:var(--muted)">= ${pct(rate)}</small>`}</strong></div>`).join('')}</div>`;
+  el('reservationAttendanceSummary').innerHTML = renderRow(items, 'Indicadores por reservas') + renderRow(peopleItems, 'Indicadores por pessoas');
 }
 function reservationAttendanceCell(outcome) {
   const v = outcome.visit;

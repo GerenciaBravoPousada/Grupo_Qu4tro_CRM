@@ -46,7 +46,7 @@ const server=http.createServer((req,res)=>{
  });
  await page.evaluate(()=>convertReservation(state.reservations[0].id));
  assert.equal(await page.evaluate(()=>state.reservations[0].status),'Confirmada','opening form must not mark presence');
- assert.equal(await page.evaluate(()=>reservationOutcomes().get(state.reservations[0].id).status),'Aguardando');
+ assert.equal(await page.evaluate(()=>reservationOutcomes().get(state.reservations[0].id).status),'Futuras');
  await page.locator('#ciPeople').fill('3');
  await page.locator('#ciName').fill('Cliente Teste');
  await page.locator('#ciPhone').fill('(22) 99999-1111');
@@ -79,10 +79,14 @@ const server=http.createServer((req,res)=>{
  assert.equal(await page.evaluate(()=>reservationOutcomes().get(state.reservations[2].id).status),'Não compareceu');
  assert((await page.locator('#reservationAttendanceSummary').innerText()).includes('66,7%'));
  assert(!(await page.locator('#reservationAttendanceSummary').innerText()).includes('pessoas previstas'));
- assert.equal(await page.locator('#reservationAttendanceSummary .kpi-chip').count(),5);
+ assert.equal(await page.locator('#reservationAttendanceSummary .kpi-chip').count(),10);
+ assert.equal(await page.locator('.reservation-kpis').count(),2);
+ assert.equal(await page.locator('.reservation-kpis').nth(1).locator('.kpi-chip').first().locator('strong').innerText(),'8');
+ assert.equal(await page.locator('.reservation-kpis').first().locator('.kpi-chip').first().locator('strong').innerText(),'3');
+ assert((await page.locator('.reservation-kpis').nth(1).innerText()).includes('6 = 66,7%'));
  assert((await page.locator('#reservationAttendanceSummary .kpi-chip').nth(1).innerText()).includes('2 = 66,7%'));
  assert((await page.locator('#reservationAttendanceSummary .kpi-chip').nth(2).innerText()).includes('1 = 33,3%'));
- const layout=await page.locator('.reservation-kpis').evaluate(e=>({width:e.clientWidth,scroll:e.scrollWidth,cards:[...e.children].map(c=>c.getBoundingClientRect().width)}));
+ const layout=await page.locator('.reservation-kpis').first().evaluate(e=>({width:e.clientWidth,scroll:e.scrollWidth,cards:[...e.children].map(c=>c.getBoundingClientRect().width)}));
  assert(layout.scroll<=layout.width,'cards wrap rather than horizontally overflow');
  assert(layout.cards.every(w=>w<180),'cards use compact content widths');
  assert(layout.cards.every(w=>Math.abs(w-layout.cards[0])<1),'all cards have the same width');
