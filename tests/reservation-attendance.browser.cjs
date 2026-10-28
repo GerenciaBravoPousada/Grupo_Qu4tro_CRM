@@ -85,6 +85,7 @@ const server=http.createServer((req,res)=>{
  const layout=await page.locator('.reservation-kpis').evaluate(e=>({width:e.clientWidth,scroll:e.scrollWidth,cards:[...e.children].map(c=>c.getBoundingClientRect().width)}));
  assert(layout.scroll<=layout.width,'cards wrap rather than horizontally overflow');
  assert(layout.cards.every(w=>w<180),'cards use compact content widths');
+ assert(layout.cards.every(w=>Math.abs(w-layout.cards[0])<1),'all cards have the same width');
  await page.locator('#reservationAttendanceFilter').selectOption('Não compareceu');
  assert.equal(await page.locator('#reservationsBody tr').count(),1);
  assert((await page.locator('#reservationAttendanceSummary').innerText()).includes('66,7%'),'presence filter must not bias rates');
