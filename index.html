@@ -73,6 +73,8 @@ body[data-house] .sidebar{background:linear-gradient(180deg,var(--nav),color-mix
 .op-live-tag{display:inline-flex;align-items:center;gap:4px;padding:2px 7px;border-radius:999px;font-size:9.5px;font-weight:800;text-transform:uppercase;background:rgba(34,197,94,.2);color:#4ade80;border:1px solid rgba(74,222,128,.3);letter-spacing:.5px}
 .op-nav-menu{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .op-nav-btn{background:rgba(255,255,255,.08);border:1.5px solid rgba(255,255,255,.16);color:#f1f5f9;border-radius:10px;padding:8px 14px;font-size:12.5px;font-weight:700;display:inline-flex;align-items:center;gap:7px;cursor:pointer;transition:all .16s ease;user-select:none}
+.op-nav-btn.op-new-reservation{background:rgba(34,197,94,.2);color:#4ade80;border-color:rgba(74,222,128,.3);white-space:nowrap}
+.op-nav-btn.op-new-reservation:hover{background:rgba(34,197,94,.3);color:#4ade80;border-color:rgba(74,222,128,.5)}
 .op-nav-btn:hover{background:rgba(255,255,255,.18);border-color:rgba(255,255,255,.35);color:#fff;transform:translateY(-1px)}
 .op-nav-btn.active{background:#ffffff!important;color:#0f172a!important;border-color:#ffffff!important;box-shadow:0 4px 14px rgba(0,0,0,.22)}
 .op-nav-btn.active .op-ico{color:var(--house-accent,#c2410c)}
@@ -1380,6 +1382,7 @@ input:checked + .slider:before {
      <span class="op-ico">⊞</span>
      <span class="op-btn-text">Mapa de Mesas</span>
     </button>
+    <button type="button" class="op-nav-btn op-new-reservation" id="btnOpenReservation" onclick="openReservation()" style="display:none">＋ Nova reserva</button>
    </nav>
   </div>
   <section class="view active" id="view-dashboard">
@@ -1552,7 +1555,7 @@ input:checked + .slider:before {
   </section>
 
   <section class="view" id="view-reservations">
-   <div class="hero" style="justify-content:flex-end"><button class="btn primary" id="btnOpenReservation" onclick="openReservation()">＋ Nova reserva</button></div><div id="reservationOfflineNotice" style="display:none;margin-bottom:14px"></div>
+   <div id="reservationOfflineNotice" style="display:none;margin-bottom:14px"></div>
 <div id="reservationAttendanceSummary" style="margin-bottom:16px" aria-live="polite"></div>
 <div class="table-card"><div class="table-head" style="flex-wrap:wrap"><div class="search"><span>⌕</span><input id="reservationSearch" placeholder="Buscar reserva..."></div><div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
   <!-- Seletor 1: Reservadas para (Data da Mesa/Visita) -->
@@ -4068,6 +4071,8 @@ function go(view){
     }
   }
 
+  const newReservation = el('btnOpenReservation');
+  if(newReservation) newReservation.style.display = view === 'reservations' ? 'inline-flex' : 'none';
   const topNewCheckin = el('topbarNewCheckinBtn');
   const topSearchClient = el('topbarSearchClientBtn');
   const hideTopNewCheckinViews = ['dashboard', 'vouchers', 'communication', 'qrcodes', 'segments', 'intelligence', 'settings', 'users', 'data'];
