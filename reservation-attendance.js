@@ -82,10 +82,14 @@ function findCheckinReservation(pending) {
 function renderReservationAttendance(rows, outcomes) {
   const c = ReservationAttendance.summary(rows, outcomes);
   const pct = n => n === null ? '—' : n.toLocaleString('pt-BR', {maximumFractionDigits:1}) + '%';
-  const items = [['Reservas', c.total], ['Compareceram', c.attended], ['Não compareceram', c.absent],
-    ['Canceladas', c.cancelled], ['Aguardando', c.pending],
-    ['Comparecimento', pct(c.attendanceRate)], ['Não comparecimento', pct(c.absenceRate)], ['Cancelamento', pct(c.cancellationRate)]];
-  el('reservationAttendanceSummary').innerHTML = `<div class="reservation-kpis">${items.map(([label,value]) => `<div class="kpi-chip"><span>${label}</span><strong>${value}</strong></div>`).join('')}</div>`;
+  const items = [
+    ['Reservas', c.total, c.total ? 100 : null],
+    ['Compareceram', c.attended, c.attendanceRate],
+    ['Não compareceram', c.absent, c.absenceRate],
+    ['Canceladas', c.cancelled, c.cancellationRate],
+    ['Aguardando', c.pending, c.total ? c.pending / c.total * 100 : null]
+  ];
+  el('reservationAttendanceSummary').innerHTML = `<div class="reservation-kpis">${items.map(([label,value,rate]) => `<div class="kpi-chip"><span>${label}</span><strong style="white-space:nowrap">${value} <small style="font-size:13px;font-weight:600;color:var(--muted)">= ${pct(rate)}</small></strong></div>`).join('')}</div>`;
 }
 function reservationAttendanceCell(outcome) {
   const v = outcome.visit;

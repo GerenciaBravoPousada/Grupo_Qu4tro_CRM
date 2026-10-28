@@ -79,7 +79,9 @@ const server=http.createServer((req,res)=>{
  assert.equal(await page.evaluate(()=>reservationOutcomes().get(state.reservations[2].id).status),'Não compareceu');
  assert((await page.locator('#reservationAttendanceSummary').innerText()).includes('66,7%'));
  assert(!(await page.locator('#reservationAttendanceSummary').innerText()).includes('pessoas previstas'));
- assert.equal(await page.locator('#reservationAttendanceSummary .kpi-chip').count(),8);
+ assert.equal(await page.locator('#reservationAttendanceSummary .kpi-chip').count(),5);
+ assert((await page.locator('#reservationAttendanceSummary .kpi-chip').nth(1).innerText()).includes('2 = 66,7%'));
+ assert((await page.locator('#reservationAttendanceSummary .kpi-chip').nth(2).innerText()).includes('1 = 33,3%'));
  const layout=await page.locator('.reservation-kpis').evaluate(e=>({width:e.clientWidth,scroll:e.scrollWidth,cards:[...e.children].map(c=>c.getBoundingClientRect().width)}));
  assert(layout.scroll<=layout.width,'cards wrap rather than horizontally overflow');
  assert(layout.cards.every(w=>w<180),'cards use compact content widths');
