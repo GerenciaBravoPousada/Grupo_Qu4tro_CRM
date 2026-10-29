@@ -58,3 +58,11 @@ const todaySummary=A.summary(todayRows,build(todayRows,[v('arrival',{date:'2026-
 assert.equal(todaySummary.attendanceRate,50,'one out of two reservations is 50%, including future reservations');
 assert.equal(todaySummary.peopleAttendanceRate,20,'four out of twenty people is 20%');
 assert.equal(todaySummary.peopleAbsenceRate,65);assert.equal(todaySummary.peopleFutureRate,15);
+
+const nextDay=r('tomorrow',{date:'2026-10-29',people:10});
+const dueRows=[...todayRows,nextDay];
+const dueSummary=A.summary(dueRows,build(dueRows,[v('arrival',{date:'2026-10-28',people:4})]),'2026-10-28');
+assert.equal(dueSummary.total,3);assert.equal(dueSummary.dueReservations,2);
+assert.equal(dueSummary.attendanceRate,50,'today not yet arrived stays in denominator; tomorrow is excluded');
+assert.equal(dueSummary.expectedPeople,30);assert.equal(dueSummary.duePeople,20);
+assert.equal(dueSummary.peopleAttendanceRate,20);assert.equal(dueSummary.peopleAbsenceRate,65);

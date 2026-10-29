@@ -44,17 +44,18 @@ const ReservationAttendance = (() => {
       else status = dateKey(r.date) < today ? 'Não compareceu' : 'Futuras';
       const candidates = visit || status === 'Cancelada' ? [] : visits.filter(v => !claimed.has(v.id) &&
         dateKey(v.date) === dateKey(r.date) && houseKey(v.house) === houseKey(r.house) && samePerson(r, v));
-      return [r.id, {status, visit, candidates, meta}];
+      return [r.id, {status, visit, candidates, meta, date:dateKey(r.date)}];
     }));
   }
-  function summary(rows, outcomes) {
-    const counts = {total: rows.length, attended: 0, absent: 0, cancelled: 0, pending: 0, expectedPeople: 0, actualPeople: 0, absentPeople: 0, cancelledPeople: 0, futurePeople: 0};
+  function summary(rows, outcomes, today) {
+    const counts = {total: rows.length, attended: 0, absent: 0, cancelled: 0, pending: 0, expectedPeople: 0, actualPeople: 0, absentPeople: 0, cancelledPeople: 0, futurePeople: 0, dueReservations: 0, duePeople: 0};
     const keys = {'Compareceu':'attended', 'Não compareceu':'absent', 'Cancelada':'cancelled', 'Futuras':'pending'};
     for (const r of rows) {
       const o = outcomes.get(r.id); counts[keys[o.status]]++;
       const expected = Math.max(0, Number(r.people) || 0);
       const actual = o.visit ? Math.max(0, Number(o.visit.people) || 0) : 0;
       counts.expectedPeople += expected;
+      if (!today || o.date <= today) { counts.dueReservations++; counts.duePeople += expected; }
       if (o.visit) {
         counts.actualPeople += actual;
         counts.absentPeople += Math.max(0, expected - actual);
@@ -62,11 +63,11 @@ const ReservationAttendance = (() => {
       else if (o.status === 'Cancelada') counts.cancelledPeople += expected;
       else counts.futurePeople += expected;
     }
-    counts.attendanceRate = counts.total ? counts.attended / counts.total * 100 : null;
-    counts.absenceRate = counts.total ? counts.absent / counts.total * 100 : null;
+    counts.attendanceRate = counts.dueReservations ? counts.attended / counts.dueReservations * 100 : null;
+    counts.absenceRate = counts.dueReservations ? counts.absent / counts.dueReservations * 100 : null;
     counts.cancellationRate = counts.total ? counts.cancelled / counts.total * 100 : null;
-    counts.peopleAttendanceRate = counts.expectedPeople ? counts.actualPeople / counts.expectedPeople * 100 : null;
-    counts.peopleAbsenceRate = counts.expectedPeople ? counts.absentPeople / counts.expectedPeople * 100 : null;
+    counts.peopleAttendanceRate = counts.duePeople ? counts.actualPeople / counts.duePeople * 100 : null;
+    counts.peopleAbsenceRate = counts.duePeople ? counts.absentPeople / counts.duePeople * 100 : null;
     counts.peopleCancellationRate = counts.expectedPeople ? counts.cancelledPeople / counts.expectedPeople * 100 : null;
     counts.peopleFutureRate = counts.expectedPeople ? counts.futurePeople / counts.expectedPeople * 100 : null;
     return counts;
@@ -90,7 +91,7 @@ function findCheckinReservation(pending) {
   return matches.length === 1 ? matches[0].id : null;
 }
 function renderReservationAttendance(rows, outcomes) {
-  const c = ReservationAttendance.summary(rows, outcomes);
+  const c = ReservationAttendance.summary(rows, outcomes, getLocalDateStr(0));
   const pct = n => n === null ? '—' : n.toLocaleString('pt-BR', {maximumFractionDigits:1}) + '%';
   const items = [
     ['Reservas', c.total],
