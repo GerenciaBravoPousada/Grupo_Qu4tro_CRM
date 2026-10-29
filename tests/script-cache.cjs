@@ -9,7 +9,7 @@ const context={URL,Request,Response,console,
 };
 vm.runInNewContext(fs.readFileSync('sw.js','utf8'),context);
 async function run(){
- const request=new Request(origin+'/reservation-attendance.js?v=1.0.57');
+ const request=new Request(origin+'/reservation-attendance.js?v=1.0.58');
  handlers.fetch({request,respondWith:p=>response=p,waitUntil:p=>pending.push(p)});
  assert.equal(await (await response).text(),'new five cards','online code must bypass stale cached JavaScript');
  await Promise.all(pending);assert.deepEqual(writes,['new five cards']);
@@ -17,8 +17,8 @@ async function run(){
  handlers.fetch({request,respondWith:p=>response=p,waitUntil:p=>pending.push(p)});
  assert.equal(await (await response).text(),'old eight cards','offline retains cached code');
  const html=fs.readFileSync('index.html','utf8'),sw=fs.readFileSync('sw.js','utf8');
- assert(html.includes('reservation-attendance.js?v=1.0.57'));
- assert(sw.includes("'./reservation-attendance.js?v=1.0.57'"));
+ assert(html.includes('reservation-attendance.js?v=1.0.58'));
+ assert(sw.includes("'./reservation-attendance.js?v=1.0.58'"));
  console.log('Script cache: fresh online, fallback offline, matching versioned URL passed');
 }
 run().catch(e=>{console.error(e);process.exitCode=1;});

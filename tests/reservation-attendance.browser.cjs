@@ -44,6 +44,9 @@ const server=http.createServer((req,res)=>{
    state.visits=[];
    go('reservations');
  });
+ assert.equal(await page.locator('#reservationAttendanceFilter').inputValue(),'Futuras','initial view defaults to future arrivals');
+ assert.deepEqual(await page.locator('#reservationAttendanceFilter option').allTextContents(),['Futuras','Todas as presenças','Compareceu','Não compareceu','Canceladas']);
+ await page.locator('#reservationAttendanceFilter').selectOption('all');
  await page.evaluate(()=>convertReservation(state.reservations[0].id));
  assert.equal(await page.evaluate(()=>state.reservations[0].status),'Confirmada','opening form must not mark presence');
  assert.equal(await page.evaluate(()=>reservationOutcomes().get(state.reservations[0].id).status),'Futuras');
@@ -59,6 +62,8 @@ const server=http.createServer((req,res)=>{
  await page.evaluate(()=>{go('reservations');});
  assert((await page.locator('#reservationAttendanceSummary').innerText()).includes('100%'));
  assert((await page.locator('#reservationsBody').innerText()).includes('Atendente Teste'));
+ assert.equal(await page.locator('#reservationsBody .reservation-arrived').count(),1);
+ assert.equal(await page.locator('#reservationsBody .reservation-arrived td').first().evaluate(e=>getComputedStyle(e).backgroundColor),'rgb(237, 249, 240)');
  // Roundtrip the saved notes as they are returned from the server.
  await page.evaluate(()=>{state.reservations=JSON.parse(JSON.stringify(state.reservations));state.visits=JSON.parse(JSON.stringify(state.visits));renderReservations();});
  assert.equal(await page.evaluate(()=>reservationOutcomes().get(state.reservations[0].id).status),'Compareceu');
