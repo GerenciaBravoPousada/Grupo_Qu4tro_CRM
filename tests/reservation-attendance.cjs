@@ -16,7 +16,7 @@ out=build(rs,[v('v')]);
 assert.equal(out.get('a').status,'Compareceu');
 assert.equal(out.get('b').status,'Não compareceu');
 const c=A.summary(rs,out);
-assert.equal(c.attendanceRate,50); assert.equal(c.absenceRate,50); assert.equal(c.cancellationRate,25);
+assert.equal(c.attendanceRate,25); assert.equal(c.absenceRate,25); assert.equal(c.cancellationRate,25);
 assert.equal(c.actualPeople,3); assert.equal(c.expectedPeople,8);
 assert.equal(A.summary([],new Map()).attendanceRate,null);
 assert.equal(A.clean(rs[0].notes),'Observação do cliente');
@@ -42,13 +42,19 @@ for(let i=0;i<87;i++) {
 }
 const summary=A.summary(sample,build(sample,visits));
 assert.equal(summary.absent,29);assert.equal(summary.pending,13);assert.equal(summary.cancelled,2);
-assert.equal(summary.attended,43);assert.equal(summary.attendanceRate,43/72*100);
-assert.equal(summary.absenceRate,29/72*100);
+assert.equal(summary.attended,43);assert.equal(summary.attendanceRate,43/87*100);
+assert.equal(summary.absenceRate,29/87*100);
 
 const groupRows=[r('party',{people:8,notes:A.write('',{visitId:'party-visit'})}),r('missing',{people:4}),r('cancel',{people:3,status:'Cancelada'}),r('later',{people:5,date:'2026-10-29'})];
 const groupSummary=A.summary(groupRows,build(groupRows,[v('party-visit',{people:6})]));
 assert.equal(groupSummary.expectedPeople,20);assert.equal(groupSummary.actualPeople,6);
 assert.equal(groupSummary.absentPeople,6,'partial group attendance counts the missing people');
 assert.equal(groupSummary.cancelledPeople,3);assert.equal(groupSummary.futurePeople,5);
-assert.equal(groupSummary.peopleAttendanceRate,50);assert.equal(groupSummary.peopleAbsenceRate,50);
+assert.equal(groupSummary.peopleAttendanceRate,30);assert.equal(groupSummary.peopleAbsenceRate,30);
 assert.equal(groupSummary.peopleCancellationRate,15);assert.equal(groupSummary.peopleFutureRate,25);
+
+const todayRows=[r('arrived',{date:'2026-10-28',people:17,notes:A.write('',{visitId:'arrival'})}),r('later-today',{date:'2026-10-28',people:3})];
+const todaySummary=A.summary(todayRows,build(todayRows,[v('arrival',{date:'2026-10-28',people:4})]));
+assert.equal(todaySummary.attendanceRate,50,'one out of two reservations is 50%, including future reservations');
+assert.equal(todaySummary.peopleAttendanceRate,20,'four out of twenty people is 20%');
+assert.equal(todaySummary.peopleAbsenceRate,65);assert.equal(todaySummary.peopleFutureRate,15);

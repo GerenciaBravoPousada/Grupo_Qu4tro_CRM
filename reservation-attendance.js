@@ -62,13 +62,11 @@ const ReservationAttendance = (() => {
       else if (o.status === 'Cancelada') counts.cancelledPeople += expected;
       else counts.futurePeople += expected;
     }
-    const settled = counts.attended + counts.absent;
-    counts.attendanceRate = settled ? counts.attended / settled * 100 : null;
-    counts.absenceRate = settled ? counts.absent / settled * 100 : null;
+    counts.attendanceRate = counts.total ? counts.attended / counts.total * 100 : null;
+    counts.absenceRate = counts.total ? counts.absent / counts.total * 100 : null;
     counts.cancellationRate = counts.total ? counts.cancelled / counts.total * 100 : null;
-    const settledPeople = counts.actualPeople + counts.absentPeople;
-    counts.peopleAttendanceRate = settledPeople ? counts.actualPeople / settledPeople * 100 : null;
-    counts.peopleAbsenceRate = settledPeople ? counts.absentPeople / settledPeople * 100 : null;
+    counts.peopleAttendanceRate = counts.expectedPeople ? counts.actualPeople / counts.expectedPeople * 100 : null;
+    counts.peopleAbsenceRate = counts.expectedPeople ? counts.absentPeople / counts.expectedPeople * 100 : null;
     counts.peopleCancellationRate = counts.expectedPeople ? counts.cancelledPeople / counts.expectedPeople * 100 : null;
     counts.peopleFutureRate = counts.expectedPeople ? counts.futurePeople / counts.expectedPeople * 100 : null;
     return counts;

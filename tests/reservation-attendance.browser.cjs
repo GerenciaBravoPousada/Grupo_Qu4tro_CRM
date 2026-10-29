@@ -88,7 +88,7 @@ const server=http.createServer((req,res)=>{
  assert.equal(await page.locator('.reservation-kpis').count(),1);
  assert.equal(await page.locator('.reservation-kpis').first().locator('.kpi-chip').nth(5).locator('strong').innerText(),'8');
  assert.equal(await page.locator('.reservation-kpis').first().locator('.kpi-chip').first().locator('strong').innerText(),'3');
- assert((await page.locator('.reservation-kpis').first().locator('.kpi-chip').nth(6).innerText()).includes('6 = 66,7%'));
+ assert((await page.locator('.reservation-kpis').first().locator('.kpi-chip').nth(6).innerText()).includes('6 = 75%'));
  assert((await page.locator('#reservationAttendanceSummary .kpi-chip').nth(1).innerText()).includes('2 = 66,7%'));
  assert((await page.locator('#reservationAttendanceSummary .kpi-chip').nth(2).innerText()).includes('1 = 33,3%'));
  const layout=await page.locator('.reservation-kpis').first().evaluate(e=>({width:e.clientWidth,scroll:e.scrollWidth,cards:[...e.children].map(c=>c.getBoundingClientRect().width)}));
