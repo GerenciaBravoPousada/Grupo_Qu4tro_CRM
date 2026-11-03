@@ -184,11 +184,184 @@ async function crmStartNotifications(){
     crmChannels.push(channel);
   }
 }
+let isAutoFlushingLocalData = false;
+async function crmAutoFlushLocalData(){
+  if(isAutoFlushingLocalData) return;
+  if(typeof navigator !== 'undefined' && !navigator.onLine) {
+    console.log('[AutoSync] Dispositivo offline. Sincronização automática aguardará conexão.');
+    return;
+  }
+  const sb = (typeof getSupabase === 'function') ? getSupabase() : null;
+  if(!sb) return;
+
+  isAutoFlushingLocalData = true;
+  let syncedVisits = 0;
+  let syncedCustomers = 0;
+
+  try {
+    // 1. Processa imediatamente qualquer item pendente na fila Outbox (IndexedDB e LocalStorage)
+    if(typeof processOutboxQueue === 'function'){
+      await processOutboxQueue();
+    }
+
+    // 2. Varrer state.visits para identificar e enviar visitas locais que ainda não estão no Supabase
+    if(typeof state !== 'undefined' && state && Array.isArray(state.visits) && state.visits.length > 0){
+      const pendingVisits = state.visits.filter(v => v && v.syncedToSupabase !== true);
+
+      if(pendingVisits.length > 0){
+        console.log(`[AutoSync] Verificando ${pendingVisits.length} visita(s) pendente(s) no cache local...`);
+
+        for(const v of pendingVisits){
+          try {
+            // Garante que o ID da visita é um UUID válido
+            const validUUID = (typeof isUUID === 'function' && isUUID(v.id)) ? v.id : ((typeof generateUUID === 'function') ? generateUUID() : null);
+            if(validUUID && v.id !== validUUID) v.id = validUUID;
+
+            const cleanPhone = (typeof normalizePhone === 'function') ? normalizePhone(v.phone) : String(v.phone || '').replace(/\D/g, '');
+            const visitDate = (typeof normalizeDateIso === 'function') ? (normalizeDateIso(v.date) || v.date) : (v.date || (typeof today === 'function' ? today() : new Date().toISOString().slice(0, 10)));
+
+            // Verifica se a visita já existe no Supabase por ID
+            let alreadyInDB = false;
+            try {
+              if(v.id){
+                const { data: existingById } = await sb.from('visits').select('id').eq('id', v.id).maybeSingle();
+                if(existingById && existingById.id){
+                  alreadyInDB = true;
+                }
+              }
+            } catch(_){}
+
+            // Se não encontrou por ID, confere por assinatura única (casa + data + telefone + horário de chegada)
+            if(!alreadyInDB && cleanPhone && v.house && visitDate){
+              try {
+                let sigQuery = sb.from('visits').select('id')
+                  .eq('house', v.house)
+                  .eq('visit_date', visitDate)
+                  .eq('customer_phone', cleanPhone);
+                if(v.arrival) sigQuery = sigQuery.eq('arrival_time', v.arrival);
+                const { data: existingBySig } = await sigQuery.limit(1);
+                if(existingBySig && existingBySig.length > 0){
+                  alreadyInDB = true;
+                  v.id = existingBySig[0].id;
+                }
+              } catch(_){}
+            }
+
+            if(!alreadyInDB){
+              // Não existe no Supabase: ENVIA IMEDIATAMENTE DE FORMA AUTOMÁTICA!
+              const payload = {
+                id: v.id,
+                customer_id: (typeof isUUID === 'function' && isUUID(v.customerId || v.customer_id)) ? (v.customerId || v.customer_id) : null,
+                customer_name: v.name || '',
+                customer_phone: cleanPhone,
+                house: v.house || '',
+                visit_date: visitDate,
+                arrival_time: v.arrival || '',
+                people_count: +v.people || 1,
+                table_number: String(v.table || ''),
+                source: v.source || 'Walk-in',
+                status: v.status || 'Atendido',
+                amount: +v.amount || 0,
+                notes: v.notes || '',
+                operator_reception: v.operatorReception || ''
+              };
+
+              let { error } = await sb.rpc('crm_save_visit', { payload });
+              if (error && (error.code === '23503' || (error.message && error.message.includes('foreign key')))) {
+                payload.customer_id = null;
+                const retry = await sb.rpc('crm_save_visit', { payload });
+                error = retry.error;
+              }
+
+              if(!error){
+                v.syncedToSupabase = true;
+                syncedVisits++;
+                console.log(`[AutoSync] Visita de ${v.name} enviada e confirmada no Supabase!`);
+              } else {
+                console.warn(`[AutoSync] Falha ao enviar visita de ${v.name}:`, error);
+                if(typeof addToOutbox === 'function'){
+                  await addToOutbox('INSERT_VISIT', structuredClone(v));
+                }
+              }
+            } else {
+              // Já consta no banco, marca como sincronizada
+              v.syncedToSupabase = true;
+            }
+          } catch(itemErr){
+            console.warn('[AutoSync] Erro individual ao sincronizar visita:', itemErr);
+          }
+        }
+      }
+    }
+
+    // 3. Varrer state.clients para sincronizar clientes locais criados sem confirmação de nuvem
+    if(typeof state !== 'undefined' && state && Array.isArray(state.clients) && state.clients.length > 0){
+      const unconfirmedClients = state.clients.filter(c => c && !c.serverUpdatedAt);
+      for(const c of unconfirmedClients){
+        try {
+          if(typeof isUUID === 'function' && !isUUID(c.id)){
+            c.id = (typeof generateUUID === 'function') ? generateUUID() : c.id;
+          }
+          const cleanPhone = (typeof digits === 'function') ? (digits(c.phone) || '0') : String(c.phone||'').replace(/\D/g, '');
+          const payload = {
+            id: c.id,
+            name: c.name,
+            phone: cleanPhone,
+            email: c.email || null,
+            first_house: c.firstHouse || '',
+            first_visit: c.firstVisit || null,
+            last_visit: c.lastVisit || null,
+            total_visits: +c.totalVisits || 1,
+            visits_lena: +c.lena || 0,
+            visits_iconiko: +c.iconico || 0,
+            visits_cafe: +c.cafe || 0,
+            source: c.source || 'Da casa',
+            registration_channel: c.registrationChannel || 'Recepção',
+            preferences: JSON.stringify({ priorities: c.priorities || [] }),
+            notes: c.notes || ''
+          };
+          const { data, error } = await sb.rpc('crm_save_customer', { payload, expected_updated_at: null });
+          if(!error && data){
+            c.serverUpdatedAt = data.updated_at;
+            syncedCustomers++;
+          }
+        } catch(_){}
+      }
+    }
+
+    // 4. Salvar estado local e notificar se houve envios
+    const totalSynced = syncedVisits + syncedCustomers;
+    if(totalSynced > 0){
+      if(typeof saveFast === 'function') saveFast();
+      else if(typeof saveStateToStorage === 'function') saveStateToStorage();
+      
+      const msg = `✓ Sincronização automática: ${totalSynced} registro(s) pendente(s) do cache local gravado(s) na nuvem!`;
+      if(typeof toast === 'function') toast(msg, 'success');
+      console.log(`[AutoSync] ${msg}`);
+
+      if(typeof renderCheckinStats === 'function') renderCheckinStats();
+      if(typeof renderCheckinList === 'function') renderCheckinList();
+    }
+  } catch(err){
+    console.warn('[AutoSync] Exceção na rotina automática de reconciliação:', err);
+  } finally {
+    isAutoFlushingLocalData = false;
+    if(typeof updateSyncStatusUI === 'function') updateSyncStatusUI();
+  }
+}
+window.crmAutoFlushLocalData = crmAutoFlushLocalData;
+
 async function crmStartSession(){
   if(!state.currentUser) return;
   crmPendingReservations=new Set(state.crmPendingScope===crmScopeKey() ? (state.crmPendingReservationIds||[]) : []);
   state.crmPendingScope=crmScopeKey();
-  try {await crmStartNotifications();await pullAllFromSupabase();if(state.crmCache?.scope!==crmScopeKey())await pullAllFromSupabase();for(const house of crmScopeHouses()) await crmCheckReservationEvents(house);} catch(_){}
+  try {
+    await crmAutoFlushLocalData();
+    await crmStartNotifications();
+    await pullAllFromSupabase();
+    if(state.crmCache?.scope!==crmScopeKey())await pullAllFromSupabase();
+    for(const house of crmScopeHouses()) await crmCheckReservationEvents(house);
+  } catch(_){}
 }
 function crmScheduleInfo(date=new Date()){
   const parts=Object.fromEntries(new Intl.DateTimeFormat('en-CA',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(date).map(p=>[p.type,p.value]));
@@ -215,9 +388,15 @@ async function crmFlushBeforeLogout(){
 }
 document.addEventListener('DOMContentLoaded',()=>{
   crmStartSession();crmRenderStatus();crmShowConflictNotice();
+  crmAutoFlushLocalData();
   // This timer checks only the device clock; it makes no periodic database reads.
   setInterval(crmDailyTick,60000);
-  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')crmDailyTick();});
+  setInterval(()=>{if(typeof navigator!=='undefined' && navigator.onLine && state?.currentUser) crmAutoFlushLocalData();}, 120000);
+  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){crmDailyTick();crmAutoFlushLocalData();}});
+});
+window.addEventListener('online',()=>{
+  console.log('[AutoSync] Conexão detectada. Executando sincronização automática do cache...');
+  crmAutoFlushLocalData();
 });
 
 async function crmSaveOutboxItem(item){

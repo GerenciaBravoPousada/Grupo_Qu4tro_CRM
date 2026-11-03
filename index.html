@@ -2645,6 +2645,10 @@ async function processOutboxQueue(){
             error = retry.error;
           }
           resError = error;
+          if (!error && typeof state !== 'undefined' && state && Array.isArray(state.visits)) {
+            const localV = state.visits.find(x => x.id === v.id);
+            if (localV) localV.syncedToSupabase = true;
+          }
         } else if (item.action === 'UPSERT_RESERVATION') {
           const r = item.payload;
           let finalNotes = r.notes || '';
@@ -3393,7 +3397,7 @@ async function pullAllFromSupabaseLegacy(){
         };
       });
 
-      // Preserva apenas check-ins locais que ainda não subiram para o Supabase (ex: criados offline hoje)
+      // Preserva TODOS os check-ins locais que ainda não constam no Supabase (inclusive de datas passadas)
       const pendingLocalVisits = (state.visits || []).filter(v => {
         if(!v) return false;
         if(v.id && remoteIds.has(v.id)) return false;
@@ -3403,10 +3407,15 @@ async function pullAllFromSupabaseLegacy(){
         const dateIso = normalizeDateIso(v.date) || v.date;
         const sig = houseKey + '_' + dateIso + '_' + cleanP;
         if(remoteSigs.has(sig)) return false;
-        return v.syncedToSupabase === false && v.date === today();
+        v.syncedToSupabase = false;
+        return true;
       });
 
       state.visits = [...pendingLocalVisits, ...mappedVisits];
+
+      if(pendingLocalVisits.length > 0 && typeof crmAutoFlushLocalData === 'function' && navigator.onLine){
+        setTimeout(() => crmAutoFlushLocalData(), 150);
+      }
 
       // Deduplicação estrita de segurança
       const seenVisits = new Set();
@@ -6800,7 +6809,8 @@ async function finalizeCheckin(pending){
     notes: pending.notes,
     amount: 0,
     operatorReception: opName,
-    duplicateReview: !!pending.duplicateReview
+    duplicateReview: !!pending.duplicateReview,
+    syncedToSupabase: false
   };
 
   state.visits.unshift(newVisit);
@@ -6833,7 +6843,9 @@ async function finalizeCheckin(pending){
     try {
       await dbSyncCustomer(c);
       await dbSyncVisit(newVisit);
-      if(reservation) await dbSyncReservation(reservation);
+      if(typeof reservation !== 'undefined' && reservation) await dbSyncReservation(reservation);
+      newVisit.syncedToSupabase = true;
+      saveFast();
     } catch(err){
       console.warn('[Checkin Background Sync] Erro:', err);
     }
@@ -7785,6 +7797,7 @@ function handleLoginSubmit(e){
   if(!isViewAllowedForRole(viewId, user.role)){
     go(isRoleAgente(user.role) ? 'reservations' : (user.role === 'Atendimento' ? 'checkin' : 'dashboard'));
   }
+  if(typeof crmAutoFlushLocalData === 'function') crmAutoFlushLocalData();
   crmStartSession();
   toast(`Bem-vindo, ${user.name}!`);
 
@@ -7811,6 +7824,7 @@ function quickLoginAs(userId){
   if(!isViewAllowedForRole(viewId, user.role)){
     go(isRoleAgente(user.role) ? 'reservations' : (user.role === 'Atendimento' ? 'checkin' : 'dashboard'));
   }
+  if(typeof crmAutoFlushLocalData === 'function') crmAutoFlushLocalData();
   crmStartSession();
   toast(`Conectado como ${user.name} (${user.role}).`);
 
@@ -11858,7 +11872,7 @@ function allocateWaitlistClientToTable(id, table, extraNotes = ''){
 
   if(!client){
     client = {
-      id: 'C-' + Date.now(),
+      id: (typeof generateUUID === 'function') ? generateUUID() : 'C-' + Date.now(),
       name: w.name,
       phone: w.phone,
       firstVisit: d,
@@ -11874,7 +11888,9 @@ function allocateWaitlistClientToTable(id, table, extraNotes = ''){
       visitedCafePousada: 'Não',
       source: 'Fila de Espera',
       totalVisits: 0,
-      priorities: w.priorities || []
+      priorities: w.priorities || [],
+      registrationChannel: 'Equipe',
+      registeredAt: new Date().toISOString()
     };
     state.clients.unshift(client);
   }
@@ -11886,9 +11902,14 @@ function allocateWaitlistClientToTable(id, table, extraNotes = ''){
   if(normH === 'Bravo Café') client.visitedCafe = 'Sim';
   if(normH === 'Café da Bravo Pousada') client.visitedCafePousada = 'Sim';
 
+  const curUser = (typeof getCurrentUser === 'function') ? getCurrentUser() : null;
+  const opName = (curUser && curUser.name) ? `${curUser.name} (${w.house})` : (getSessionHouse() || w.house);
+
   const visitNotes = `[Fila: ${waitMins} min] ${extraNotes || w.notes || ''}`.trim();
   const newVisit = {
-    id: 'V-' + Date.now(),
+    id: (typeof generateUUID === 'function') ? generateUUID() : 'V-' + Date.now(),
+    customer_id: client.id,
+    customerId: client.id,
     date: d,
     house: w.house,
     name: w.name,
@@ -11898,19 +11919,35 @@ function allocateWaitlistClientToTable(id, table, extraNotes = ''){
     departure: '',
     source: 'Fila de Espera',
     status: (client.totalVisits >= 1 ? 'Recorrente' : 'Novo'),
+    houseStatus: (client.totalVisits >= 1 ? 'Recorrente' : 'Novo'),
     table: table,
     notes: visitNotes,
-    amount: 0
+    amount: 0,
+    operatorReception: opName,
+    syncedToSupabase: false
   };
 
   state.visits.unshift(newVisit);
-  save();
+  if(typeof rebuildVisitsIndex === 'function') rebuildVisitsIndex();
+  saveFast();
   closeModal();
 
   toast(`✓ Check-in de ${w.name} confirmado na ${table}! (Espera: ${waitMins} min)`);
   renderCheckinStats();
   renderWaitlist();
   if(typeof renderFloorplan === 'function' && el('view-tables')?.classList.contains('active')) renderFloorplan();
+
+  // ENVIO AUTOMÁTICO EM SEGUNDO PLANO
+  (async () => {
+    try {
+      if(typeof dbSyncCustomer === 'function') await dbSyncCustomer(client);
+      if(typeof dbSyncVisit === 'function') await dbSyncVisit(newVisit);
+      newVisit.syncedToSupabase = true;
+      if(typeof saveFast === 'function') saveFast();
+    } catch(err){
+      console.warn('[Waitlist Checkin Sync] Erro:', err);
+    }
+  })();
 }
 
 function handleFinalizeWaitlistCheckin(e, id){
