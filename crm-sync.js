@@ -185,8 +185,25 @@ async function crmStartNotifications(){
   }
 }
 let isAutoFlushingLocalData = false;
+function isLegacySeedVisit(v){
+  if(!v) return true;
+  const vid = String(v.id || '');
+  if(vid.startsWith('Í-') || vid.startsWith('L-') || vid.startsWith('I-')) return true;
+  const d = (typeof normalizeDateIso === 'function') ? (normalizeDateIso(v.date) || v.date || '') : String(v.date || '');
+  if(d && d < '2026-10-01') return true;
+  return false;
+}
+function isLegacySeedClient(c){
+  if(!c) return true;
+  const cid = String(c.id || '');
+  if(/^C-\d{1,6}$/.test(cid)) return true;
+  const d = String(c.lastVisit || c.firstVisit || '');
+  if(d && d < '2026-10-01') return true;
+  return false;
+}
 async function crmAutoFlushLocalData(){
   if(isAutoFlushingLocalData) return;
+  if(typeof state === 'undefined' || !state || !state.currentUser) return;
   if(typeof navigator !== 'undefined' && !navigator.onLine) {
     console.log('[AutoSync] Dispositivo offline. Sincronização automática aguardará conexão.');
     return;
@@ -206,7 +223,7 @@ async function crmAutoFlushLocalData(){
 
     // 2. Varrer state.visits para identificar e enviar visitas locais que ainda não estão no Supabase
     if(typeof state !== 'undefined' && state && Array.isArray(state.visits) && state.visits.length > 0){
-      const pendingVisits = state.visits.filter(v => v && v.syncedToSupabase !== true);
+      const pendingVisits = state.visits.filter(v => v && v.syncedToSupabase !== true && !isLegacySeedVisit(v));
 
       if(pendingVisits.length > 0){
         console.log(`[AutoSync] Verificando ${pendingVisits.length} visita(s) pendente(s) no cache local...`);
@@ -296,7 +313,7 @@ async function crmAutoFlushLocalData(){
 
     // 3. Varrer state.clients para sincronizar clientes locais criados sem confirmação de nuvem
     if(typeof state !== 'undefined' && state && Array.isArray(state.clients) && state.clients.length > 0){
-      const unconfirmedClients = state.clients.filter(c => c && !c.serverUpdatedAt);
+      const unconfirmedClients = state.clients.filter(c => c && !c.serverUpdatedAt && !isLegacySeedClient(c));
       for(const c of unconfirmedClients){
         try {
           if(typeof isUUID === 'function' && !isUUID(c.id)){
