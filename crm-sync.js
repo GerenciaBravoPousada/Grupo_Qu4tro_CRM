@@ -51,11 +51,12 @@ function dbSyncCustomer(c){return crmTrackWrite(async()=>{
 });}
 function dbSyncVisit(v){return crmTrackWrite(async()=>{
   if(!v)return;if(!isUUID(v.id))v.id=generateUUID();
+  crmVaultSaveVisit(v);
   await addToOutbox('INSERT_VISIT',structuredClone(v));
   if(navigator.onLine) await processOutboxQueue();
 });}
-function dbSyncReservation(r){return crmTrackWrite(()=>dbSyncReservationImmediate(r));}
-function dbDeleteReservation(id){return crmTrackWrite(()=>dbDeleteReservationImmediate(id));}
+function dbSyncReservation(r){if(r){if(!isUUID(r.id))r.id=generateUUID();crmVaultSaveReservation(r);}return crmTrackWrite(()=>dbSyncReservationImmediate(r));}
+function dbDeleteReservation(id){if(id)crmVaultRemoveReservation(id);return crmTrackWrite(()=>dbDeleteReservationImmediate(id));}
 async function crmVersions(){
   const {data,error}=await getSupabase().from('bravo_data_versions').select('table_name,version').in('table_name',CRM_TABLES);
   if(error || !data || data.length!==CRM_TABLES.length) throw new Error('Não foi possível verificar a versão dos dados. A lista local foi mantida.');
@@ -68,7 +69,7 @@ async function pullAllFromSupabase() {
     if(!navigator.onLine) throw new Error('Sem conexão. A lista local continua disponível.');
     await Promise.allSettled([...crmWrites]);
     await processOutboxQueue();
-    if((await getOutboxItems()).length) throw new Error('Há gravações pendentes. Tente sincronizar antes de atualizar a lista.');
+    // Permite atualizar a lista local mesmo se houver itens aguardando nova tentativa na Outbox (eles são preservados no merge)
     const noticeGeneration=crmNoticeGeneration;
     crmManifest=await crmVersions();
     crmReadTables=new Set();
@@ -185,6 +186,258 @@ async function crmStartNotifications(){
   }
 }
 let isAutoFlushingLocalData = false;
+const CRM_VAULT_LS_KEY = 'qu4tro_immutable_vault_v1';
+let _crmVaultDbPromise = null;
+function openCrmVaultDB(){
+  if(_crmVaultDbPromise) return _crmVaultDbPromise;
+  if(typeof window === 'undefined' || !window.indexedDB) return Promise.resolve(null);
+  _crmVaultDbPromise = new Promise(resolve => {
+    try {
+      const req = indexedDB.open('Qu4troCRM_Vault_DB', 1);
+      req.onupgradeneeded = e => {
+        const db = e.target.result;
+        if(!db.objectStoreNames.contains('vault_records')){
+          db.createObjectStore('vault_records', { keyPath: 'key' });
+        }
+      };
+      req.onsuccess = e => resolve(e.target.result);
+      req.onerror = () => resolve(null);
+    } catch(_){ resolve(null); }
+  });
+  return _crmVaultDbPromise;
+}
+function _crmReadVaultLS(){
+  try {
+    const raw = localStorage.getItem(CRM_VAULT_LS_KEY);
+    return raw ? JSON.parse(raw) : { visits: {}, reservations: {} };
+  } catch(_){ return { visits: {}, reservations: {} }; }
+}
+function _crmWriteVaultLS(vaultObj){
+  try {
+    // Limpa registros já confirmados há mais de 60 dias para manter uso de disco mínimo
+    const cutoff = new Date(Date.now() - 60 * 86400000).toISOString();
+    for(const bucket of ['visits', 'reservations']){
+      const map = vaultObj[bucket] || {};
+      for(const k of Object.keys(map)){
+        if(map[k] && map[k].confirmedInCloud && (map[k].savedAt || '') < cutoff){
+          delete map[k];
+        }
+      }
+    }
+    localStorage.setItem(CRM_VAULT_LS_KEY, JSON.stringify(vaultObj));
+  } catch(_){}
+}
+function crmVaultSaveVisit(v){
+  if(!v || !v.id || isLegacySeedVisit(v)) return;
+  const entry = { key: 'visit:' + v.id, id: String(v.id), type: 'visit', record: structuredClone(v), confirmedInCloud: !!v.syncedToSupabase, savedAt: new Date().toISOString() };
+  const ls = _crmReadVaultLS();
+  ls.visits ||= {};
+  if(!ls.visits[entry.id] || !ls.visits[entry.id].confirmedInCloud || !v.syncedToSupabase){
+    ls.visits[entry.id] = entry;
+    _crmWriteVaultLS(ls);
+  }
+  openCrmVaultDB().then(db => {
+    if(!db) return;
+    try {
+      const tx = db.transaction('vault_records', 'readwrite');
+      tx.objectStore('vault_records').put(entry);
+    } catch(_){}
+  });
+}
+function crmVaultConfirmVisit(visitId){
+  if(!visitId) return;
+  const id = String(visitId);
+  const ls = _crmReadVaultLS();
+  if(ls.visits && ls.visits[id]){
+    ls.visits[id].confirmedInCloud = true;
+    ls.visits[id].confirmedAt = new Date().toISOString();
+    if(ls.visits[id].record) ls.visits[id].record.syncedToSupabase = true;
+    _crmWriteVaultLS(ls);
+  }
+  openCrmVaultDB().then(db => {
+    if(!db) return;
+    try {
+      const tx = db.transaction('vault_records', 'readwrite');
+      const store = tx.objectStore('vault_records');
+      const g = store.get('visit:' + id);
+      g.onsuccess = () => {
+        if(g.result){
+          g.result.confirmedInCloud = true;
+          g.result.confirmedAt = new Date().toISOString();
+          if(g.result.record) g.result.record.syncedToSupabase = true;
+          store.put(g.result);
+        }
+      };
+    } catch(_){}
+  });
+}
+function crmVaultRemoveVisit(visitId){
+  if(!visitId) return;
+  const id = String(visitId);
+  if(typeof state !== 'undefined' && state){
+    state.deletedVisits ||= [];
+    if(!state.deletedVisits.includes(id)) state.deletedVisits.push(id);
+  }
+  const ls = _crmReadVaultLS();
+  if(ls.visits && ls.visits[id]){
+    delete ls.visits[id];
+    _crmWriteVaultLS(ls);
+  }
+  openCrmVaultDB().then(db => {
+    if(!db) return;
+    try {
+      const tx = db.transaction('vault_records', 'readwrite');
+      tx.objectStore('vault_records').delete('visit:' + id);
+    } catch(_){}
+  });
+}
+function crmVaultSaveReservation(r){
+  if(!r || !r.id) return;
+  const entry = { key: 'res:' + r.id, id: String(r.id), type: 'reservation', record: structuredClone(r), confirmedInCloud: false, savedAt: new Date().toISOString() };
+  const ls = _crmReadVaultLS();
+  ls.reservations ||= {};
+  ls.reservations[entry.id] = entry;
+  _crmWriteVaultLS(ls);
+  openCrmVaultDB().then(db => {
+    if(!db) return;
+    try {
+      const tx = db.transaction('vault_records', 'readwrite');
+      tx.objectStore('vault_records').put(entry);
+    } catch(_){}
+  });
+}
+function crmVaultConfirmReservation(resId){
+  if(!resId) return;
+  const id = String(resId);
+  const ls = _crmReadVaultLS();
+  if(ls.reservations && ls.reservations[id]){
+    ls.reservations[id].confirmedInCloud = true;
+    ls.reservations[id].confirmedAt = new Date().toISOString();
+    _crmWriteVaultLS(ls);
+  }
+  openCrmVaultDB().then(db => {
+    if(!db) return;
+    try {
+      const tx = db.transaction('vault_records', 'readwrite');
+      const store = tx.objectStore('vault_records');
+      const g = store.get('res:' + id);
+      g.onsuccess = () => {
+        if(g.result){
+          g.result.confirmedInCloud = true;
+          g.result.confirmedAt = new Date().toISOString();
+          store.put(g.result);
+        }
+      };
+    } catch(_){}
+  });
+}
+function crmVaultRemoveReservation(resId){
+  if(!resId) return;
+  const id = String(resId);
+  const ls = _crmReadVaultLS();
+  if(ls.reservations && ls.reservations[id]){
+    delete ls.reservations[id];
+    _crmWriteVaultLS(ls);
+  }
+  openCrmVaultDB().then(db => {
+    if(!db) return;
+    try {
+      const tx = db.transaction('vault_records', 'readwrite');
+      tx.objectStore('vault_records').delete('res:' + id);
+    } catch(_){}
+  });
+}
+async function _crmVaultGetAllEntries(){
+  const ls = _crmReadVaultLS();
+  const map = new Map();
+  for(const v of Object.values(ls.visits || {})) if(v && v.key) map.set(v.key, v);
+  for(const r of Object.values(ls.reservations || {})) if(r && r.key) map.set(r.key, r);
+  const db = await openCrmVaultDB();
+  if(db){
+    await new Promise(resolve => {
+      try {
+        const tx = db.transaction('vault_records', 'readonly');
+        const req = tx.objectStore('vault_records').getAll();
+        req.onsuccess = () => {
+          for(const item of (req.result || [])){
+            if(!item || !item.key) continue;
+            const prev = map.get(item.key);
+            if(!prev || (item.confirmedInCloud && !prev.confirmedInCloud)){
+              map.set(item.key, item);
+            }
+          }
+          resolve();
+        };
+        req.onerror = () => resolve();
+      } catch(_){ resolve(); }
+    });
+  }
+  return Array.from(map.values());
+}
+async function crmVaultGetUnconfirmedVisits(){
+  const deletedSet = new Set((typeof state !== 'undefined' && state && Array.isArray(state.deletedVisits)) ? state.deletedVisits.map(String) : []);
+  const all = await _crmVaultGetAllEntries();
+  return all.filter(e => e.type === 'visit' && !e.confirmedInCloud && e.record && !deletedSet.has(String(e.id)) && !isLegacySeedVisit(e.record)).map(e => {
+    e.record.syncedToSupabase = false;
+    return e.record;
+  });
+}
+async function crmVaultGetUnconfirmedReservations(){
+  const all = await _crmVaultGetAllEntries();
+  return all.filter(e => e.type === 'reservation' && !e.confirmedInCloud && e.record).map(e => e.record);
+}
+window.crmVaultSaveVisit = crmVaultSaveVisit;
+window.crmVaultConfirmVisit = crmVaultConfirmVisit;
+window.crmVaultRemoveVisit = crmVaultRemoveVisit;
+window.crmVaultSaveReservation = crmVaultSaveReservation;
+window.crmVaultConfirmReservation = crmVaultConfirmReservation;
+window.crmVaultRemoveReservation = crmVaultRemoveReservation;
+window.crmVaultGetUnconfirmedVisits = crmVaultGetUnconfirmedVisits;
+window.crmVaultGetUnconfirmedReservations = crmVaultGetUnconfirmedReservations;
+
+async function crmSaveCustomerAutoResolve(sb, payload, c){
+  let { data, error } = await sb.rpc('crm_save_customer', { payload, expected_updated_at: (c && c.serverUpdatedAt) ? c.serverUpdatedAt : null });
+  if(!error) return { data, error: null };
+  // Resolução automática de conflito de concorrência (40001) ou chave única de ID/telefone (23505)
+  try {
+    let remote = null;
+    if(payload.id){
+      const byId = await sb.from('customers').select('*').eq('id', payload.id).maybeSingle();
+      if(byId && byId.data) remote = byId.data;
+    }
+    if(!remote && payload.phone && payload.phone !== '0'){
+      const byPhone = await sb.from('customers').select('*').eq('phone', payload.phone).limit(1);
+      if(byPhone && byPhone.data && byPhone.data.length > 0) remote = byPhone.data[0];
+    }
+    if(remote){
+      const oldId = payload.id;
+      payload.id = remote.id;
+      payload.total_visits = Math.max(+payload.total_visits || 1, +remote.total_visits || 1);
+      payload.visits_lena = Math.max(+payload.visits_lena || 0, +remote.visits_lena || 0);
+      payload.visits_iconiko = Math.max(+payload.visits_iconiko || 0, +remote.visits_iconiko || 0);
+      payload.visits_cafe = Math.max(+payload.visits_cafe || 0, +remote.visits_cafe || 0);
+      payload.first_visit = (remote.first_visit && (!payload.first_visit || remote.first_visit < payload.first_visit)) ? remote.first_visit : (payload.first_visit || remote.first_visit);
+      payload.last_visit = (remote.last_visit && (!payload.last_visit || remote.last_visit > payload.last_visit)) ? remote.last_visit : (payload.last_visit || remote.last_visit);
+      payload.first_house = remote.first_house || payload.first_house || '';
+      if(c) c.id = remote.id;
+      if(typeof state !== 'undefined' && state && Array.isArray(state.clients)){
+        const localC = state.clients.find(x => x.id === oldId || x.id === remote.id);
+        if(localC) localC.id = remote.id;
+      }
+      const retry = await sb.rpc('crm_save_customer', { payload, expected_updated_at: remote.updated_at });
+      if(!retry.error) return { data: retry.data, error: null };
+      const up = await sb.from('customers').upsert(payload, { onConflict: 'id' }).select('*').maybeSingle();
+      if(!up.error) return { data: up.data || { updated_at: new Date().toISOString() }, error: null };
+    } else {
+      const retryNull = await sb.rpc('crm_save_customer', { payload, expected_updated_at: null });
+      if(!retryNull.error) return { data: retryNull.data, error: null };
+      const up = await sb.from('customers').upsert(payload, { onConflict: 'id' }).select('*').maybeSingle();
+      if(!up.error) return { data: up.data || { updated_at: new Date().toISOString() }, error: null };
+    }
+  } catch(_){}
+  return { data, error };
+}
+window.crmSaveCustomerAutoResolve = crmSaveCustomerAutoResolve;
 function isLegacySeedVisit(v){
   if(!v) return true;
   const vid = String(v.id || '');
@@ -218,7 +471,66 @@ async function crmAutoFlushLocalData(){
   try {
     // 1. Processa imediatamente qualquer item pendente na fila Outbox (IndexedDB e LocalStorage)
     if(typeof processOutboxQueue === 'function'){
+      if(typeof getOutboxItems === 'function'){ try { const ob = await getOutboxItems(); for(const item of ob){ if(item && item.blocked){ item.blocked = false; await crmSaveOutboxItem(item); } } } catch(_){} }
       await processOutboxQueue();
+    }
+    if(typeof state !== 'undefined' && state){
+      state.visits ||= [];
+      const deletedSet = new Set(Array.isArray(state.deletedVisits) ? state.deletedVisits.map(String) : []);
+      if(Array.isArray(state.waitlist) && state.waitlist.length > 0){
+        for(const w of state.waitlist){
+          if(!w || w.status !== 'Atendido' || !w.createdAt || w.syncedVisitToSupabase === true) continue;
+          try {
+            const wParts = Object.fromEntries(new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(new Date(w.createdAt)).map(p => [p.type, p.value]));
+            const wDateIso = wParts.year + '-' + wParts.month + '-' + wParts.day;
+            if(!wDateIso || wDateIso < '2026-10-01') continue;
+            const wPhone = (typeof normalizePhone === 'function') ? normalizePhone(w.phone) : String(w.phone || '').replace(/\D/g, '');
+            const wHouse = (typeof normalizeHouseKey === 'function') ? normalizeHouseKey(w.house) : (w.house || '');
+            const existsLocal = state.visits.some(v => {
+              if(!v) return false;
+              const vPhone = (typeof normalizePhone === 'function') ? normalizePhone(v.phone) : String(v.phone || '').replace(/\D/g, '');
+              const vHouse = (typeof normalizeHouseKey === 'function') ? normalizeHouseKey(v.house) : (v.house || '');
+              const vDate = (typeof normalizeDateIso === 'function') ? (normalizeDateIso(v.date) || v.date) : v.date;
+              return vHouse === wHouse && vDate === wDateIso && vPhone === wPhone;
+            });
+            if(!existsLocal){
+              const waitMins = w.waitDurationMinutes || 1;
+              const recVisit = {
+                id: (typeof generateUUID === 'function') ? generateUUID() : ('V-' + Date.now()),
+                customer_id: (w.clientId && typeof isUUID === 'function' && isUUID(w.clientId)) ? w.clientId : null,
+                customerId: (w.clientId && typeof isUUID === 'function' && isUUID(w.clientId)) ? w.clientId : null,
+                date: wDateIso,
+                house: w.house || wHouse,
+                name: w.name || 'Cliente Fila',
+                people: +w.people || 1,
+                phone: w.phone || '',
+                arrival: w.timeRegistered || w.seatedAt || '20:00',
+                departure: '',
+                source: 'Fila de Espera',
+                status: 'Recorrente',
+                houseStatus: 'Recorrente',
+                table: w.table || '',
+                notes: ('[Fila: ' + waitMins + ' min] ' + (w.notes || '')).trim(),
+                amount: 0,
+                operatorReception: w.house || 'Recepção',
+                syncedToSupabase: false,
+                _waitlistRefId: w.id
+              };
+              state.visits.unshift(recVisit);
+              crmVaultSaveVisit(recVisit);
+            } else {
+              w.syncedVisitToSupabase = true;
+            }
+          } catch(_){}
+        }
+      }
+      const vaultUnconfirmed = await crmVaultGetUnconfirmedVisits();
+      for(const vv of vaultUnconfirmed){
+        if(!vv || !vv.id || deletedSet.has(String(vv.id))) continue;
+        if(!state.visits.some(x => x && x.id === vv.id)){
+          state.visits.unshift(vv);
+        }
+      }
     }
 
     // 2. Varrer state.visits para identificar e enviar visitas locais que ainda não estão no Supabase
@@ -292,6 +604,10 @@ async function crmAutoFlushLocalData(){
 
               if(!error){
                 v.syncedToSupabase = true;
+              crmVaultConfirmVisit(v.id);
+              if(v._waitlistRefId && Array.isArray(state.waitlist)){ const wRef = state.waitlist.find(x => x && x.id === v._waitlistRefId); if(wRef) wRef.syncedVisitToSupabase = true; }
+                crmVaultConfirmVisit(v.id);
+                if(v._waitlistRefId && Array.isArray(state.waitlist)){ const wRef = state.waitlist.find(x => x && x.id === v._waitlistRefId); if(wRef) wRef.syncedVisitToSupabase = true; }
                 syncedVisits++;
                 console.log(`[AutoSync] Visita de ${v.name} enviada e confirmada no Supabase!`);
               } else {
@@ -303,6 +619,8 @@ async function crmAutoFlushLocalData(){
             } else {
               // Já consta no banco, marca como sincronizada
               v.syncedToSupabase = true;
+              crmVaultConfirmVisit(v.id);
+              if(v._waitlistRefId && Array.isArray(state.waitlist)){ const wRef = state.waitlist.find(x => x && x.id === v._waitlistRefId); if(wRef) wRef.syncedVisitToSupabase = true; }
             }
           } catch(itemErr){
             console.warn('[AutoSync] Erro individual ao sincronizar visita:', itemErr);
@@ -310,6 +628,40 @@ async function crmAutoFlushLocalData(){
         }
       }
     }
+
+    // 2.5 Reconciliar reservas pendentes no Cofre Local Blindado
+    try {
+      const vaultRes = await crmVaultGetUnconfirmedReservations();
+      for(const r of vaultRes){
+        if(!r || !r.id) continue;
+        let finalNotes = r.notes || '';
+        if(r.source && r.source !== 'Da casa' && !finalNotes.includes('[ORIGEM:')) finalNotes = '[ORIGEM: ' + r.source + '] ' + finalNotes;
+        if(r.exceptionReason && !finalNotes.includes('[EXCEÇÃO')) finalNotes = '[EXCEÇÃO: ' + r.exceptionReason + '] ' + finalNotes;
+        if(r.priorities && r.priorities.length && !finalNotes.includes('[PRIORIDADE:')) finalNotes = '[PRIORIDADE: ' + r.priorities.join(', ') + '] ' + finalNotes;
+        const rPayload = {
+          id: r.id,
+          customer_id: (typeof isUUID === 'function' && isUUID(r.customerId || r.customer_id)) ? (r.customerId || r.customer_id) : null,
+          customer_name: r.name || '',
+          customer_phone: (typeof digits === 'function') ? (digits(r.phone) || '') : String(r.phone || '').replace(/\D/g, ''),
+          house: r.house || '',
+          reservation_date: r.date,
+          reservation_time: r.time || '',
+          people_count: +r.people || 1,
+          status: r.status || 'Pendente',
+          notes: finalNotes
+        };
+        let { error: rErr } = await sb.rpc('crm_save_reservation', { payload: rPayload });
+        if(rErr && (rErr.code === '23503' || (rErr.message && rErr.message.includes('foreign key')))){
+          rPayload.customer_id = null;
+          const retryR = await sb.rpc('crm_save_reservation', { payload: rPayload });
+          rErr = retryR.error;
+        }
+        if(!rErr){
+          crmVaultConfirmReservation(r.id);
+          syncedVisits++;
+        }
+      }
+    } catch(_){}
 
     // 3. Varrer state.clients para sincronizar clientes locais criados sem confirmação de nuvem
     if(typeof state !== 'undefined' && state && Array.isArray(state.clients) && state.clients.length > 0){
@@ -337,7 +689,7 @@ async function crmAutoFlushLocalData(){
             preferences: JSON.stringify({ priorities: c.priorities || [] }),
             notes: c.notes || ''
           };
-          const { data, error } = await sb.rpc('crm_save_customer', { payload, expected_updated_at: null });
+          const { data, error } = await crmSaveCustomerAutoResolve(sb, payload, c);
           if(!error && data){
             c.serverUpdatedAt = data.updated_at;
             syncedCustomers++;
@@ -425,7 +777,7 @@ async function crmSaveOutboxItem(item){
 }
 async function crmShowConflictNotice(){
   const node=document.getElementById('crmConflictNotice');
-  if(node) node.style.display=(await getOutboxItems()).some(i=>i.blocked)?'block':'none';
+  if(node) node.style.display='none';
 }
 async function crmReviewConflicts(){
   for(const item of (await getOutboxItems()).filter(i=>i.blocked && i.action==='UPSERT_CUSTOMER')){
