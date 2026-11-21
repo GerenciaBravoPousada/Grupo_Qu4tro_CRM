@@ -3219,7 +3219,10 @@ async function pullAllFromSupabaseLegacy(){
           try {
             const parsedWL = JSON.parse(rc.notes);
             if(parsedWL && Array.isArray(parsedWL)){
-              state.waitlist = parsedWL;
+              const merged = new Map(parsedWL.map(entry => [entry.id, entry]));
+              for(const entry of state.waitlist || []) merged.set(entry.id, entry);
+              state.waitlist = [...merged.values()];
+              void restorePersistedWaitlist();
               if(typeof renderWaitlist === 'function') renderWaitlist();
               if(typeof updateOpWaitlistBadge === 'function') updateOpWaitlistBadge();
             }
@@ -11731,7 +11734,52 @@ function clearSelectedWaitlistClient(){
   el('wlLookup')?.focus();
 }
 
-function handleSaveWaitlistEntry(e){
+async function persistWaitlistEntry(entry){
+  try {
+    const db = await openCrmVaultDB();
+    if(!db) throw new Error('IndexedDB indisponível');
+    await new Promise((resolve, reject) => {
+      const tx = db.transaction('vault_records', 'readwrite');
+      tx.oncomplete = resolve;
+      tx.onabort = () => reject(tx.error);
+      tx.objectStore('vault_records').put({key: 'waitlist:' + entry.id, waitlistEntry: entry});
+    });
+    const entries = state.waitlist || [];
+    const index = entries.findIndex(item => item.id === entry.id);
+    if(index === -1) entries.unshift(entry);
+    else entries[index] = entry;
+    state.waitlist = entries;
+    return true;
+  } catch(err){
+    console.warn('[Fila de espera] Falha no armazenamento local', err);
+    toast('A fila não foi salva neste aparelho. Tente novamente.');
+    return false;
+  }
+}
+
+async function restorePersistedWaitlist(){
+  try {
+    const db = await openCrmVaultDB();
+    if(!db) return;
+    const records = await new Promise((resolve, reject) => {
+      const tx = db.transaction('vault_records', 'readonly');
+      const range = IDBKeyRange.bound('waitlist:', 'waitlist:￿');
+      const request = tx.objectStore('vault_records').getAll(range);
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    const merged = new Map((state.waitlist || []).map(entry => [entry.id, entry]));
+    records.forEach(({waitlistEntry}) => merged.set(waitlistEntry.id, waitlistEntry));
+    state.waitlist = [...merged.values()];
+    if(el('view-waitlist')?.classList.contains('active')) renderWaitlist();
+    updateOpWaitlistBadge();
+  } catch(err){
+    console.warn('[Fila de espera] Falha ao ler o armazenamento local', err);
+    toast('Não foi possível ler a fila salva neste aparelho.');
+  }
+}
+
+async function handleSaveWaitlistEntry(e){
   e.preventDefault();
   const name = (el('wlName')?.value || '').trim();
   const phoneVal = validatePhone(el('wlPhone')?.value || '');
@@ -11755,7 +11803,7 @@ function handleSaveWaitlistEntry(e){
 
   const now = Date.now();
   const entry = {
-    id: 'W-' + now,
+    id: 'W-' + generateUUID(),
     clientId: selectedWaitlistClientId || null,
     name: nameVal.value || name,
     phone: phoneVal.value,
@@ -11773,32 +11821,32 @@ function handleSaveWaitlistEntry(e){
     waitDurationMinutes: null
   };
 
-  if(!state.waitlist) state.waitlist = [];
-  state.waitlist.unshift(entry);
-  save();
+  const submit = e.submitter || e.currentTarget.querySelector('[type="submit"]');
+  if(submit?.disabled) return;
+  if(submit) submit.disabled = true;
+  if(!await persistWaitlistEntry(entry)){
+    if(submit) submit.disabled = false;
+    return;
+  }
   closeModal();
-  toast(`✓ ${entry.name} (${people} pess.) adicionado(a) à fila!`);
+  toast(`✓ ${entry.name} (${people} pess.) salvo(a) na fila deste aparelho.`);
   renderWaitlist();
 }
 
 // Chamar cliente
-function callWaitlistClient(id){
+async function callWaitlistClient(id){
   const w = state.waitlist.find(x => x.id === id);
   if(!w) return;
-  w.status = 'Chamado';
-  w.calledAt = currentClock();
-  save();
+  if(!await persistWaitlistEntry({...w, status: 'Chamado', calledAt: currentClock()})) return;
   toast(`📢 Cliente ${w.name} marcado como CHAMADO!`);
   renderWaitlist();
 }
 
 // Chamar via WhatsApp
-function notifyWaitlistWhatsApp(id){
+async function notifyWaitlistWhatsApp(id){
   const w = state.waitlist.find(x => x.id === id);
   if(!w) return;
-  w.status = 'Chamado';
-  w.calledAt = currentClock();
-  save();
+  if(!await persistWaitlistEntry({...w, status: 'Chamado', calledAt: currentClock()})) return;
 
   const p = digits(w.phone);
   const fullPhone = p.startsWith('55') ? p : ('55' + p);
@@ -11809,13 +11857,12 @@ function notifyWaitlistWhatsApp(id){
 }
 
 // Desistência
-function cancelWaitlistEntry(id){
+async function cancelWaitlistEntry(id){
   const w = state.waitlist.find(x => x.id === id);
   if(!w) return;
   if(!confirm(`Registrar desistência de "${w.name}" (${w.people} pessoas)?`)) return;
-  w.status = 'Desistiu';
-  w.waitDurationMinutes = Math.round((Date.now() - (w.createdAt || Date.now())) / 60000);
-  save();
+  const waitDurationMinutes = Math.round((Date.now() - (w.createdAt || Date.now())) / 60000);
+  if(!await persistWaitlistEntry({...w, status: 'Desistiu', waitDurationMinutes})) return;
   toast(`Desistência de ${w.name} registrada.`);
   renderWaitlist();
 }
@@ -11869,7 +11916,8 @@ function openWaitlistCheckinModal(id){
   setTimeout(() => el('wlAssignedTable')?.focus(), 100);
 }
 
-function allocateWaitlistClientToTable(id, table, extraNotes = ''){
+const waitlistCheckinsInProgress = new Set();
+async function allocateWaitlistClientToTable(id, table, extraNotes = ''){
   const w = state.waitlist.find(x => x.id === id);
   if(!w) return;
 
@@ -11877,11 +11925,13 @@ function allocateWaitlistClientToTable(id, table, extraNotes = ''){
   const waitMins = Math.max(1, Math.round((now - (w.createdAt || now)) / 60000));
 
   // 1. Atualiza registro na fila
-  w.status = 'Atendido';
-  w.table = table;
-  w.seatedAt = currentClock();
-  w.waitDurationMinutes = waitMins;
-  if(extraNotes) w.notes = extraNotes;
+  const attended = {...w, status: 'Atendido', table, seatedAt: currentClock(),
+    waitDurationMinutes: waitMins, notes: extraNotes || w.notes};
+  if(waitlistCheckinsInProgress.has(id) || w.status === 'Atendido') return;
+  waitlistCheckinsInProgress.add(id);
+  const saved = await persistWaitlistEntry(attended);
+  waitlistCheckinsInProgress.delete(id);
+  if(!saved) return;
 
   // 2. Gera o Check-in oficial em visits
   let client = w.clientId ? state.clients.find(c => c.id === w.clientId) : state.clients.find(c => normalizePhone(c.phone) === normalizePhone(w.phone));
@@ -11948,7 +11998,7 @@ function allocateWaitlistClientToTable(id, table, extraNotes = ''){
   state.visits.unshift(newVisit);
   if(typeof crmVaultSaveVisit === 'function') crmVaultSaveVisit(newVisit);
   if(typeof rebuildVisitsIndex === 'function') rebuildVisitsIndex();
-  saveFast();
+  try { saveFast(); } catch(err){ console.warn('[Fila de espera] Cache do check-in', err); }
   closeModal();
 
   toast(`✓ Check-in de ${w.name} confirmado na ${table}! (Espera: ${waitMins} min)`);
@@ -11981,6 +12031,8 @@ function handleFinalizeWaitlistCheckin(e, id){
   allocateWaitlistClientToTable(id, table, extraNotes);
 }
 
+
+void restorePersistedWaitlist();
 
 el('waitlistSearch')?.addEventListener('input', () => renderWaitlist());
 el('waitlistHouseFilter')?.addEventListener('change', () => renderWaitlist());
