@@ -7429,6 +7429,7 @@ function openMyProfileModal(){
           </div>
         </div>
       </div>
+      <p class="profile-save-status" role="status"></p>
       <div class="form-actions" style="margin-top:16px">
         <button type="button" class="btn" onclick="closeModal()">Cancelar</button>
         <button type="submit" class="btn primary">Salvar Meus Dados</button>
@@ -7438,9 +7439,9 @@ function openMyProfileModal(){
   el('modal').classList.add('show');
 }
 
-function handleMyProfileSubmit(e){
+async function handleMyProfileSubmit(e){
   e.preventDefault();
-  const u=getCurrentUser();
+  const u=state.users.find(user=>user.id===state.currentUser && user.active);
   if(!u)return;
   const name=normalizeName(el('mpName').value);
   const email=(el('mpEmail').value||'').trim().toLowerCase();
@@ -7455,19 +7456,9 @@ function handleMyProfileSubmit(e){
   }
   if(!phoneVal.ok){toast(phoneVal.msg);el('mpPhone').focus();return;}
 
-  u.name=name;
-  u.email=email;
-  u.phone=phoneVal.value;
-  if(pass)u.password=pass;
-
-  save();
-  dbSyncUser(u);
-  closeModal();
-  renderUserSessionBadge();
-  if(typeof renderUsers==='function' && document.getElementById('view-users')?.classList.contains('active')){
-    renderUsers();
-  }
-  toast('Seus dados foram atualizados e sincronizados na nuvem!');
+  const changes = {name,email,phone:phoneVal.value};
+  if(pass) changes.password=pass;
+  await saveUserProfileChanges(e.currentTarget, u.id, changes);
 }
 
 function openUserSessionModal(){
@@ -8307,7 +8298,7 @@ function openEditUserModal(userId){
 
   el('modalTitle').textContent='Editar Perfil do Usuário';
   el('modalBody').innerHTML=`
-    <form id="editUserForm" onsubmit="handleEditUserSubmit(event, '${u.id}')">
+    <form id="editUserForm">
       <div class="form-grid">
         <div class="field span2">
           <label>Nome Completo *</label>
@@ -8349,19 +8340,21 @@ function openEditUserModal(userId){
           </select>
         </div>
       </div>
+      <p class="profile-save-status" role="status"></p>
       <div class="form-actions" style="margin-top:16px">
         <button type="button" class="btn" onclick="closeModal()">Cancelar</button>
         <button type="submit" class="btn primary">Salvar Alterações</button>
       </div>
     </form>
   `;
+  el('editUserForm').addEventListener('submit', event => handleEditUserSubmit(event,userId));
   el('modal').classList.add('show');
 }
 
-function handleEditUserSubmit(e, userId){
+async function handleEditUserSubmit(e, userId){
   e.preventDefault();
   const u=state.users.find(x=>x.id===userId);
-  if(!u)return;
+  if(!u || !state.users.some(user=>user.id===state.currentUser && user.active && user.role==='Master')) return;
   const name=normalizeName(el('euName').value);
   const email=(el('euEmail').value||'').trim().toLowerCase();
   const phoneVal=validatePhone(el('euPhone').value);
@@ -8382,18 +8375,36 @@ function handleEditUserSubmit(e, userId){
     return;
   }
 
-  u.name=name;
-  u.email=email;
-  u.phone=phoneVal.value;
-  u.role=role;
-  u.houses=houses;
+  await saveUserProfileChanges(e.currentTarget, userId, {name,email,phone:phoneVal.value,role,houses});
+}
 
-  save();
-  dbSyncUser(u);
-  closeModal();
-  renderUsers();
+async function saveUserProfileChanges(form, userId, changes){
+  const button = form.querySelector('button[type="submit"]');
+  const status = form.querySelector('.profile-save-status');
+  if(button.disabled) return;
+  button.disabled = true;
+  status.textContent = 'Salvando alterações…';
+  try {
+    const sb = getSupabase();
+    if(!sb || !navigator.onLine) throw new Error('Sem conexão');
+    const {data,error} = await sb.from('app_users').update(changes).eq('id',userId).select('id').maybeSingle();
+    if(error || data?.id !== userId) throw error || new Error('Perfil não confirmado');
+  } catch(error){
+    status.textContent = error?.code === '23505'
+      ? 'Já existe outro usuário com este e-mail.'
+      : 'O Supabase não confirmou as alterações. Confira a conexão e tente novamente.';
+    button.disabled = false;
+    return;
+  }
+
+  const user = state.users.find(candidate => candidate.id === userId);
+  if(user) Object.assign(user, changes);
+  let savedLocally = true;
+  try {saveStateToStorage();} catch(error){savedLocally = false;}
+  if(form.isConnected) closeModal();
   renderUserSessionBadge();
-  toast('Perfil atualizado e gravado na nuvem com sucesso!');
+  if(el('view-users')?.classList.contains('active')) renderUsers();
+  toast(savedLocally ? 'Perfil atualizado no Supabase.' : 'Perfil atualizado no Supabase. Não foi possível salvar a cópia neste aparelho.');
 }
 
 function canChangeUserPassword(user){
