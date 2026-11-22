@@ -11570,6 +11570,7 @@ function updateWaitlistLiveTimers(){
 function startWaitlistTimer(){
   stopWaitlistTimer();
   updateWaitlistLiveTimers();
+  void refreshIconikoPreCheckins();
   waitlistTimerInterval = setInterval(updateWaitlistLiveTimers, 1000);
 }
 
@@ -11734,7 +11735,56 @@ function clearSelectedWaitlistClient(){
   el('wlLookup')?.focus();
 }
 
+function isIconikoPreCheckin(entry){
+  return normalizeHouseKey(entry.house) === 'Íconico';
+}
+
+function preCheckinRow(entry){
+  const {cloudRevision, ...data} = entry;
+  const businessDate = new Intl.DateTimeFormat('sv-SE', {timeZone: 'America/Sao_Paulo'}).format(entry.createdAt || Date.now());
+  return {id: entry.id, house: 'iconiko', business_date: businessDate, status: entry.status, entry: data};
+}
+
+function mergeWaitlistEntry(entry){
+  const entries = state.waitlist ||= [];
+  const index = entries.findIndex(item => item.id === entry.id);
+  if(index === -1) entries.unshift(entry);
+  else if(!entries[index].cloudRevision || (entry.cloudRevision && entry.cloudRevision >= entries[index].cloudRevision)){
+    entries[index] = entry;
+  }
+}
+
 async function persistWaitlistEntry(entry){
+  if(isIconikoPreCheckin(entry)){
+    try {
+      const table = getSupabase().from('crm_pre_checkins');
+      const row = preCheckinRow(entry);
+      const write = entry.cloudRevision
+        ? table.update({status: row.status, entry: row.entry}).eq('id', entry.id).eq('updated_at', entry.cloudRevision)
+        : table.upsert(row, {onConflict: 'id', ignoreDuplicates: true});
+      const {data, error} = await write.select('entry,updated_at').maybeSingle();
+      if(error) throw error;
+      if(!data){
+        const existing = await table.select('entry,updated_at').eq('id', entry.id).maybeSingle();
+        if(existing.error || !existing.data) throw existing.error || new Error('Pré-check-in indisponível');
+        mergeWaitlistEntry({...existing.data.entry, cloudRevision: existing.data.updated_at});
+        if(entry.cloudRevision){
+          renderWaitlist();
+          toast('Este pré-check-in foi alterado em outro terminal. Confira o status.');
+          return false;
+        }
+        entry = {...existing.data.entry, cloudRevision: existing.data.updated_at};
+      } else {
+        entry = {...data.entry, cloudRevision: data.updated_at};
+      }
+      mergeWaitlistEntry(entry);
+    } catch(err){
+      console.warn('[Fila de espera] Falha no Supabase', err?.code || err?.name);
+      toast('Supabase indisponível. A operação não foi confirmada. Tente novamente.');
+      return false;
+    }
+  }
+
   try {
     const db = await openCrmVaultDB();
     if(!db) throw new Error('IndexedDB indisponível');
@@ -11744,14 +11794,11 @@ async function persistWaitlistEntry(entry){
       tx.onabort = () => reject(tx.error);
       tx.objectStore('vault_records').put({key: 'waitlist:' + entry.id, waitlistEntry: entry});
     });
-    const entries = state.waitlist || [];
-    const index = entries.findIndex(item => item.id === entry.id);
-    if(index === -1) entries.unshift(entry);
-    else entries[index] = entry;
-    state.waitlist = entries;
+    mergeWaitlistEntry(entry);
     return true;
   } catch(err){
     console.warn('[Fila de espera] Falha no armazenamento local', err);
+    if(entry.cloudRevision) return true;
     toast('A fila não foi salva neste aparelho. Tente novamente.');
     return false;
   }
@@ -11768,14 +11815,36 @@ async function restorePersistedWaitlist(){
       request.onsuccess = () => resolve(request.result);
       request.onerror = () => reject(request.error);
     });
-    const merged = new Map((state.waitlist || []).map(entry => [entry.id, entry]));
-    records.forEach(({waitlistEntry}) => merged.set(waitlistEntry.id, waitlistEntry));
-    state.waitlist = [...merged.values()];
+    records.forEach(({waitlistEntry}) => mergeWaitlistEntry(waitlistEntry));
     if(el('view-waitlist')?.classList.contains('active')) renderWaitlist();
     updateOpWaitlistBadge();
   } catch(err){
     console.warn('[Fila de espera] Falha ao ler o armazenamento local', err);
     toast('Não foi possível ler a fila salva neste aparelho.');
+  }
+}
+
+let preCheckinRefreshInProgress = false;
+async function refreshIconikoPreCheckins(){
+  if(preCheckinRefreshInProgress || !state.currentUser || !navigator.onLine || !el('view-waitlist')?.classList.contains('active')) return;
+  const user = getCurrentUser();
+  if(!user || !(user.role === 'Master' || getUserHouses(user).some(house => normalizeHouseKey(house) === 'Íconico'))) return;
+  preCheckinRefreshInProgress = true;
+  try {
+    const {data, error} = await getSupabase().from('crm_pre_checkins')
+      .select('entry, updated_at').eq('house', 'iconiko').or(`business_date.eq.${today()},checkin_pending.eq.true`);
+    if(error) throw error;
+    for(const row of data || []) mergeWaitlistEntry({...row.entry, cloudRevision: row.updated_at});
+    for(const entry of [...(state.waitlist || [])]){
+      if(isIconikoPreCheckin(entry) && !entry.cloudRevision && preCheckinRow(entry).business_date === today()){
+        await persistWaitlistEntry(entry);
+      }
+    }
+    renderWaitlist();
+  } catch(err){
+    console.warn('[Fila de espera] Falha ao consultar o Supabase', err?.code || err?.name);
+  } finally {
+    preCheckinRefreshInProgress = false;
   }
 }
 
@@ -11803,7 +11872,7 @@ async function handleSaveWaitlistEntry(e){
 
   const now = Date.now();
   const entry = {
-    id: 'W-' + generateUUID(),
+    id: e.currentTarget.dataset.preCheckinId ||= 'W-' + generateUUID(),
     clientId: selectedWaitlistClientId || null,
     name: nameVal.value || name,
     phone: phoneVal.value,
@@ -11829,7 +11898,8 @@ async function handleSaveWaitlistEntry(e){
     return;
   }
   closeModal();
-  toast(`✓ ${entry.name} (${people} pess.) salvo(a) na fila deste aparelho.`);
+  const destination = isIconikoPreCheckin(entry) ? 'no Supabase' : 'neste aparelho';
+  toast(`✓ ${entry.name} (${people} pess.) salvo(a) na fila ${destination}.`);
   renderWaitlist();
 }
 
@@ -12033,6 +12103,7 @@ function handleFinalizeWaitlistCheckin(e, id){
 
 
 void restorePersistedWaitlist();
+setInterval(refreshIconikoPreCheckins, 15000);
 
 el('waitlistSearch')?.addEventListener('input', () => renderWaitlist());
 el('waitlistHouseFilter')?.addEventListener('change', () => renderWaitlist());

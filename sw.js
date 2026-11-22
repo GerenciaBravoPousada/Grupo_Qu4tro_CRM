@@ -1,5 +1,5 @@
 /* Service Worker para GRUPO QU4TRO CRM - PWA Offline-First */
-const CACHE_NAME = 'qu4tro-crm-v1.0.64';
+const CACHE_NAME = 'qu4tro-crm-v1.0.65';
 const PRECACHE_ASSETS = [
   './',
   './index.html',
