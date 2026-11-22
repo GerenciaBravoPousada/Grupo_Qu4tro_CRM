@@ -49,7 +49,7 @@ internal static class JournalHost
         }
     }
 
-    static object Run(string directory, Dictionary<string, object> message)
+    internal static object Run(string directory, Dictionary<string, object> message)
     {
         string command = Required(message, "command", 24);
         var now = DateTimeOffset.UtcNow;
@@ -119,6 +119,22 @@ internal static class JournalHost
                 return new { ok = true, expiring = expiring };
             } finally { mutex.ReleaseMutex(); }
         }
+    }
+
+    internal static void VerifyStorage(string directory)
+    {
+        string probe = Path.Combine(directory, "verificacao-" + Guid.NewGuid().ToString("N") + ".tmp");
+        byte[] content = Utf8.GetBytes("Grupo Qu4tro");
+        try {
+            byte[] encrypted = ProtectedData.Protect(content, null, DataProtectionScope.CurrentUser);
+            using (var stream = new FileStream(probe, FileMode.CreateNew, FileAccess.Write, FileShare.None)) {
+                stream.Write(encrypted, 0, encrypted.Length);
+                stream.Flush(true);
+            }
+            if (!content.SequenceEqual(ProtectedData.Unprotect(File.ReadAllBytes(probe), null, DataProtectionScope.CurrentUser)))
+                throw new IOException();
+            Run(directory, new Dictionary<string,object> {{"command","status"}});
+        } finally { if (File.Exists(probe)) File.Delete(probe); }
     }
 
     static DateTimeOffset Date(Dictionary<string, object> data, string key)

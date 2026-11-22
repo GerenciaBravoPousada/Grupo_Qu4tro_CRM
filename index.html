@@ -2352,7 +2352,7 @@ let deferredPwaPrompt = null;
 let outboxDbInstance = null;
 
 // Registro do Service Worker para suporte PWA Offline com auto-reload em deploys
-if ('serviceWorker' in navigator) {
+if (!window.qu4troDesktop && 'serviceWorker' in navigator) {
   let refreshing = false;
   navigator.serviceWorker.addEventListener('controllerchange', () => {
     if (!refreshing) {
@@ -7511,7 +7511,37 @@ function openUserSessionModal(){
    AUTENTICAÇÃO & SESSÃO OBRIGATÓRIA (PRODUÇÃO)
    ========================================================================== */
 
+let crmDesktopSessionDeadline = 0;
+let crmDesktopSessionTimer;
+function crmDesktopSessionValid(){
+  if(!window.qu4troDesktop || !crmDesktopSessionDeadline || Date.now() < crmDesktopSessionDeadline) return true;
+  clearTimeout(crmDesktopSessionTimer);
+  crmDesktopSessionDeadline = 0;
+  state.currentUser = null;
+  try { sessionStorage.setItem('qu4tro_desktop_expired', '1'); } catch {}
+  location.reload();
+  return false;
+}
+
+function crmStartDesktopSession(){
+  if(!window.qu4troDesktop) return;
+  clearTimeout(crmDesktopSessionTimer);
+  const limit = 10 * 60 * 60 * 1000;
+  crmDesktopSessionDeadline = Date.now() + limit;
+  crmDesktopSessionTimer = setTimeout(crmDesktopSessionValid, limit);
+}
+
+window.addEventListener('focus', crmDesktopSessionValid);
+document.addEventListener('visibilitychange', crmDesktopSessionValid);
+document.addEventListener('pointerdown', event => {
+  if(!crmDesktopSessionValid()){ event.preventDefault(); event.stopImmediatePropagation(); }
+}, true);
+document.addEventListener('keydown', event => {
+  if(!crmDesktopSessionValid()){ event.preventDefault(); event.stopImmediatePropagation(); }
+}, true);
+
 function getStoredAuthUserId(){
+  if(window.qu4troDesktop) return null;
   return localStorage.getItem('qu4tro_auth_user') || sessionStorage.getItem('qu4tro_auth_user') || null;
 }
 
@@ -7533,6 +7563,21 @@ function checkAppAuthentication(){
     return true;
   }
 
+  if(window.qu4troDesktop){
+    const remember = el('authRememberMe');
+    if(remember){
+      remember.checked = false;
+      remember.closest('label').parentElement.style.display = 'none';
+    }
+    if(sessionStorage.getItem('qu4tro_desktop_expired')){
+      sessionStorage.removeItem('qu4tro_desktop_expired');
+      const error = el('authOverlayError');
+      if(error){
+        error.textContent = 'Sua sessão de 10 horas terminou. Entre novamente.';
+        error.style.display = 'block';
+      }
+    }
+  }
   // 2. Se for acesso ao CRM: verifica sessão autenticada
   const storedId = getStoredAuthUserId();
   const validUser = storedId && state.users ? state.users.find(u => u.id === storedId && u.active) : null;
@@ -7657,7 +7702,10 @@ async function handleOverlayLogin(e){
   // Sucesso na autenticação
   state.currentUser = user.id;
   void crmJournalCheck();
-  if(remember){
+  if(window.qu4troDesktop){
+    crmStartDesktopSession();
+    if(el('authOverlayPassword')) el('authOverlayPassword').value = '';
+  } else if(remember){
     localStorage.setItem('qu4tro_auth_user', user.id);
     sessionStorage.removeItem('qu4tro_auth_user');
   } else {
@@ -7694,6 +7742,8 @@ async function handleOverlayLogin(e){
 async function performLogout(){
   if(!confirm('Deseja realmente sair do sistema?')) return;
   if(!await crmFlushBeforeLogout()) return;
+  clearTimeout(crmDesktopSessionTimer);
+  crmDesktopSessionDeadline = 0;
   crmStopNotifications();
   if(typeof runAppClosureAudit === 'function') runAppClosureAudit('LOGOUT');
   localStorage.removeItem('qu4tro_auth_user');
@@ -7713,6 +7763,7 @@ async function performLogout(){
 }
 
 function openLoginModal(){
+  if(window.qu4troDesktop){ void performLogout(); return; }
   const quickUsers=state.users.filter(x=>x.active && (x.role==='Master' || isRoleAgente(x.role)));
   const masterQuickCards=quickUsers.map(m=>`
     <div onclick="quickLoginAs('${m.id}')" style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:#f8fafc;cursor:pointer;margin-bottom:8px;transition:all .15s" onmouseover="this.style.borderColor='var(--accent)';this.style.background='#fff'" onmouseout="this.style.borderColor='var(--line)';this.style.background='#f8fafc'">
@@ -7764,6 +7815,7 @@ function openLoginModal(){
 
 function handleLoginSubmit(e){
   e.preventDefault();
+  if(window.qu4troDesktop) return;
   const email=(el('loginEmail').value||'').trim().toLowerCase();
   const pass=(el('loginPassword').value||'').trim();
   const errBox=el('loginError');
@@ -7807,6 +7859,7 @@ function handleLoginSubmit(e){
 }
 
 function quickLoginAs(userId){
+  if(window.qu4troDesktop) return;
   const user=state.users.find(x=>x.id===userId);
   if(!user)return;
   if(!user.active){toast('Usuário inativo.');return;}
