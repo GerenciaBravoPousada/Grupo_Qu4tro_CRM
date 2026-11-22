@@ -2618,23 +2618,7 @@ async function processOutboxQueue(){
         let resError = null;
         if (item.action === 'UPSERT_CUSTOMER') {
           const c = item.payload;
-          const payload = {
-            id: c.id,
-            name: c.name,
-            phone: digits(c.phone) || '0',
-            email: c.email || null,
-            first_house: c.firstHouse || '',
-            first_visit: c.firstVisit || null,
-            last_visit: c.lastVisit || null,
-            total_visits: +c.totalVisits || 1,
-            visits_lena: +c.lena || 0,
-            visits_iconiko: +c.iconico || 0,
-            visits_cafe: +c.cafe || 0,
-            source: c.source || 'Da casa',
-            registration_channel: c.registrationChannel || 'Recepção',
-            preferences: JSON.stringify({ priorities: c.priorities || [] }),
-            notes: c.notes || ''
-          };
+          const payload = crmCustomerPayload(c);
           const {data,error} = (typeof crmSaveCustomerAutoResolve === 'function') ? await crmSaveCustomerAutoResolve(sb, payload, c) : await sb.rpc('crm_save_customer', {payload,expected_updated_at:c.serverUpdatedAt||null});
           resError=error;
           if(!error && data){
@@ -5863,6 +5847,26 @@ function openEditClientPrioritiesModal(id){
   };
 }
 
+function crmCustomerPayload(c){
+  return {
+    id: c.id,
+    name: c.name,
+    phone: digits(c.phone) || '0',
+    email: c.email || null,
+    first_house: c.firstHouse || '',
+    first_visit: c.firstVisit || null,
+    last_visit: c.lastVisit || null,
+    total_visits: +c.totalVisits || 1,
+    visits_lena: +c.lena || 0,
+    visits_iconiko: +c.iconico || 0,
+    visits_cafe: +c.cafe || 0,
+    source: c.source || 'Da casa',
+    registration_channel: c.registrationChannel || 'Recepção',
+    preferences: JSON.stringify({ priorities: c.priorities || [] }),
+    notes: c.notes || ''
+  };
+}
+
 function openEditClientModal(id){
   const c = state.clients.find(x => x.id === id);
   if(!c){
@@ -5881,8 +5885,8 @@ function openEditClientModal(id){
           <div class="field-help">Mínimo: nome + segundo nome, ambos com pelo menos 2 letras.</div>
         </div>
         <div class="field">
-          <label>Telefone completo *</label>
-          <input id="ecPhone" inputmode="tel" required readonly value="${maskClientPhone(c.phone)}">
+          <label>Telefone</label>
+          <input id="ecPhone" inputmode="tel" readonly value="${maskClientPhone(c.phone)}">
         </div>
         <div class="field">
           <label>Origem (Como nos conheceu?)</label>
@@ -5912,6 +5916,7 @@ function openEditClientModal(id){
           <textarea id="ecNotes" rows="3" placeholder="Preferências, restrições, observações operacionais...">${esc(c.notes||'')}</textarea>
         </div>
       </div>
+      <div id="ecSaveStatus" class="field-help" role="status" aria-live="polite"></div>
       <div class="form-actions" style="margin-top:16px">
         <button type="button" class="btn" onclick="closeModal()">Cancelar</button>
         <button type="submit" class="btn primary">Salvar Alterações</button>
@@ -5919,31 +5924,58 @@ function openEditClientModal(id){
     </form>
   `;
   el('modal').classList.add('show');
-  el('editClientForm').onsubmit = e => {
+  const form = el('editClientForm');
+  form.onsubmit = async e => {
     e.preventDefault();
+    const button = form.querySelector('button[type="submit"]');
+    if(button.disabled) return;
+    const status = el('ecSaveStatus');
     const nv = validateClientName(el('ecName').value);
-    const pv = validatePhone(el('ecPhone').readOnly ? c.phone : el('ecPhone').value);
-    if(!nv.ok){ toast(nv.msg); el('ecName').focus(); return; }
-    if(!pv.ok){ toast(pv.msg); el('ecPhone').focus(); return; }
-    const newPhone = pv.value;
-    const oldPhoneDigits = digits(c.phone);
+    if(!nv.ok){ status.textContent = nv.msg; el('ecName').focus(); return; }
 
-    if(state.clients.some(x => x.id !== c.id && normalizePhone(x.phone) === newPhone)){
-      toast('Já existe outro cliente cadastrado com este telefone.');
-      el('ecPhone').focus();
+    const sb = getSupabase();
+    if(!navigator.onLine || !sb){
+      status.textContent = 'Sem conexão com o banco. Reconecte e clique em Salvar Alterações novamente.';
       return;
     }
-    const selectedPriorities = Array.from(document.querySelectorAll('input[name="ecPriority"]:checked')).map(cb => cb.value);
-    c.name = nv.value;
-    c.phone = newPhone;
-    c.source = el('ecSource').value;
-    c.priorities = selectedPriorities;
-    c.notes = el('ecNotes').value.trim();
+    const changes = {
+      name: nv.value,
+      source: el('ecSource').value,
+      priorities: Array.from(form.querySelectorAll('input[name="ecPriority"]:checked'), cb => cb.value),
+      notes: el('ecNotes').value.trim()
+    };
+    const oldPhoneDigits = digits(c.phone);
+    button.disabled = true;
+    button.textContent = 'Salvando…';
+    status.textContent = 'Aguardando confirmação do banco.';
+    let confirmed;
+    try {
+      const {data, error} = await crmTrackWrite(() => sb.rpc('crm_save_customer', {
+        payload: crmCustomerPayload({...c, ...changes}),
+        expected_updated_at: c.serverUpdatedAt || null
+      }));
+      if(error || data?.id !== c.id || !data.updated_at){
+        status.textContent = error?.code === '40001'
+          ? 'O cadastro mudou em outro terminal. Atualize os dados antes de editar novamente.'
+          : 'O banco não confirmou a gravação. Confira o cadastro antes de tentar novamente.';
+        return;
+      }
+      confirmed = data;
+    } catch {
+      status.textContent = 'Não foi possível confirmar a gravação. Confira a conexão e o cadastro.';
+      return;
+    } finally {
+      button.disabled = false;
+      button.textContent = 'Salvar Alterações';
+    }
+    const current = state.clients.find(client => client.id === c.id);
+    Object.assign(c, changes, {serverUpdatedAt: confirmed.updated_at});
+    if(current && current !== c) Object.assign(current, changes, {serverUpdatedAt: confirmed.updated_at});
 
     // Sincroniza dados do cliente nas visitas locais
     if(Array.isArray(state.visits)){
       state.visits.forEach(v => {
-        if((v.customerId && v.customerId === c.id) || (oldPhoneDigits && digits(v.phone) === oldPhoneDigits)){
+        if((v.customerId && v.customerId === c.id) || (!v.customerId && oldPhoneDigits && digits(v.phone) === oldPhoneDigits)){
           v.name = c.name;
           v.phone = c.phone;
           if(!v.customerId) v.customerId = c.id;
@@ -5955,7 +5987,7 @@ function openEditClientModal(id){
     // Sincroniza em reservas onde o cliente seja este
     if(Array.isArray(state.reservations)){
       state.reservations.forEach(r => {
-        if((r.customerId && r.customerId === c.id) || (oldPhoneDigits && digits(r.phone) === oldPhoneDigits)){
+        if((r.customerId && r.customerId === c.id) || (!r.customerId && oldPhoneDigits && digits(r.phone) === oldPhoneDigits)){
           r.name = c.name;
           r.phone = c.phone;
           if(!r.customerId) r.customerId = c.id;
@@ -5979,9 +6011,8 @@ function openEditClientModal(id){
       }
     }
 
-    save();
-    dbSyncCustomer(c);
-    closeModal();
+    saveOperationalCache(true);
+    if(form.isConnected) closeModal();
     if(document.getElementById('view-profile')?.classList.contains('active')){
       openProfile(c.id);
     }
