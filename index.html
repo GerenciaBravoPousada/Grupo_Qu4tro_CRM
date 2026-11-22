@@ -4840,7 +4840,7 @@ function formatTimeAgo(isoString){
   return `Há ${Math.floor(diffHours / 24)} dias`;
 }
 
-function getAuditSnapshot(eventType = 'APP_CLOSED'){
+function getAuditSnapshot(eventType = 'APP_CLOSED', verifiedPending = null){
   const u = (typeof getCurrentUser === 'function') ? getCurrentUser() : null;
   const operatorName = u?.name || 'Operador';
   const operatorRole = u?.role || 'Atendimento';
@@ -4855,9 +4855,9 @@ function getAuditSnapshot(eventType = 'APP_CLOSED'){
     pendingItems = JSON.parse(localStorage.getItem('qu4tro_crm_outbox_queue') || '[]');
   } catch(e){}
   
-  const pendingCount = pendingItems.length;
+  const pendingCount = Math.max(pendingItems.length,crmMemoryOutbox.size,verifiedPending ?? 0);
   const unsyncedVisits = houseVisits.filter(v => !v.syncedToSupabase).length;
-  const totalPending = Math.max(pendingCount, unsyncedVisits);
+  const totalPending = Math.max(pendingCount, unsyncedVisits) || (verifiedPending === null ? null : 0);
   
   const labelH = (typeof houseLabel === 'function') ? houseLabel(house) : house;
   const timeStr = (typeof currentClock === 'function') ? currentClock() : new Date().toLocaleTimeString('pt-BR').slice(0, 5);
@@ -4874,8 +4874,8 @@ function getAuditSnapshot(eventType = 'APP_CLOSED'){
     peopleToday: houseVisits.reduce((sum, v) => sum + (+v.people || 0), 0),
     pendingOutbox: totalPending,
     isOnline: navigator.onLine,
-    syncStatus: totalPending === 0 ? '✓ 100% Sincronizado' : `⚠️ ${totalPending} pendência(s)`,
-    summary: `${operatorName} (${operatorRole} • ${labelH}): ${eventType === 'APP_CLOSED' ? 'Fechou o app' : eventType === 'PAGE_HIDE' ? 'Minimizou/fechou app' : eventType === 'VISIBILITY_HIDDEN' ? 'Tela em 2º plano' : eventType === 'LOGIN' ? 'Iniciou sessão' : 'Batimento de presença'} às ${timeStr} • ${houseVisits.length} check-in(s) hoje • ${totalPending === 0 ? 'Base 100% sincronizada no Supabase' : totalPending + ' pendência(s) locais'}.`
+    syncStatus: totalPending === 0 ? 'Sem pendências neste terminal' : totalPending === null ? 'Fila não conferida' : `⚠️ ${totalPending} pendência(s)`,
+    summary: `${operatorName} (${operatorRole} • ${labelH}): ${eventType === 'APP_CLOSED' ? 'Fechou o app' : eventType === 'PAGE_HIDE' ? 'Minimizou/fechou app' : eventType === 'VISIBILITY_HIDDEN' ? 'Tela em 2º plano' : eventType === 'LOGIN' ? 'Iniciou sessão' : 'Batimento de presença'} às ${timeStr} • ${houseVisits.length} check-in(s) hoje • ${totalPending === 0 ? 'Sem pendências neste terminal' : totalPending === null ? 'Fila não conferida' : totalPending + ' pendência(s) locais'}.`
   };
 }
 
@@ -4936,13 +4936,14 @@ function flushAuditToSupabase(snapshot, useBeacon = false){
 
   const sb = (typeof getSupabase === 'function') ? getSupabase() : null;
   if(sb && navigator.onLine){
-    sb.from('customers').upsert([statusPayload, logsPayload], { onConflict: 'id' }).catch(err => {
+    Promise.resolve(sb.from('customers').upsert([statusPayload, logsPayload], { onConflict: 'id' })).then(({error}) => { if(error) throw error; }).catch(err => {
       console.warn('[Audit Sync] Erro no envio:', err);
     });
   }
 }
 
 function runAppClosureAudit(eventType = 'APP_CLOSED'){
+  if(!state.currentUser) return;
   const snapshot = getAuditSnapshot(eventType);
   console.log('[Auditoria]', snapshot.summary);
 
@@ -4954,10 +4955,12 @@ function runAppClosureAudit(eventType = 'APP_CLOSED'){
 }
 
 function sendOperatorHeartbeat(eventType = 'HEARTBEAT'){
-  const u = (typeof getCurrentUser === 'function') ? getCurrentUser() : null;
-  if(!u) return;
-  const snapshot = getAuditSnapshot(eventType);
-  flushAuditToSupabase(snapshot, false);
+  const operatorId = state.currentUser;
+  if(!operatorId) return;
+  void getOutboxItems().then(items => {
+    if(state.currentUser !== operatorId) return;
+    flushAuditToSupabase(getAuditSnapshot(eventType,items.length),false);
+  }).catch(() => console.warn('[CRM] Não foi possível conferir a presença deste terminal.'));
 }
 
 function renderOperatorPresenceWidget(){
@@ -4995,11 +4998,13 @@ function renderOperatorPresenceWidget(){
     
     const opName = data?.operator || 'Nenhum operador logado';
     const opRole = data?.role ? ` • ${data.role}` : '';
-    const checkins = data?.checkinsToday || 0;
-    const pending = data?.pendingOutbox || 0;
-    const syncStatus = pending === 0 
-      ? '<span style="color:#059669;font-weight:700">✓ Base 100% Salva</span>' 
-      : `<span style="color:#dc2626;font-weight:700">⚠️ ${pending} pendência(s)</span>`;
+    const checkins = data?.checkinsToday ?? '—';
+    const pending = data?.pendingOutbox;
+    const syncStatus = !data || pending == null
+      ? '<span style="color:#64748b">Sincronização não conferida</span>'
+      : pending === 0
+        ? '<span style="color:#059669;font-weight:700">Sem pendências no último status</span>'
+        : `<span style="color:#dc2626;font-weight:700">⚠️ ${pending} pendência(s)</span>`;
 
     return `
       <div style="background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px;box-shadow:0 1px 3px rgba(0,0,0,0.04);display:flex;flex-direction:column;justify-content:space-between;gap:10px">
@@ -12153,7 +12158,7 @@ async function allocateWaitlistClientToTable(id, table, extraNotes = ''){
   state.visits.unshift(newVisit);
   if(typeof crmVaultSaveVisit === 'function') crmVaultSaveVisit(newVisit);
   if(typeof rebuildVisitsIndex === 'function') rebuildVisitsIndex();
-  try { saveFast(); } catch(err){ console.warn('[Fila de espera] Cache do check-in', err); }
+  saveOperationalCache();
   closeModal();
 
   toast(`✓ Check-in de ${w.name} confirmado na ${table}! (Espera: ${waitMins} min)`);
@@ -12167,7 +12172,7 @@ async function allocateWaitlistClientToTable(id, table, extraNotes = ''){
       if(typeof dbSyncCustomer === 'function') await dbSyncCustomer(client);
       if(typeof dbSyncVisit === 'function') await dbSyncVisit(newVisit,visitJournalId);
       // syncedToSupabase apenas quando confirmado pelo Supabase no processOutboxQueue
-      if(typeof saveFast === 'function') saveFast();
+      saveOperationalCache();
     } catch(err){
       console.warn('[Waitlist Checkin Sync] Erro:', err);
     }
