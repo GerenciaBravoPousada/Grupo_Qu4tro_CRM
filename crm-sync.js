@@ -7,6 +7,7 @@ function crmNetworkFetch(input,options={}){
 let crmOutboxSerial=0;
 function crmOrderOutbox(items){return items.sort((a,b)=>String(a.createdAt).localeCompare(String(b.createdAt)) || (a.queuedOrder||0)-(b.queuedOrder||0));}
 let crmRefreshPromise = null;
+let crmRefreshCacheSaved = true;
 let crmManifest = null;
 let crmChannels = [];
 let crmNotificationScope = '';
@@ -79,12 +80,13 @@ async function pullAllFromSupabase() {
     const versions={...prior};
     for(const table of crmReadTables) versions[table]=crmManifest[table];
     state.crmCache={scope,versions,lastRefresh:new Date().toISOString()};
-    // Only persist metadata together with the list it describes.
-    saveStateToStorage();
     if(crmNoticeGeneration===noticeGeneration){crmMarkApplied([...crmPendingReservations]);crmPendingReservations.clear();}
     state.crmPendingReservationIds=[...crmPendingReservations];
-    saveStateToStorage();
+    // Data and its version remain together. If the local write fails,
+    // the refreshed data is still available in memory.
+    crmRefreshCacheSaved=saveOperationalCache();
     crmRenderStatus();
+    return crmRefreshCacheSaved;
   })().catch(error=>{toast(error.message || 'Falha na atualização. Lista local mantida.','warn');throw error;}).finally(()=>{crmManifest=null;crmRefreshPromise=null;});
   return crmRefreshPromise;
 }
@@ -95,15 +97,15 @@ async function crmManualRefresh(){
       state.__visitsPurgedV2 = false;
       state.__syncRev = '2026-10-16-v4';
     }
-    await pullAllFromSupabase();
-    toast('Dados sincronizados com o banco.');
+    const cached = await pullAllFromSupabase();
+    if(cached !== undefined) toast(cached ? 'Dados atualizados pelo Supabase.' : 'Dados recebidos do Supabase e disponíveis nesta sessão.');
   } catch(e){
     toast('Erro ao atualizar: ' + (e.message || e), 'warn');
   }
 }
 function crmRenderStatus(){
   const stamp=document.getElementById('crmLastRefresh');
-  if(stamp) stamp.textContent=state.crmCache?.lastRefresh ? 'Última atualização: '+new Date(state.crmCache.lastRefresh).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo'}) : 'Lista local — aguardando atualização';
+  if(stamp) stamp.textContent=state.crmCache?.lastRefresh ? 'Última atualização: '+new Date(state.crmCache.lastRefresh).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo'}) + (crmRefreshCacheSaved ? '' : ' • somente nesta sessão') : 'Lista local — aguardando atualização';
   const notice=document.getElementById('crmReservationNotice');
   if(notice) notice.style.display=crmPendingReservations.size?'block':'none';
 }
@@ -171,7 +173,7 @@ async function crmCheckReservationEvents(house){
     const {data,error}=await getSupabase().from('crm_reservation_events').select('id').eq('house',house).eq('reservation_date',today()).order('id',{ascending:false}).limit(1);
     if(error) throw error;
     state.crmEventCursors[key]=data[0]?.id||0;
-    saveStateToStorage();return;
+    saveOperationalCache();return;
   }
   for(;;){
     const {data,error}=await getSupabase().from('crm_reservation_events').select('id,reservation_id').eq('house',house).eq('reservation_date',today()).gt('id',cursor).order('id').limit(500);
@@ -182,7 +184,7 @@ async function crmCheckReservationEvents(house){
   }
   // Pending IDs must survive F5 even after advancing the recovery cursor.
   state.crmPendingReservationIds=[...crmPendingReservations];
-  saveStateToStorage();crmRenderStatus();
+  saveOperationalCache();crmRenderStatus();
 }
 function crmStopNotifications(){
   const sb=getSupabase();for(const channel of crmChannels) sb.removeChannel(channel);
@@ -202,7 +204,7 @@ async function crmStartNotifications(){
         if(!id)return;
         crmRecordEvent(id,message.payload.revision||Date.now());
         state.crmPendingReservationIds=[...crmPendingReservations];
-        saveStateToStorage();crmRenderStatus();
+        saveOperationalCache();crmRenderStatus();
       })
       .subscribe(status=>{if(status==='SUBSCRIBED') crmCheckReservationEvents(house).catch(()=>{});});
     crmChannels.push(channel);
@@ -758,7 +760,7 @@ async function crmStartSession(){
   state.crmPendingScope=crmScopeKey();
   try {
     await crmAutoFlushLocalData();
-    await crmStartNotifications();
+    await crmStartNotifications().catch(() => {});
     await pullAllFromSupabase();
     if(state.crmCache?.scope!==crmScopeKey())await pullAllFromSupabase();
     for(const house of crmScopeHouses()) await crmCheckReservationEvents(house);
@@ -774,7 +776,7 @@ async function crmDailyTick(){
   state.crmDailyRefresh ||= {};
   const due=crmScopeHouses().map(house=>({house,key:house+'|'+now.day,minute:/Café/.test(house)?435:1095})).filter(item=>now.minute>=item.minute && !state.crmDailyRefresh[item.key]);
   if(due.length){
-    try{await pullAllFromSupabase();for(const item of due)state.crmDailyRefresh[item.key]=true;saveStateToStorage();}catch(_){}
+    try{await pullAllFromSupabase();for(const item of due)state.crmDailyRefresh[item.key]=true;saveOperationalCache();}catch(_){}
   }
   crmStartNotifications().catch(()=>{});
 }
