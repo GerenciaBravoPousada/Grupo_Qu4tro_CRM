@@ -41,7 +41,10 @@ function crmJournalRender(){
 }
 
 async function crmJournalRecord(action, payload, id = crypto.randomUUID()){
-  if(!crmJournalEnabled || !crmJournalActions.has(action) || !state.currentUser || new URLSearchParams(location.search).has('public')) return null;
+  if(!crmJournalActions.has(action) || !state.currentUser || new URLSearchParams(location.search).has('public')) return null;
+  await browserJournalLoad;
+  if(!crmJournalEnabled && !browserJournalConfig) return null;
+  const request = crmJournalEnabled ? crmJournalRequest : browserJournalRequest;
   try {
     // Conservar os campos operacionais e evitar guardar nome/telefone quando já há cliente identificado.
     const details = {operatorId:state.currentUser, house:payload.house || getSessionHouse()};
@@ -53,13 +56,13 @@ async function crmJournalRecord(action, payload, id = crypto.randomUUID()){
       if(payload.name) record.name = payload.name;
       if(payload.phone) record.phone = payload.phone;
     }
-    const result = await crmJournalRequest({command:'append',id,action,details:{...details,record}});
+    const result = await request({command:'append',id,action,details:{...details,record}});
     if(!result) throw new Error('Diário indisponível');
     crmJournalExpiring = result.expiring || 0;
     crmJournalRender();
     return id;
   } catch(error){
-    crmJournalWarning = 'Uma operação ficou sem proteção do diário do Windows. Verifique o componente local.';
+    crmJournalWarning = 'Uma operação ficou sem proteção do diário local. Verifique a configuração em Dados & Backup.';
     crmJournalRender();
     return null;
   }
@@ -67,15 +70,26 @@ async function crmJournalRecord(action, payload, id = crypto.randomUUID()){
 
 async function crmJournalConfirm(id){
   if(!id) return;
-  const result = await crmJournalRequest({command:'confirm',id});
+  const request = crmJournalEnabled ? crmJournalRequest : browserJournalRequest;
+  const result = await request({command:'confirm',id});
   if(result) crmJournalExpiring = result.expiring || 0;
   else crmJournalWarning = 'O Supabase recebeu uma operação, mas o diário local não conseguiu guardar a confirmação.';
   crmJournalRender();
 }
 
 async function crmJournalCheck(){
-  if(!crmJournalEnabled || typeof state === 'undefined' || !state.currentUser || new URLSearchParams(location.search).has('public')) return;
-  const result = await crmJournalRequest({command:'status'});
+  if(typeof state === 'undefined' || !state.currentUser || new URLSearchParams(location.search).has('public')) return;
+  await browserJournalLoad;
+  const request = crmJournalEnabled ? crmJournalRequest : browserJournalRequest;
+  const result = await request({command:'status'});
+  if(!crmJournalEnabled && !result && browserJournalSupported){
+    crmJournalExpiring = 0;
+    if(!crmJournalWarning) crmJournalWarning = 'Diário inativo neste terminal. Confira Dados & Backup.';
+  } else if(result && crmJournalWarning === 'Diário inativo neste terminal. Confira Dados & Backup.'){
+    crmJournalWarning = '';
+  }
+  browserJournalRender();
+  crmJournalRender();
   if(result){
     crmJournalExpiring = result.expiring || 0;
     crmJournalRender();
