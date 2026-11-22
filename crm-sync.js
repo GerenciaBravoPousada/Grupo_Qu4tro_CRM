@@ -112,6 +112,12 @@ function crmDeferReservations(){
   if(node) node.textContent=' Atualização pendente. Você pode atualizar quando desejar.';
 }
 async function crmAcceptReservations(){
+  const notice=document.getElementById('crmReservationNotice');
+  const buttons=notice?.querySelectorAll('button') || [];
+  const message=document.getElementById('crmReservationPending');
+  if(buttons[0]?.disabled || !crmPendingReservations.size) return;
+  for(const button of buttons) button.disabled=true;
+  if(message) message.textContent=' Atualizando reservas…';
   // The journal also records deletes and moves between houses/dates.
   const ids=[...crmPendingReservations];
   const noticeGeneration=crmNoticeGeneration;
@@ -133,8 +139,25 @@ async function crmAcceptReservations(){
     if(crmNoticeGeneration===noticeGeneration){crmMarkApplied([...changed]);for(const id of changed)crmPendingReservations.delete(id);}
     state.crmPendingReservationIds=[...crmPendingReservations];
     if(state.crmCache) state.crmCache.lastRefresh=new Date().toISOString();
-    saveStateToStorage();renderReservations();crmRenderStatus();
-  } catch(error){toast('Não foi possível atualizar as reservas. Tente novamente.','warn');}
+    let saved=true;
+    try {saveStateToStorage();} catch(error){
+      saved=false;
+      console.warn('[CRM] Falha ao guardar a atualização das reservas neste aparelho',error?.name);
+    }
+    renderReservations();
+    crmRenderStatus();
+    if(message) message.textContent=crmPendingReservations.size
+      ? ' Ainda há alterações pendentes. Você pode atualizar novamente.'
+      : '';
+    toast(saved
+      ? 'Reservas atualizadas.'
+      : 'Reservas atualizadas nesta sessão. Não foi possível salvar a cópia local.');
+  } catch(error){
+    if(message) message.textContent=' Não foi possível atualizar. Tente novamente.';
+    toast('Não foi possível atualizar as reservas. Tente novamente.','warn');
+  } finally {
+    for(const button of buttons) button.disabled=false;
+  }
 }
 function crmMapReservation(rr){
   const tag=(name)=>{const match=String(rr.notes||'').match(new RegExp('\\['+name+':([^\\]]*)\\]'));return match?match[1].trim():'';};
