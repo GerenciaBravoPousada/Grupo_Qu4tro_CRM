@@ -152,7 +152,7 @@ internal sealed class Desktop : Form
         string check = @"Boolean(window.qu4troDesktop &&
           document.querySelector('#loginScreenOverlay:not(.hidden)') &&
           document.querySelector('#authOverlayPassword') &&
-          getComputedStyle(document.querySelector('#authRememberMe').closest('label').parentElement).display === 'none' &&
+          !document.querySelector('#authRememberMe') &&
           typeof state !== 'undefined' && !state.currentUser && crmJournalEnabled)";
         for (int i=0;i<40;i++) {
             await Task.Delay(250);

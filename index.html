@@ -1298,12 +1298,6 @@ input:checked + .slider:before {
           <button type="button" onclick="toggleAuthPassword()" style="position:absolute;right:10px;background:none;border:none;cursor:pointer;font-size:16px;padding:4px;color:#64748b" title="Mostrar / Ocultar Senha">👁️</button>
         </div>
       </div>
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;font-size:12px;color:#64748b">
-        <label style="display:flex;align-items:center;gap:6px;cursor:pointer">
-          <input type="checkbox" id="authRememberMe" checked style="width:16px;height:16px;accent-color:var(--accent);cursor:pointer">
-          <span>Manter conectado neste aparelho</span>
-        </label>
-      </div>
       <button type="submit" class="btn primary" style="width:100%;padding:12px;justify-content:center;font-size:14px;font-weight:700">Entrar no Sistema</button>
     </form>
     <div style="margin-top:18px;text-align:center;font-size:11.5px;color:#94a3b8">
@@ -3760,6 +3754,7 @@ function getDefaultWppTemplates(){
 
 const STORE='grupo_qu4tro_gestao_clientes_v1';
 let state=loadState(), currentClient=null, clientPage=1, selectedSegment=null;
+state.currentUser = null;
 const pageSize=40;
 function loadState(){let s;try{const raw=localStorage.getItem(STORE);s=raw?JSON.parse(raw):structuredClone(SEED_DATA)}catch(e){s=structuredClone(SEED_DATA)}if(!s.settings)s.settings=structuredClone(DEFAULT_SETTINGS);else s.settings=Object.assign({},DEFAULT_SETTINGS,s.settings);
   if(!s.wppTemplates || !Array.isArray(s.wppTemplates) || s.wppTemplates.length === 0){
@@ -7534,9 +7529,9 @@ document.addEventListener('keydown', event => {
   if(!crmDesktopSessionValid()){ event.preventDefault(); event.stopImmediatePropagation(); }
 }, true);
 
-function getStoredAuthUserId(){
-  if(window.qu4troDesktop) return null;
-  return localStorage.getItem('qu4tro_auth_user') || sessionStorage.getItem('qu4tro_auth_user') || null;
+function clearStoredCrmSession(){
+  try {localStorage.removeItem('qu4tro_auth_user');} catch {}
+  try {sessionStorage.removeItem('qu4tro_auth_user');} catch {}
 }
 
 function checkAppAuthentication(){
@@ -7559,11 +7554,6 @@ function checkAppAuthentication(){
 
   if(window.qu4troDesktop){
     if(el('desktopPilotDownload')) el('desktopPilotDownload').style.display = 'none';
-    const remember = el('authRememberMe');
-    if(remember){
-      remember.checked = false;
-      remember.closest('label').parentElement.style.display = 'none';
-    }
     if(sessionStorage.getItem('qu4tro_desktop_expired')){
       sessionStorage.removeItem('qu4tro_desktop_expired');
       const error = el('authOverlayError');
@@ -7573,46 +7563,14 @@ function checkAppAuthentication(){
       }
     }
   }
-  // 2. Se for acesso ao CRM: verifica sessão autenticada
-  const storedId = getStoredAuthUserId();
-  const validUser = storedId && state.users ? state.users.find(u => u.id === storedId && u.active) : null;
-
-  if(validUser){
-    state.currentUser = validUser.id;
-    void crmJournalCheck();
-    if(el('loginScreenOverlay')) el('loginScreenOverlay').classList.add('hidden');
-    const appEl = document.querySelector('.app');
-    if(appEl) appEl.style.display = 'flex';
-
-    // Usuários com múltiplas casas autorizadas (ou Master) iniciam com a visão consolidada em todos os módulos
-    const userAllowedHouses = getUserHouses(validUser);
-    if(userAllowedHouses.includes('all')){
-      sessionStorage.setItem('qu4tro_reception_house', 'all');
-    } else if(userAllowedHouses.length > 0){
-      sessionStorage.setItem('qu4tro_reception_house', userAllowedHouses[0]);
-    }
-
-    applyCurrentUser();
-    applySessionHouse();
-    updateNavPermissions();
-    crmStartSession();
-    if(validUser.role === 'Atendimento' || isRoleAgente(validUser.role)){
-      const curView = document.querySelector('.view.active');
-      const defaultView = isRoleAgente(validUser.role) ? 'reservations' : 'checkin';
-      if(!curView || curView.id === 'view-dashboard' || !isViewAllowedForRole(curView.id.replace('view-',''), validUser.role)){
-        go(defaultView);
-      }
-    }
-    return true;
-  } else {
-    // Não autenticado: exibe tela de login e esconde o app
-    state.currentUser = null;
-    const appEl = document.querySelector('.app');
-    if(appEl) appEl.style.display = 'none';
-    if(el('loginScreenOverlay')) el('loginScreenOverlay').classList.remove('hidden');
-    setTimeout(() => el('authOverlayIdentifier')?.focus(), 100);
-    return false;
-  }
+  // A sessão de operador existe somente no documento aberto.
+  clearStoredCrmSession();
+  state.currentUser = null;
+  const appEl = document.querySelector('.app');
+  if(appEl) appEl.style.display = 'none';
+  el('loginScreenOverlay')?.classList.remove('hidden');
+  setTimeout(() => el('authOverlayIdentifier')?.focus(), 100);
+  return false;
 }
 
 function toggleAuthPassword(){
@@ -7625,7 +7583,6 @@ async function handleOverlayLogin(e){
   e.preventDefault();
   const identifier = (el('authOverlayIdentifier')?.value || '').trim();
   const pass = (el('authOverlayPassword')?.value || '').trim();
-  const remember = el('authRememberMe')?.checked ?? true;
   const errBox = el('authOverlayError');
 
   if(!identifier || !pass){
@@ -7697,16 +7654,8 @@ async function handleOverlayLogin(e){
   // Sucesso na autenticação
   state.currentUser = user.id;
   void crmJournalCheck();
-  if(window.qu4troDesktop){
-    crmStartDesktopSession();
-    if(el('authOverlayPassword')) el('authOverlayPassword').value = '';
-  } else if(remember){
-    localStorage.setItem('qu4tro_auth_user', user.id);
-    sessionStorage.removeItem('qu4tro_auth_user');
-  } else {
-    sessionStorage.setItem('qu4tro_auth_user', user.id);
-    localStorage.removeItem('qu4tro_auth_user');
-  }
+  crmStartDesktopSession();
+  if(el('authOverlayPassword')) el('authOverlayPassword').value = '';
 
   if(errBox) errBox.style.display = 'none';
   if(el('loginScreenOverlay')) el('loginScreenOverlay').classList.add('hidden');
@@ -7741,8 +7690,7 @@ async function performLogout(){
   crmDesktopSessionDeadline = 0;
   crmStopNotifications();
   if(typeof runAppClosureAudit === 'function') runAppClosureAudit('LOGOUT');
-  localStorage.removeItem('qu4tro_auth_user');
-  sessionStorage.removeItem('qu4tro_auth_user');
+  clearStoredCrmSession();
   state.currentUser = null;
 
   const appEl = document.querySelector('.app');
@@ -7831,7 +7779,6 @@ function handleLoginSubmit(e){
     return;
   }
   state.currentUser=user.id;
-  setStoredAuthUserId(user.id);
   save();
   closeModal();
   const userAllowedHouses = getUserHouses(user);
@@ -7859,7 +7806,6 @@ function quickLoginAs(userId){
   if(!user)return;
   if(!user.active){toast('Usuário inativo.');return;}
   state.currentUser=user.id;
-  setStoredAuthUserId(user.id);
   save();
   closeModal();
   const userAllowedHouses = getUserHouses(user);
