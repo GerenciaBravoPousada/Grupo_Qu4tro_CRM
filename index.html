@@ -7676,7 +7676,7 @@ async function handleOverlayLogin(e){
           active: ru.active !== false,
           createdAt: ru.created_at ? ru.created_at.slice(0,10) : '2026-09-10'
         }));
-        save();
+        try {saveStateToStorage();} catch(error){console.warn('Cópia local de usuários indisponível.');}
         user = state.users.find(u => {
           const mailMatch = u.email && u.email.toLowerCase() === identifier.toLowerCase();
           const phoneMatch = cleanPhone && digits(u.phone) === cleanPhone;
@@ -8396,52 +8396,86 @@ function handleEditUserSubmit(e, userId){
   toast('Perfil atualizado e gravado na nuvem com sucesso!');
 }
 
+function canChangeUserPassword(user){
+  const operator = state.users.find(candidate => candidate.id === state.currentUser && candidate.active);
+  if(!operator || !user) return false;
+  if(operator.id === user.id || operator.role === 'Master') return true;
+  return operator.role === 'Gerente' && user.role === 'Atendimento' &&
+    getUserHouses(operator).some(house => house !== 'all' && getUserHouses(user).includes(house));
+}
+
 function openChangePasswordModal(userId){
-  const u=state.users.find(x=>x.id===userId);
-  if(!u)return;
-  el('modalTitle').textContent=`Alterar Senha — ${u.name}`;
-  el('modalBody').innerHTML=`
-    <form id="changePassForm" onsubmit="handleChangePasswordSubmit(event, '${u.id}')">
-      <div style="background:#f8fafc;border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:14px;font-size:12.5px">
-        <div><strong>Usuário:</strong> ${esc(u.name)} (${esc(u.email)})</div>
-        <div style="margin-top:4px"><strong>Senha Atual:</strong> <code>${esc(u.password)}</code></div>
+  const user = state.users.find(candidate => candidate.id === userId);
+  if(!canChangeUserPassword(user)) return;
+  el('modalTitle').textContent = `Alterar Senha — ${user.name}`;
+  el('modalBody').innerHTML = `
+    <form id="changePassForm">
+      <p><strong>Usuário:</strong> ${esc(user.name)} (${esc(user.email)})</p>
+      <div class="field">
+        <label for="cpNewPass">Nova senha</label>
+        <input id="cpNewPass" type="password" autocomplete="new-password" required minlength="8" class="control">
       </div>
-      <div class="field" style="margin-bottom:12px">
-        <label style="font-size:12px;font-weight:700;margin-bottom:4px;display:block">Nova Senha *</label>
-        <input id="cpNewPass" type="text" required value="${esc(u.password)}" class="control" style="width:100%;font-weight:700">
+      <div class="field">
+        <label for="cpConfirmPass">Confirmar nova senha</label>
+        <input id="cpConfirmPass" type="password" autocomplete="new-password" required class="control">
       </div>
-      <div class="field" style="margin-bottom:14px">
-        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12.5px;font-weight:700;color:#166534">
-          <input type="checkbox" id="cpSendWa" checked style="width:17px;height:17px;accent-color:#16a34a">
-          Enviar a nova senha pelo WhatsApp do usuário após salvar
-        </label>
-      </div>
+      <p>Use pelo menos 8 caracteres, com uma letra maiúscula, uma minúscula, um número e um caractere especial.</p>
+      <p id="cpStatus" role="status" aria-live="polite"></p>
       <div class="form-actions">
         <button type="button" class="btn" onclick="closeModal()">Cancelar</button>
         <button type="submit" class="btn primary">Salvar Nova Senha</button>
       </div>
     </form>
   `;
+  el('changePassForm').addEventListener('submit', event => handleChangePasswordSubmit(event, userId));
   el('modal').classList.add('show');
-  setTimeout(()=>el('cpNewPass')?.select(),60);
+  el('cpNewPass').focus();
 }
 
-function handleChangePasswordSubmit(e, userId){
-  e.preventDefault();
-  const u=state.users.find(x=>x.id===userId);
-  if(!u)return;
-  const newPass=(el('cpNewPass').value||'').trim();
-  const sendWa=el('cpSendWa')?.checked;
-  if(!newPass){toast('Informe a nova senha.');return;}
-  u.password=newPass;
-  save();
-  dbSyncUser(u);
-  closeModal();
-  renderUsers();
-  toast('Senha alterada e gravada na nuvem com sucesso!');
-  if(sendWa){
-    setTimeout(()=>sendUserPasswordWhatsApp(u.id),300);
+async function handleChangePasswordSubmit(event, userId){
+  event.preventDefault();
+  const form = event.currentTarget;
+  const submit = form.querySelector('button[type="submit"]');
+  const status = form.querySelector('#cpStatus');
+  const user = state.users.find(candidate => candidate.id === userId);
+  if(submit.disabled || !canChangeUserPassword(user)) return;
+  const password = form.querySelector('#cpNewPass').value;
+  if(password.length < 8 || password !== password.trim() ||
+      !/[\p{Lu}]/u.test(password) || !/[\p{Ll}]/u.test(password) ||
+      !/[0-9]/.test(password) || !/[\p{P}\p{S}]/u.test(password)){
+    status.textContent = 'Use uma senha com os requisitos acima, sem espaços no início ou no fim.';
+    return;
   }
+  if(password === user.password){
+    status.textContent = 'Escolha uma senha diferente da atual.';
+    return;
+  }
+  if(password !== form.querySelector('#cpConfirmPass').value){
+    status.textContent = 'As senhas digitadas não coincidem.';
+    return;
+  }
+
+  submit.disabled = true;
+  status.textContent = 'Salvando a nova senha…';
+  try {
+    const sb = getSupabase();
+    if(!navigator.onLine || !sb) throw new Error('Conexão indisponível');
+    const {data,error} = await sb.from('app_users').update({password}).eq('id',userId).select('id').maybeSingle();
+    if(error || data?.id !== userId) throw error || new Error('Conta sem confirmação');
+  } catch(error){
+    if(form.isConnected) status.textContent = 'O Supabase não confirmou a troca. Confira a conexão e tente novamente.';
+    submit.disabled = false;
+    return;
+  }
+
+  const current = state.users.find(candidate => candidate.id === userId);
+  if(current) current.password = password;
+  user.password = password;
+  let savedLocally = true;
+  try {saveStateToStorage();} catch(error){savedLocally = false;}
+  if(form.isConnected) closeModal();
+  renderUsers();
+  toast(savedLocally ? 'Senha alterada no Supabase.' : 'Senha alterada no Supabase. Não foi possível salvar a cópia neste aparelho.');
 }
 
 function sendUserPasswordWhatsApp(userId){
