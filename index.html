@@ -2265,7 +2265,7 @@ button.crm-confirm-action:not(:disabled):hover{background:#a7f3c0!important}
 </section>
 
 <section class="view" id="view-users">
-<div class="hero"><div><h2>Usuários & Login</h2><p id="usersViewSubtitle">Controle geral de acessos Master, Gerentes, Atendentes e envio de credenciais por WhatsApp.</p></div><div class="actions-row"><button class="btn" onclick="openLoginModal()">🔑 Trocar / Fazer Login</button><button class="btn primary" id="openNewUserBtn" onclick="openNewUserModal()">＋ Novo Usuário</button></div></div>
+<div class="hero"><div><h2>Usuários & Login</h2><p id="usersViewSubtitle">Controle geral de acessos Master, Gerentes, Atendentes e envio de credenciais por WhatsApp.</p></div><div class="actions-row"><button class="btn primary" id="openNewUserBtn" onclick="openNewUserModal()">＋ Novo Usuário</button></div></div>
 <div class="cards" style="grid-template-columns:repeat(4,1fr);margin-bottom:20px" id="userKpiCards"></div>
 <div class="table-card">
 <div class="table-head">
@@ -7550,7 +7550,6 @@ function openUserSessionModal(){
         <button class="btn" style="width:100%;justify-content:center" onclick="closeModal();openMyProfileModal()">✏️ Alterar Meus Dados</button>
         <button class="btn" style="width:100%;justify-content:center" onclick="closeModal();openChangePasswordModal('${u.id}')">🔑 Alterar Minha Senha</button>
         ${teamBtn}
-        <button class="btn" style="width:100%;justify-content:center" onclick="closeModal();openLoginModal()">⇄ Trocar de Conta</button>
         <button class="btn" style="width:100%;justify-content:center;color:#b91c1c;border-color:#fecaca;background:#fef2f2;font-weight:700" onclick="closeModal();performLogout()">⎋ Desconectar / Sair</button>
       </div>
     </div>
@@ -7768,128 +7767,6 @@ async function performLogout(){
   closeModal();
   toast('Você saiu do sistema.');
   setTimeout(() => el('authOverlayIdentifier')?.focus(), 100);
-}
-
-function openLoginModal(){
-  if(window.qu4troDesktop){ void performLogout(); return; }
-  const quickUsers=state.users.filter(x=>x.active && (x.role==='Master' || isRoleAgente(x.role)));
-  const masterQuickCards=quickUsers.map(m=>`
-    <div onclick="quickLoginAs('${m.id}')" style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:#f8fafc;cursor:pointer;margin-bottom:8px;transition:all .15s" onmouseover="this.style.borderColor='var(--accent)';this.style.background='#fff'" onmouseout="this.style.borderColor='var(--line)';this.style.background='#f8fafc'">
-      <div style="display:flex;align-items:center;gap:10px">
-        <div style="width:32px;height:32px;border-radius:50%;background:#0f202a;color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700">
-          ${initials(m.name)}
-        </div>
-        <div>
-          <strong style="font-size:12.5px;display:block;color:var(--ink)">${esc(m.name)}</strong>
-          <span style="font-size:11px;color:var(--muted)">${esc(m.email)}</span>
-        </div>
-      </div>
-      <span class="${getRoleBadgeClass(m.role)}" style="font-size:10px">${esc(m.role)}</span>
-    </div>
-  `).join('');
-
-  el('modalTitle').textContent='Acesso ao Sistema — Login';
-  el('modalBody').innerHTML=`
-    <div style="padding:4px 0">
-      <div style="text-align:center;margin-bottom:16px">
-        <h4 style="margin:0 0 4px;font-size:16px;color:var(--ink)">Grupo Qu4tro • Gestão de Clientes</h4>
-        <p style="font-size:12px;color:var(--muted);margin:0">Informe seu e-mail e senha cadastrados para entrar.</p>
-      </div>
-      <form id="loginForm" onsubmit="handleLoginSubmit(event)">
-        <div class="field" style="margin-bottom:12px">
-          <label style="font-size:12px;font-weight:700;margin-bottom:4px;display:block">E-mail *</label>
-          <input id="loginEmail" type="email" class="control" required placeholder="usuario@bravopousada.com.br" value="${esc(getCurrentUser().email)}" style="width:100%">
-        </div>
-        <div class="field" style="margin-bottom:14px">
-          <label style="font-size:12px;font-weight:700;margin-bottom:4px;display:block">Senha *</label>
-          <input id="loginPassword" type="password" class="control" required placeholder="Digite sua senha" style="width:100%">
-          <div style="font-size:11px;color:var(--muted);margin-top:4px">Senha padrão dos masters: <code>Mkt@2026_CRM!</code></div>
-        </div>
-        <div id="loginError" style="color:#dc2626;font-size:12px;font-weight:700;margin-bottom:12px;display:none"></div>
-        <button class="btn primary" style="width:100%;justify-content:center;padding:10px;font-size:13.5px">Entrar</button>
-      </form>
-      <div style="margin:20px 0 12px;text-align:center;position:relative">
-        <hr style="border:none;border-top:1px solid var(--line);margin:0">
-        <span style="position:relative;top:-10px;background:#fff;padding:0 10px;font-size:11px;color:var(--muted);font-weight:600">OU ACESSO RÁPIDO MASTER</span>
-      </div>
-      <div>
-        ${masterQuickCards}
-      </div>
-    </div>
-  `;
-  el('modal').classList.add('show');
-  setTimeout(()=>el('loginPassword')?.focus(),60);
-}
-
-function handleLoginSubmit(e){
-  e.preventDefault();
-  if(window.qu4troDesktop) return;
-  const email=(el('loginEmail').value||'').trim().toLowerCase();
-  const pass=(el('loginPassword').value||'').trim();
-  const errBox=el('loginError');
-  const user=state.users.find(u=>u.email.toLowerCase()===email);
-  if(!user){
-    errBox.textContent='E-mail não encontrado no sistema.';
-    errBox.style.display='block';
-    return;
-  }
-  if(!user.active){
-    errBox.textContent='Este usuário está inativado. Contate o administrador master.';
-    errBox.style.display='block';
-    return;
-  }
-  if(user.password!==pass){
-    errBox.textContent='Senha incorreta. Verifique e tente novamente.';
-    errBox.style.display='block';
-    return;
-  }
-  state.currentUser=user.id;
-  save();
-  closeModal();
-  const userAllowedHouses = getUserHouses(user);
-  if(userAllowedHouses.includes('all')){
-    sessionStorage.setItem('qu4tro_reception_house', 'all');
-  } else if(userAllowedHouses.length > 0){
-    sessionStorage.setItem('qu4tro_reception_house', userAllowedHouses[0]);
-  }
-  applyCurrentUser();
-  applySessionHouse();
-  const curView = document.querySelector('.view.active');
-  const viewId = curView ? curView.id.replace('view-', '') : 'dashboard';
-  if(!isViewAllowedForRole(viewId, user.role)){
-    go(isRoleAgente(user.role) ? 'reservations' : (user.role === 'Atendimento' ? 'checkin' : 'dashboard'));
-  }
-  if(typeof crmAutoFlushLocalData === 'function') crmAutoFlushLocalData();
-  crmStartSession();
-  toast(`Bem-vindo, ${user.name}!`);
-
-}
-
-function quickLoginAs(userId){
-  if(window.qu4troDesktop) return;
-  const user=state.users.find(x=>x.id===userId);
-  if(!user)return;
-  if(!user.active){toast('Usuário inativo.');return;}
-  state.currentUser=user.id;
-  save();
-  closeModal();
-  const userAllowedHouses = getUserHouses(user);
-  if(userAllowedHouses.includes('all')){
-    sessionStorage.setItem('qu4tro_reception_house', 'all');
-  } else if(userAllowedHouses.length > 0){
-    sessionStorage.setItem('qu4tro_reception_house', userAllowedHouses[0]);
-  }
-  applyCurrentUser();
-  applySessionHouse();
-  const curView = document.querySelector('.view.active');
-  const viewId = curView ? curView.id.replace('view-', '') : 'dashboard';
-  if(!isViewAllowedForRole(viewId, user.role)){
-    go(isRoleAgente(user.role) ? 'reservations' : (user.role === 'Atendimento' ? 'checkin' : 'dashboard'));
-  }
-  if(typeof crmAutoFlushLocalData === 'function') crmAutoFlushLocalData();
-  crmStartSession();
-  toast(`Conectado como ${user.name} (${user.role}).`);
-
 }
 
 /* ==========================================================================
