@@ -56,7 +56,7 @@ function dbSyncVisit(v){return crmTrackWrite(async()=>{
   if(navigator.onLine) await processOutboxQueue();
 });}
 function dbSyncReservation(r){if(r){if(!isUUID(r.id))r.id=generateUUID();crmVaultSaveReservation(r);}return crmTrackWrite(()=>dbSyncReservationImmediate(r));}
-function dbDeleteReservation(id){if(id)crmVaultRemoveReservation(id);return crmTrackWrite(()=>dbDeleteReservationImmediate(id));}
+function dbDeleteReservation(id, house){if(id)crmVaultRemoveReservation(id);return crmTrackWrite(()=>dbDeleteReservationImmediate(id, house));}
 async function crmVersions(){
   const {data,error}=await getSupabase().from('bravo_data_versions').select('table_name,version').in('table_name',CRM_TABLES);
   if(error || !data || data.length!==CRM_TABLES.length) throw new Error('Não foi possível verificar a versão dos dados. A lista local foi mantida.');
@@ -497,6 +497,9 @@ async function crmAutoFlushLocalData(){
       if(typeof getOutboxItems === 'function'){ try { const ob = await getOutboxItems(); for(const item of ob){ if(item && item.blocked){ item.blocked = false; await crmSaveOutboxItem(item); } } } catch(_){} }
       await processOutboxQueue();
     }
+    const queuedOperations = await getOutboxItems();
+    const queuedVisits = new Set(queuedOperations.filter(item => /^(INSERT|DELETE)_VISIT$/.test(item.action)).map(item => item.payload?.id));
+    const queuedReservations = new Set(queuedOperations.filter(item => /^(UPSERT|DELETE)_RESERVATION$/.test(item.action)).map(item => item.payload?.id));
     if(typeof state !== 'undefined' && state){
       state.visits ||= [];
       const deletedSet = new Set(Array.isArray(state.deletedVisits) ? state.deletedVisits.map(String) : []);
@@ -564,6 +567,7 @@ async function crmAutoFlushLocalData(){
         console.log(`[AutoSync] Verificando ${pendingVisits.length} visita(s) pendente(s) no cache local...`);
 
         for(const v of pendingVisits){
+          if(queuedVisits.has(v?.id)) continue;
           try {
             // Garante que o ID da visita é um UUID válido
             const validUUID = (typeof isUUID === 'function' && isUUID(v.id)) ? v.id : ((typeof generateUUID === 'function') ? generateUUID() : null);
@@ -618,6 +622,7 @@ async function crmAutoFlushLocalData(){
                 operator_reception: v.operatorReception || ''
               };
 
+              const journalId = await crmJournalRecord('INSERT_VISIT', v);
               let { error } = await sb.rpc('crm_save_visit', { payload });
               if (error && (error.code === '23503' || (error.message && error.message.includes('foreign key')))) {
                 payload.customer_id = null;
@@ -626,6 +631,7 @@ async function crmAutoFlushLocalData(){
               }
 
               if(!error){
+                await crmJournalConfirm(journalId);
                 v.syncedToSupabase = true;
               crmVaultConfirmVisit(v.id);
               if(v._waitlistRefId && Array.isArray(state.waitlist)){ const wRef = state.waitlist.find(x => x && x.id === v._waitlistRefId); if(wRef) wRef.syncedVisitToSupabase = true; }
@@ -636,7 +642,7 @@ async function crmAutoFlushLocalData(){
               } else {
                 console.warn(`[AutoSync] Falha ao enviar visita de ${v.name}:`, error);
                 if(typeof addToOutbox === 'function'){
-                  await addToOutbox('INSERT_VISIT', structuredClone(v));
+                  await addToOutbox('INSERT_VISIT', structuredClone(v), journalId);
                 }
               }
             } else {
@@ -656,6 +662,7 @@ async function crmAutoFlushLocalData(){
     try {
       const vaultRes = await crmVaultGetUnconfirmedReservations();
       for(const r of vaultRes){
+        if(queuedReservations.has(r?.id)) continue;
         if(!r || !r.id) continue;
         let finalNotes = r.notes || '';
         if(r.source && r.source !== 'Da casa' && !finalNotes.includes('[ORIGEM:')) finalNotes = '[ORIGEM: ' + r.source + '] ' + finalNotes;
@@ -673,6 +680,7 @@ async function crmAutoFlushLocalData(){
           status: r.status || 'Pendente',
           notes: finalNotes
         };
+        const journalId = await crmJournalRecord('UPSERT_RESERVATION', r);
         let { error: rErr } = await sb.rpc('crm_save_reservation', { payload: rPayload });
         if(rErr && (rErr.code === '23503' || (rErr.message && rErr.message.includes('foreign key')))){
           rPayload.customer_id = null;
@@ -680,6 +688,7 @@ async function crmAutoFlushLocalData(){
           rErr = retryR.error;
         }
         if(!rErr){
+          await crmJournalConfirm(journalId);
           crmVaultConfirmReservation(r.id);
           syncedVisits++;
         }

@@ -1,0 +1,11 @@
+{
+  "manifest_version": 3,
+  "name": "Grupo Qu4tro Diário Local",
+  "version": "1.0.0",
+  "permissions": ["nativeMessaging"],
+  "background": {"service_worker": "worker.js"},
+  "content_scripts": [{
+    "matches": ["https://crm-grupo-qu4tro.iconiko.com.br/*"],
+    "js": ["bridge.js"]
+  }]
+}
