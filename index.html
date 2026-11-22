@@ -2339,27 +2339,6 @@ function isUUID(str){
 const SYSTEM_FLOORPLANS_ID = '00000000-0000-4000-8000-000000000001';
 const SYSTEM_WAITLIST_ID   = '00000000-0000-4000-8000-000000000002';
 
-async function dbSyncUser(user){
-  const sb = getSupabase();
-  if(!sb || !user) return;
-  try {
-    await sb.from('app_users').upsert({
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      phone: digits(user.phone),
-      password: user.password,
-      role: user.role,
-      houses: user.houses || [],
-      active: user.active !== false
-    });
-    console.log('User synced to Supabase:', user.email);
-  } catch(err){
-    console.warn('dbSyncUser error:', err);
-  }
-}
-
-
 /* ==========================================================================
    MOTOR OFFLINE-FIRST, INDEXEDDB, OUTBOX QUEUE E AUTO-CLEAN INTELIGENTE
    ========================================================================== */
@@ -3152,7 +3131,7 @@ async function pullAllFromSupabaseLegacy(){
         active: ru.active !== false,
         createdAt: ru.created_at ? ru.created_at.slice(0,10) : '2026-09-10'
       }));
-      saveStateToStorage();
+      saveOperationalCache();
       if(el('view-users')?.classList.contains('active')) renderUsers();
       renderUserSessionBadge();
     }
@@ -8265,6 +8244,7 @@ function openNewUserModal(){
           </label>
         </div>
       </div>
+      <div class="field-help" role="status" id="nuSaveStatus"></div>
       <div class="form-actions" style="margin-top:16px">
         <button type="button" class="btn" onclick="closeModal()">Cancelar</button>
         <button type="submit" class="btn primary">Criar Usuário</button>
@@ -8275,8 +8255,12 @@ function openNewUserModal(){
   setTimeout(()=>el('nuName')?.focus(),60);
 }
 
-function handleNewUserSubmit(e){
+async function handleNewUserSubmit(e){
   e.preventDefault();
+  const form=e.currentTarget;
+  const button=form.querySelector('button[type="submit"]');
+  const status=el('nuSaveStatus');
+  if(button.disabled || getCurrentUser()?.role !== 'Master') return;
   const name=normalizeName(el('nuName').value);
   const email=(el('nuEmail').value||'').trim().toLowerCase();
   const phoneVal=validatePhone(el('nuPhone').value);
@@ -8286,7 +8270,6 @@ function handleNewUserSubmit(e){
 
   if(!name){toast('Informe o nome do usuário.');return;}
   if(!email){toast('Informe o e-mail do usuário.');return;}
-  if(state.users.some(u=>u.email.toLowerCase()===email)){toast('Já existe um usuário com este e-mail.');return;}
   if(!phoneVal.ok){toast(phoneVal.msg);el('nuPhone').focus();return;}
   if(!password){toast('Informe a senha.');return;}
 
@@ -8298,7 +8281,7 @@ function handleNewUserSubmit(e){
   }
 
   const newUser={
-    id:'USR-'+Date.now(),
+    id:'USR-'+generateUUID(),
     name:name,
     email:email,
     phone:phoneVal.value,
@@ -8309,12 +8292,31 @@ function handleNewUserSubmit(e){
     createdAt:new Date().toISOString().slice(0,10)
   };
 
-  state.users.unshift(newUser);
-  save();
-  dbSyncUser(newUser);
-  closeModal();
+  const sb = getSupabase();
+  if(!sb || !navigator.onLine){
+    status.textContent = 'Sem conexão com o banco. Reconecte e tente novamente.';
+    return;
+  }
+  button.disabled = true;
+  status.textContent = 'Criando usuário…';
+  try {
+    const {createdAt, ...record} = newUser;
+    const {data,error} = await sb.from('app_users').insert(record).select('id').single();
+    if(error || data?.id !== newUser.id) throw error || new Error('Cadastro não confirmado');
+  } catch(error){
+    status.textContent = error?.code === '23505' && error.message?.includes('app_users_email_key')
+      ? 'Este e-mail já está cadastrado no Supabase. Atualize a lista e busque pelo e-mail completo.'
+      : 'O banco não confirmou o cadastro. Confira a lista antes de tentar novamente.';
+    return;
+  } finally {
+    button.disabled = false;
+  }
+
+  state.users = [newUser, ...state.users.filter(user => user.email?.trim().toLowerCase() !== email)];
+  saveOperationalCache();
+  if(form.isConnected) closeModal();
   renderUsers();
-  toast(`Usuário ${name} criado e gravado na nuvem!`);
+  toast('Usuário criado e confirmado no Supabase.');
 
   if(sendWa){
     setTimeout(()=>sendUserPasswordWhatsApp(newUser.id),300);
