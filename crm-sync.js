@@ -49,13 +49,13 @@ function dbSyncCustomer(c){return crmTrackWrite(async()=>{
   await addToOutbox('UPSERT_CUSTOMER',structuredClone(c));
   if(navigator.onLine) await processOutboxQueue();
 });}
-function dbSyncVisit(v){return crmTrackWrite(async()=>{
+function dbSyncVisit(v,journalId){return crmTrackWrite(async()=>{
   if(!v)return;if(!isUUID(v.id))v.id=generateUUID();
   crmVaultSaveVisit(v);
-  await addToOutbox('INSERT_VISIT',structuredClone(v));
+  await addToOutbox('INSERT_VISIT',structuredClone(v),journalId);
   if(navigator.onLine) await processOutboxQueue();
 });}
-function dbSyncReservation(r){if(r){if(!isUUID(r.id))r.id=generateUUID();crmVaultSaveReservation(r);}return crmTrackWrite(()=>dbSyncReservationImmediate(r));}
+function dbSyncReservation(r,journalId){if(r){if(!isUUID(r.id))r.id=generateUUID();crmVaultSaveReservation(r);}return crmTrackWrite(()=>dbSyncReservationImmediate(r,journalId));}
 function dbDeleteReservation(id, house){if(id)crmVaultRemoveReservation(id);return crmTrackWrite(()=>dbDeleteReservationImmediate(id, house));}
 async function crmVersions(){
   const {data,error}=await getSupabase().from('bravo_data_versions').select('table_name,version').in('table_name',CRM_TABLES);
@@ -801,6 +801,7 @@ window.addEventListener('online',()=>{
 });
 
 async function crmSaveOutboxItem(item){
+  if(crmMemoryOutbox.has(item.id)){crmMemoryOutbox.set(item.id,item);return;}
   const db=await openOutboxDB();
   if(db) await new Promise((resolve,reject)=>{const tx=db.transaction('outbox','readwrite');tx.objectStore('outbox').put(item);tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);});
   const queue=JSON.parse(localStorage.getItem('qu4tro_outbox_queue_v1')||'[]');

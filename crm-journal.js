@@ -52,7 +52,7 @@ async function crmJournalRecord(action, payload, id = crypto.randomUUID()){
     const keys = ['id','status','date','time','arrival','people','house','table','source','notes','priority','priorities','preference','createdAt','timeRegistered','calledAt','seatedAt','waitDurationMinutes','cloudRevision','amount','reason','operatorReception','_waitlistRefId','arrivalTime','observations','exceptionReason','departure'];
     const record = Object.fromEntries(keys.filter(key => payload[key] !== undefined).map(key => [key,payload[key]]));
     if(clientId && isUUID(clientId)) record.customerId = clientId;
-    else {
+    if(!record.customerId || !state.clients.some(client => client.id === record.customerId && client.serverUpdatedAt)){
       if(payload.name) record.name = payload.name;
       if(payload.phone) record.phone = payload.phone;
     }

@@ -10,13 +10,6 @@ function phonePrivacyOperator(){
   return state.users.find(user => user.active && user.id === state.currentUser);
 }
 
-function canRevealClientPhone(house){
-  const user = phonePrivacyOperator();
-  if(!user) return false;
-  return user.role === 'Master' || (user.role === 'Gerente' && !!house &&
-    getUserHouses(user).includes(normalizeHouseKey(house)));
-}
-
 function canExportFullClientPhones(){
   return phonePrivacyOperator()?.role === 'Master';
 }
@@ -72,67 +65,9 @@ async function openPhoneAudit(){
   } catch {el('modalBody').textContent = 'Não foi possível ler a auditoria deste terminal.';}
 }
 
-function revealCheckinClientPhone(button){
-  const client = state.clients.find(item => item.id === selectedCheckinClientId) ||
-    state.reservations.find(item => item.id === selectedCheckinReservationId);
-  const house = el('ciHouse')?.value;
-  if(!client || !canRevealClientPhone(house)) return;
-  const target = el('ciPhoneRevealed');
-  if(!target) return;
-  if(target.textContent){
-    target.textContent = '';
-    button.textContent = 'Mostrar telefone completo';
-    return;
-  }
-  target.textContent = fmtPhone(client.phone);
-  button.textContent = 'Ocultar telefone';
-  notePhoneAudit('Telefone revelado',house);
-}
-
-function checkinIdentityAmbiguous(client){
-  return state.clients.some(other => other.id !== client.id &&
-    foldText(other.name) === foldText(client.name) &&
-    maskClientPhone(other.phone) === maskClientPhone(client.phone));
-}
-
-function checkinIdentityFields(client){
-  const show = canRevealClientPhone(el('ciHouse')?.value)
-    ? '<button type="button" class="btn" onclick="revealCheckinClientPhone(this)">Mostrar telefone completo</button> <span id="ciPhoneRevealed"></span>'
-    : '';
-  const additional = checkinIdentityAmbiguous(client)
-    ? '<label for="ciIdentityPhone">Há cadastros com o mesmo nome e telefone mascarado. Digite o telefone completo informado pelo cliente.</label><input id="ciIdentityPhone" type="password" inputmode="tel" autocomplete="off" class="control">'
-    : '';
-  return '<div class="field"><label><input type="checkbox" id="ciIdentityConfirmed"> Conferi o nome e o telefone mascarado com o cliente.</label>' +
-    additional + show + '</div>';
-}
-
-function checkinIdentityConfirmed(client){
-  if(!el('ciIdentityConfirmed')?.checked) return false;
-  if(!checkinIdentityAmbiguous(client)) return true;
-  const given = normalizePhone(el('ciIdentityPhone')?.value || '');
-  return !!given && given === normalizePhone(client.phone) &&
-    !state.clients.some(other => other.id !== client.id && foldText(other.name) === foldText(client.name) && normalizePhone(other.phone) === given);
-}
-
 function choosePhoneExport(label,count){
-  const full = canExportFullClientPhones() &&
-    confirm('Exportar telefones completos em ' + label + '? Escolha Cancelar para baixar com telefones mascarados.');
-  notePhoneAudit(full ? 'Exportação com telefones completos' : 'Exportação com telefones mascarados',getSessionHouse(),count);
+  notePhoneAudit('Exportação com telefones mascarados',getSessionHouse(),count);
   notePhoneAuditRate('Exportações repetidas em 5 minutos',3);
   if(count >= 200) notePhoneAudit('Exportação de volume alto',getSessionHouse(),count);
-  return full;
-}
-
-function confirmWaitlistIdentity(entry){
-  if(!confirm('Confira o nome e o telefone do cliente antes de concluir:\n' + entry.name + ' • ' + maskClientPhone(entry.phone))) return false;
-  const lookalikes = state.waitlist.filter(other => other.id !== entry.id &&
-    ['Aguardando','Chamado'].includes(other.status) && normalizeHouseKey(other.house) === normalizeHouseKey(entry.house) &&
-    foldText(other.name) === foldText(entry.name) && maskClientPhone(other.phone) === maskClientPhone(entry.phone));
-  if(!lookalikes.length) return true;
-  const input = normalizePhone(prompt('Há grupos com o mesmo nome e telefone mascarado. Digite o telefone completo informado pelo cliente.') || '');
-  if(!input || input !== normalizePhone(entry.phone) || lookalikes.some(other=>normalizePhone(other.phone) === input)){
-    toast('Não foi possível diferenciar os grupos. Confira os dados antes de confirmar.');
-    return false;
-  }
-  return true;
+  return false;
 }
