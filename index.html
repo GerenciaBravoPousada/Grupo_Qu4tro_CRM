@@ -2158,6 +2158,7 @@ input:checked + .slider:before {
   </section>
 
   <section class="view" id="view-data">
+    <button type="button" class="btn" onclick="openPhoneAudit()">Auditoria de telefones deste terminal</button>
     <div class="card" id="browserJournalCard">
       <h3>Diário local de 72 horas</h3>
       <p>Selecione uma pasta privada deste terminal. O arquivo fica no Windows e o CRM remove os registros vencidos quando estiver aberto.</p>
@@ -2286,6 +2287,7 @@ input:checked + .slider:before {
 <div class="modal" id="modal"><div class="modal-card"><div class="modal-head"><h3 id="modalTitle"></h3><button class="iconbtn" onclick="closeModal()">✕</button></div><div id="modalBody"></div></div></div>
 <script src="crm-journal-browser.js?v=1.0.74"></script>
 <script src="crm-journal.js?v=1.0.73"></script>
+<script src="crm-phone-privacy.js?v=1.0.75"></script>
 <script src="crm-sync.js?v=1.0.68"></script>
 <script src="reservation-attendance.js?v=1.0.63"></script>
 <script>
@@ -5461,7 +5463,7 @@ function renderCheckinList(){
   tbody.innerHTML = list.map(v => {
     const isEdited = (v.notes || '').includes('[Editado') || v.lastEditedReason;
     const phoneVal = v.phone ? String(v.phone).trim() : '';
-    const phoneDisplay = (!phoneVal || phoneVal === '0' || /^0+$/.test(phoneVal)) ? '<span style="color:#94a3b8">—</span>' : fmtPhone(phoneVal);
+    const phoneDisplay = (!phoneVal || phoneVal === '0' || /^0+$/.test(phoneVal)) ? '<span style="color:#94a3b8">—</span>' : maskClientPhone(phoneVal);
     const houseName = houseLabel(v.house);
     const opDisplay = v.operatorReception ? `<div style="font-size:10px;color:#475569;margin-top:3px;font-weight:600" title="Atendente responsável">👤 ${esc(v.operatorReception)}</div>` : '';
     return `
@@ -5669,7 +5671,7 @@ function openCancelCheckinModal(visitId){
 
       <div class="selected-grid" style="margin-top:14px;background:#f8fafc;padding:12px;border-radius:10px;border:1px solid #e2e8f0">
         <div><span>Cliente</span><strong>${esc(v.name)}</strong></div>
-        <div><span>Telefone</span><b>${v.phone ? fmtPhone(v.phone) : '—'}</b></div>
+        <div><span>Telefone</span><b>${v.phone ? maskClientPhone(v.phone) : '—'}</b></div>
         <div><span>Casa / Horário</span><b>${esc(houseLabel(v.house))} • ${esc(v.arrival || '—')}</b></div>
         <div><span>Pessoas / Mesa</span><b>${v.people} pessoas • Mesa ${esc(v.table || '—')}</b></div>
       </div>
@@ -5850,7 +5852,8 @@ function openEditClientModal(id){
         </div>
         <div class="field">
           <label>Telefone completo *</label>
-          <input id="ecPhone" inputmode="tel" required value="${fmtPhone(c.phone||'')}" placeholder="(22) 99999-9999">
+          <input id="ecPhone" inputmode="tel" required readonly value="${maskClientPhone(c.phone)}">
+          ${canRevealClientPhone(getSessionHouse()) ? '<button type="button" class="btn" id="ecRevealPhone">Mostrar telefone para editar</button>' : ''}
         </div>
         <div class="field">
           <label>Origem (Como nos conheceu?)</label>
@@ -5887,10 +5890,19 @@ function openEditClientModal(id){
     </form>
   `;
   el('modal').classList.add('show');
+  el('ecRevealPhone')?.addEventListener('click',event=>{
+    if(!canRevealClientPhone(getSessionHouse())) return;
+    const input = el('ecPhone');
+    input.value = fmtPhone(c.phone);
+    input.readOnly = false;
+    event.currentTarget.disabled = true;
+    notePhoneAudit('Telefone revelado para edição',getSessionHouse());
+    input.focus();
+  });
   el('editClientForm').onsubmit = e => {
     e.preventDefault();
     const nv = validateClientName(el('ecName').value);
-    const pv = validatePhone(el('ecPhone').value);
+    const pv = validatePhone(el('ecPhone').readOnly ? c.phone : el('ecPhone').value);
     if(!nv.ok){ toast(nv.msg); el('ecName').focus(); return; }
     if(!pv.ok){ toast(pv.msg); el('ecPhone').focus(); return; }
     const newPhone = pv.value;
@@ -5934,7 +5946,7 @@ function openEditClientModal(id){
     // Atualiza campos de reserva caso modal de reserva esteja ativo
     if(el('rName') && selectedReservationClientId === c.id){
       el('rName').value = c.name;
-      if(el('rPhone')) el('rPhone').value = fmtPhone(c.phone);
+      if(el('rPhone')){el('rPhone').value = maskClientPhone(c.phone);el('rPhone').readOnly = true;}
       if(el('rSource')) el('rSource').value = c.source;
       document.querySelectorAll('input[name="rPriority"]').forEach(cb => {
         cb.checked = c.priorities.includes(cb.value);
@@ -5943,7 +5955,7 @@ function openEditClientModal(id){
       if(card){
         const cc = calcClient(c);
         const selPrioHtml = (c.priorities && c.priorities.length) ? `<div style="margin-top:6px">${renderPriorityBadges(c.priorities)}</div>` : '';
-        card.innerHTML = `<div style="display:flex;justify-content:space-between;gap:10px;align-items:center"><div><strong>✓ ${esc(cc.name)}</strong>${selPrioHtml}<div style="font-size:10px;color:var(--muted);margin-top:2px">Cliente existente selecionado</div></div><div style="display:flex;gap:6px"><button type="button" class="iconbtn" onclick="openEditClientModal('${esc(c.id)}')">✏️ Alterar dados</button><button type="button" class="iconbtn" onclick="clearSelectedReservationClient()">Trocar</button></div></div><div class="selected-grid"><div><span>Telefone</span><b>${fmtPhone(cc.phone)}</b></div><div><span>CPF</span><b>${esc(cc.cpf||'Não informado')}</b></div><div><span>Última visita</span><b>${fmtDate(cc.lastVisit)}</b></div><div><span>Total de visitas</span><b>${cc.totalVisits}</b></div></div>`;
+        card.innerHTML = `<div style="display:flex;justify-content:space-between;gap:10px;align-items:center"><div><strong>✓ ${esc(cc.name)}</strong>${selPrioHtml}<div style="font-size:10px;color:var(--muted);margin-top:2px">Cliente existente selecionado</div></div><div style="display:flex;gap:6px"><button type="button" class="iconbtn" onclick="openEditClientModal('${esc(c.id)}')">✏️ Alterar dados</button><button type="button" class="iconbtn" onclick="clearSelectedReservationClient()">Trocar</button></div></div><div class="selected-grid"><div><span>Telefone</span><b>${maskClientPhone(cc.phone)}</b></div><div><span>CPF</span><b>${esc(cc.cpf||'Não informado')}</b></div><div><span>Última visita</span><b>${fmtDate(cc.lastVisit)}</b></div><div><span>Total de visitas</span><b>${cc.totalVisits}</b></div></div>`;
       }
     }
 
@@ -6005,7 +6017,7 @@ function renderClients(){
   const slice=a.slice((clientPage-1)*pageSize,clientPage*pageSize);
   el('clientsBody').innerHTML=slice.map(c=>{
     const prioBadges = renderPriorityBadges(c.priorities);
-    return `<tr><td><div class="person"><div class="avatar">${initials(c.name)}</div><div><b>${esc(c.name)}</b>${prioBadges?`<div style="margin-top:3px">${prioBadges}</div>`:''}<br><span style="color:var(--muted);font-size:10px">${esc(c.source||'')}</span></div></div></td><td>${fmtPhone(c.phone)}</td><td>${fmtDate(c.lastVisit)}</td><td>${c.iconico}</td><td>${c.lena}</td><td>${c.cafe||0}</td><td>${c.cafePousada||0}</td><td><b>${c.totalVisits}</b></td><td><span class="badge ${c.totalVisits>=5?'gold':c.totalVisits>=2?'good':'blue'}">${segmentOf(c)}</span></td><td style="white-space:nowrap"><button class="iconbtn" onclick="openProfile('${esc(c.id)}')">Ver →</button><button class="iconbtn" style="margin-left:4px" onclick="openEditClientModal('${esc(c.id)}')" title="Editar dados do cliente">✏️ Editar</button></td></tr>`;
+    return `<tr><td><div class="person"><div class="avatar">${initials(c.name)}</div><div><b>${esc(c.name)}</b>${prioBadges?`<div style="margin-top:3px">${prioBadges}</div>`:''}<br><span style="color:var(--muted);font-size:10px">${esc(c.source||'')}</span></div></div></td><td>${maskClientPhone(c.phone)}</td><td>${fmtDate(c.lastVisit)}</td><td>${c.iconico}</td><td>${c.lena}</td><td>${c.cafe||0}</td><td>${c.cafePousada||0}</td><td><b>${c.totalVisits}</b></td><td><span class="badge ${c.totalVisits>=5?'gold':c.totalVisits>=2?'good':'blue'}">${segmentOf(c)}</span></td><td style="white-space:nowrap"><button class="iconbtn" onclick="openProfile('${esc(c.id)}')">Ver →</button><button class="iconbtn" style="margin-left:4px" onclick="openEditClientModal('${esc(c.id)}')" title="Editar dados do cliente">✏️ Editar</button></td></tr>`;
   }).join('')||'<tr><td colspan="10"><div class="empty">Nenhum cliente encontrado.</div></td></tr>';
   el('clientCount').textContent=`${a.length.toLocaleString('pt-BR')} clientes`;
   el('clientPageLabel').textContent=`${clientPage}/${pages}`;
@@ -6034,7 +6046,7 @@ function openProfile(id){
   el('profileSide').innerHTML=`
     <div class="avatar profile-big">${initials(c.name)}</div>
     <h3>${esc(c.name)}</h3>
-    <div class="phone">${fmtPhone(c.phone)}</div>
+    <div class="phone">${maskClientPhone(c.phone)}</div>
     ${prioBadgesHtml}
     <div class="actions-row" style="margin-bottom:14px;justify-content:center;gap:8px">
       <button class="btn primary" style="font-size:12px;padding:7px 12px;font-weight:700" onclick="openEditClientModal('${esc(c.id)}')">✏️ Editar Dados</button>
@@ -6305,7 +6317,7 @@ function openDuplicateReviewModal(dupIndex = 0) {
           <dd style="font-weight:700;color:#0f172a;margin:0">${esc(submitted.name)}</dd>
           
           <dt style="color:#64748b;font-weight:600">Telefone:</dt>
-          <dd style="margin:0">${esc(fmtPhone(submitted.phone))}</dd>
+          <dd style="margin:0">${esc(maskClientPhone(submitted.phone))}</dd>
           
           <dt style="color:#64748b;font-weight:600">Casa:</dt>
           <dd style="margin:0">${esc(submitted.house || current.house || '—')}</dd>
@@ -6328,7 +6340,7 @@ function openDuplicateReviewModal(dupIndex = 0) {
           <dd style="font-weight:700;color:#0f172a;margin:0">${esc(liveMatched.name)}</dd>
           
           <dt style="color:#64748b;font-weight:600">Telefone:</dt>
-          <dd style="margin:0">${esc(fmtPhone(liveMatched.phone))}</dd>
+          <dd style="margin:0">${esc(maskClientPhone(liveMatched.phone))}</dd>
           
           <dt style="color:#64748b;font-weight:600">Visitas totais:</dt>
           <dd style="margin:0"><strong>${liveMatched.totalVisits || 1}</strong></dd>
@@ -6479,7 +6491,7 @@ function renderCheckinLookup(){
     box.innerHTML = '<div class="lookup-noresult"><b>Nenhum cadastro encontrado.</b><br>Confira a informação ou preencha nome e telefone abaixo para criar um novo cliente.</div>';
     return;
   }
-  box.innerHTML = a.map(c => `<button type="button" class="lookup-item" onclick="selectCheckinClient('${esc(c.id)}')"><div><div class="lookup-name">${esc(c.name)}</div><div class="lookup-meta">${esc(c.source||'Origem não informada')}</div></div><div><div class="lookup-label">Telefone</div><div class="lookup-value">${fmtPhone(c.phone)}</div></div><div><div class="lookup-label">Última visita</div><div class="lookup-value">${fmtDate(c.lastVisit)}</div></div><div><div class="lookup-label">Visitas</div><div class="lookup-value">${c.totalVisits}</div></div></button>`).join('');
+  box.innerHTML = a.map(c => `<button type="button" class="lookup-item" onclick="selectCheckinClient('${esc(c.id)}')"><div><div class="lookup-name">${esc(c.name)}</div><div class="lookup-meta">${esc(c.source||'Origem não informada')}</div></div><div><div class="lookup-label">Telefone</div><div class="lookup-value">${maskClientPhone(c.phone)}</div></div><div><div class="lookup-label">Última visita</div><div class="lookup-value">${fmtDate(c.lastVisit)}</div></div><div><div class="lookup-label">Visitas</div><div class="lookup-value">${c.totalVisits}</div></div></button>`).join('');
 }
 function selectCheckinClient(id){
   const c = state.clients.find(x => x.id === id);
@@ -6489,7 +6501,7 @@ function selectCheckinClient(id){
   if(el('ciLookup')) el('ciLookup').value = c.name;
   if(el('ciLookupResults')){ el('ciLookupResults').className = 'lookup-results'; el('ciLookupResults').innerHTML = ''; }
   if(el('ciName')) el('ciName').value = c.name;
-  if(el('ciPhone')) el('ciPhone').value = fmtPhone(c.phone);
+  if(el('ciPhone')){el('ciPhone').value = maskClientPhone(c.phone);el('ciPhone').readOnly = true;}
   const hasPrio = (c.priorities || []).length > 0;
   if(document.querySelector('input[name="ciHasPriority"][value="Sim"]')) {
     document.querySelector('input[name="ciHasPriority"][value="Sim"]').checked = hasPrio;
@@ -6504,7 +6516,7 @@ function selectCheckinClient(id){
     card.className = 'selected-client-card show';
     card.style.display = 'block';
     const selPrioHtml = (c.priorities && c.priorities.length) ? `<div style="margin-top:6px">${renderPriorityBadges(c.priorities)}</div>` : '';
-    card.innerHTML = `<div style="display:flex;justify-content:space-between;gap:10px;align-items:center"><div><strong>✓ ${esc(cc.name)}</strong>${selPrioHtml}<div style="font-size:10px;color:var(--muted);margin-top:2px">Cliente existente selecionado</div></div><button type="button" class="iconbtn" onclick="clearSelectedCheckinClient()">Trocar</button></div><div class="selected-grid"><div><span>Telefone</span><b>${fmtPhone(cc.phone)}</b></div><div><span>CPF</span><b>${esc(cc.cpf||'Não informado')}</b></div><div><span>Última visita</span><b>${fmtDate(cc.lastVisit)}</b></div><div><span>Total de visitas</span><b>${cc.totalVisits}</b></div></div>`;
+    card.innerHTML = `<div style="display:flex;justify-content:space-between;gap:10px;align-items:center"><div><strong>✓ ${esc(cc.name)}</strong>${selPrioHtml}<div style="font-size:10px;color:var(--muted);margin-top:2px">Cliente existente selecionado</div></div><button type="button" class="iconbtn" onclick="clearSelectedCheckinClient()">Trocar</button></div><div class="selected-grid"><div><span>Telefone</span><b>${maskClientPhone(cc.phone)}</b></div><div><span>CPF</span><b>${esc(cc.cpf||'Não informado')}</b></div><div><span>Última visita</span><b>${fmtDate(cc.lastVisit)}</b></div><div><span>Total de visitas</span><b>${cc.totalVisits}</b></div></div>${checkinIdentityFields(c)}`;
   }
   const info = el('clientFound');
   if(info){
@@ -6517,7 +6529,7 @@ function clearSelectedCheckinClient(){
   selectedCheckinClientId = null;
   if(el('ciLookup')) el('ciLookup').value = '';
   if(el('ciName')) el('ciName').value = '';
-  if(el('ciPhone')) el('ciPhone').value = '';
+  if(el('ciPhone')){el('ciPhone').value = '';el('ciPhone').readOnly = false;}
   if(document.querySelector('input[name="ciHasPriority"][value="Nao"]')) {
     document.querySelector('input[name="ciHasPriority"][value="Nao"]').checked = true;
     toggleCiPriorityGroup(false);
@@ -6747,7 +6759,7 @@ function duplicateCandidates(name,phone,selectedId){const nn=foldText(name), p=n
  return c.id!==selectedId&&(samePhone||sameName);
 }).map(c=>({c,phoneMatch:p&&normalizePhone(c.phone)===p,nameMatch:nn&&foldText(c.name)===nn}))}
 function clientSnapshot(c){const cc=calcClient(c);return {name:cc.name||'',phone:cc.phone||'',cpf:cc.cpf||'',lastVisit:cc.lastVisit||'',totalVisits:cc.totalVisits||0}}
-function showDuplicateConfirmation(pending,matches){const strongest=matches[0], old=clientSnapshot(strongest.c);const reasons=[];if(strongest.phoneMatch)reasons.push('mesmo telefone');if(strongest.nameMatch)reasons.push('mesmo nome');el('modalTitle').textContent='Possível cadastro duplicado';el('modalBody').innerHTML=`<div class="dup-reason">O sistema encontrou um cadastro existente por <strong>${reasons.join(' e ')}</strong>. Confirme se é a mesma pessoa antes de concluir.</div><div class="duplicate-grid"><div class="duplicate-box"><h4>ENTRADA QUE ESTÁ SENDO FEITA</h4><dl><dt>Nome</dt><dd>${esc(pending.name)}</dd><dt>Telefone</dt><dd>${fmtPhone(pending.phone)}</dd><dt>Casa</dt><dd>${esc(houseLabel(pending.house))}</dd><dt>Horário</dt><dd>${esc(pending.arrival)}</dd></dl></div><div class="duplicate-box"><h4>CADASTRO JÁ EXISTENTE</h4><dl><dt>Nome</dt><dd>${esc(old.name)}</dd><dt>Telefone</dt><dd>${fmtPhone(old.phone)}</dd><dt>CPF</dt><dd>${esc(old.cpf||'Não informado')}</dd><dt>Última visita</dt><dd>${fmtDate(old.lastVisit)}</dd><dt>Total de visitas</dt><dd>${old.totalVisits}</dd></dl></div></div>${matches.length>1?`<div class="validation-note" style="margin-top:12px">Existem ${matches.length} cadastros potencialmente relacionados. A confirmação abaixo vinculará ao cadastro exibido; se não for a mesma pessoa, será criado um registro separado e marcado para revisão.</div>`:''}<div class="form-actions"><button class="btn" onclick="resolveDuplicate(false)">Não, é outra pessoa</button><button class="btn primary" onclick="resolveDuplicate(true)">Sim, é a mesma pessoa</button></div>`;window.__pendingCheckin={pending,matches};el('modal').classList.add('show')}
+function showDuplicateConfirmation(pending,matches){const strongest=matches[0], old=clientSnapshot(strongest.c);const reasons=[];if(strongest.phoneMatch)reasons.push('mesmo telefone');if(strongest.nameMatch)reasons.push('mesmo nome');el('modalTitle').textContent='Possível cadastro duplicado';el('modalBody').innerHTML=`<div class="dup-reason">O sistema encontrou um cadastro existente por <strong>${reasons.join(' e ')}</strong>. Confirme se é a mesma pessoa antes de concluir.</div><div class="duplicate-grid"><div class="duplicate-box"><h4>ENTRADA QUE ESTÁ SENDO FEITA</h4><dl><dt>Nome</dt><dd>${esc(pending.name)}</dd><dt>Telefone</dt><dd>${maskClientPhone(pending.phone)}</dd><dt>Casa</dt><dd>${esc(houseLabel(pending.house))}</dd><dt>Horário</dt><dd>${esc(pending.arrival)}</dd></dl></div><div class="duplicate-box"><h4>CADASTRO JÁ EXISTENTE</h4><dl><dt>Nome</dt><dd>${esc(old.name)}</dd><dt>Telefone</dt><dd>${maskClientPhone(old.phone)}</dd><dt>CPF</dt><dd>${esc(old.cpf||'Não informado')}</dd><dt>Última visita</dt><dd>${fmtDate(old.lastVisit)}</dd><dt>Total de visitas</dt><dd>${old.totalVisits}</dd></dl></div></div>${matches.length>1?`<div class="validation-note" style="margin-top:12px">Existem ${matches.length} cadastros potencialmente relacionados. A confirmação abaixo vinculará ao cadastro exibido; se não for a mesma pessoa, será criado um registro separado e marcado para revisão.</div>`:''}<div class="form-actions"><button class="btn" onclick="resolveDuplicate(false)">Não, é outra pessoa</button><button class="btn primary" onclick="resolveDuplicate(true)">Sim, é a mesma pessoa</button></div>`;window.__pendingCheckin={pending,matches};el('modal').classList.add('show')}
 function resolveDuplicate(isSame){const bag=window.__pendingCheckin;if(!bag)return;closeModal();const {pending,matches}=bag;window.__pendingCheckin=null;if(isSame){const target=matches[0].c;pending.forceClientId=target.id;pending.samePersonConfirmed=true;if(normalizePhone(target.phone)!==normalizePhone(pending.phone)){target.previousPhones=Array.from(new Set([...(target.previousPhones||[]),target.phone].filter(Boolean)));target.phone=pending.phone}if(foldText(target.name)!==foldText(pending.name)&&pending.name)target.name=pending.name;finalizeCheckin(pending)}else{pending.allowDuplicate=true;pending.duplicateReview=true;finalizeCheckin(pending)}}
 async function finalizeCheckin(pending){
   pending.reservationId = findCheckinReservation(pending);
@@ -6925,15 +6937,20 @@ el('ciLookup').addEventListener('input', () => {
     clearSelectedCheckinClient();
   }
   clearTimeout(ciLookupDebounceTimer);
-  ciLookupDebounceTimer = setTimeout(renderCheckinLookup, 180);
+  ciLookupDebounceTimer = setTimeout(() => {
+    if(el('ciLookup').value.trim().length >= 3) notePhoneAuditRate('Muitas buscas de clientes em 5 minutos',25,el('ciHouse').value);
+    renderCheckinLookup();
+  },180);
 });
 
 el('ciLookup').addEventListener('keydown', e => {
   if(e.key === 'Enter'){
     e.preventDefault();
-    const firstMatch = el('ciLookupResults')?.querySelector('.lookup-item, .lookup-result-item');
-    if(firstMatch){
-      firstMatch.click();
+    const matches = el('ciLookupResults')?.querySelectorAll('.lookup-item, .lookup-result-item');
+    if(matches?.length === 1){
+      matches[0].click();
+    } else if(matches?.length > 1){
+      toast('Escolha o cliente pelo nome e pelo telefone mascarado.');
     } else {
       el('ciName')?.focus();
     }
@@ -6950,7 +6967,7 @@ el('ciPhone').addEventListener('input', e => {
   ciPhoneDebounceTimer = setTimeout(lookupCheckinClient, 180);
 });
 
-el('checkinForm').addEventListener('reset', () => { selectedCheckinReservationId = null; });
+el('checkinForm').addEventListener('reset', () => { selectedCheckinReservationId = null; clearSelectedCheckinClient(); });
 el('checkinForm').addEventListener('reset', () => setTimeout(() => {
   selectedCheckinClientId = null;
   el('clientFound').className = 'checkin-status';
@@ -6973,7 +6990,7 @@ window.toggleCiPriorityGroup = function(show) {
   }
 }
 
-el('checkinForm').onsubmit=e=>{e.preventDefault();let selected=selectedCheckinClientId?state.clients.find(x=>x.id===selectedCheckinClientId):null;const pv=validatePhone(el('ciPhone').value);if(!pv.ok){toast(pv.msg);el('ciPhone').focus();return}const nv=validateClientName(el('ciName').value);if(!selected&&!nv.ok){toast(nv.msg);el('ciName').focus();return}const name=selected?(normalizeName(el('ciName').value)||selected.name):nv.value;const pending={reservationId:selectedCheckinReservationId,selectedId:selected?.id||null,name,phone:pv.value,house:el('ciHouse').value,people:+el('ciPeople').value||1,table:el('ciTable').value.trim(),source:el('ciSource').value,arrival:currentClock(),notes:el('ciNotes').value.trim()};const matches=duplicateCandidates(pending.name,pending.phone,pending.selectedId);if(matches.length){showDuplicateConfirmation(pending,matches);return}finalizeCheckin(pending)}
+el('checkinForm').onsubmit=e=>{e.preventDefault();let selected=selectedCheckinClientId?state.clients.find(x=>x.id===selectedCheckinClientId):null;const reserved=selectedCheckinReservationId?state.reservations.find(r=>r.id===selectedCheckinReservationId):null;if((selected||reserved) && !checkinIdentityConfirmed(selected||reserved)){toast('Confira o nome e o telefone com o cliente. Se houver dúvida, peça a conferência adicional.');return}const pv=validatePhone(selected?.phone || reserved?.phone || el('ciPhone').value);if(!pv.ok){toast(pv.msg);el('ciPhone').focus();return}const nv=validateClientName(el('ciName').value);if(!selected&&!nv.ok){toast(nv.msg);el('ciName').focus();return}const name=selected?(normalizeName(el('ciName').value)||selected.name):nv.value;const pending={reservationId:selectedCheckinReservationId,selectedId:selected?.id||null,name,phone:pv.value,house:el('ciHouse').value,people:+el('ciPeople').value||1,table:el('ciTable').value.trim(),source:el('ciSource').value,arrival:currentClock(),notes:el('ciNotes').value.trim()};const matches=duplicateCandidates(pending.name,pending.phone,pending.selectedId);if(matches.length){showDuplicateConfirmation(pending,matches);return}finalizeCheckin(pending)}
 function renderCheckinStats(){
   const sessionH = normalizeHouseKey(getSessionHouse());
   const u = (typeof getCurrentUser === 'function') ? getCurrentUser() : null;
@@ -7189,7 +7206,7 @@ function renderReservations(){
           <div>
             <b>${esc(r.name)}</b>
             ${prioBadgesHtml}
-            <small style="display:block;margin-top:2px">${fmtPhone(r.phone)}</small>
+            <small style="display:block;margin-top:2px">${maskClientPhone(r.phone)}</small>
             ${r.source ? `<span class="badge" style="font-size:10px;margin-top:3px;display:inline-block">${esc(r.source)}</span>` : ''}
           </div>
         </div>
@@ -7650,6 +7667,7 @@ async function handleOverlayLogin(e){
   }
 
   if(!user){
+    notePhoneAuditRate('Falhas repetidas de login em 5 minutos',5);
     if(errBox){errBox.textContent = 'Usuário não encontrado no sistema.'; errBox.style.display = 'block';}
     return;
   }
@@ -7660,6 +7678,7 @@ async function handleOverlayLogin(e){
   }
 
   if(user.password !== pass){
+    notePhoneAuditRate('Falhas repetidas de login em 5 minutos',5,undefined,user.id);
     if(errBox){errBox.textContent = 'Senha incorreta. Verifique e tente novamente.'; errBox.style.display = 'block';}
     return;
   }
@@ -8659,7 +8678,7 @@ function renderReservationLookup(){
     box.innerHTML = '<div class="lookup-noresult"><b>Nenhum cadastro encontrado.</b><br>Confira a informação ou preencha nome e telefone abaixo para cadastrar a reserva.</div>';
     return;
   }
-  box.innerHTML = a.map(c => `<button type="button" class="lookup-item" onclick="selectReservationClient('${esc(c.id)}')"><div><div class="lookup-name">${esc(c.name)}</div><div class="lookup-meta">${esc(c.source||'Origem não informada')}</div></div><div><div class="lookup-label">Telefone</div><div class="lookup-value">${fmtPhone(c.phone)}</div></div><div><div class="lookup-label">Última visita</div><div class="lookup-value">${fmtDate(c.lastVisit)}</div></div><div><div class="lookup-label">Visitas</div><div class="lookup-value">${c.totalVisits}</div></div></button>`).join('');
+  box.innerHTML = a.map(c => `<button type="button" class="lookup-item" onclick="selectReservationClient('${esc(c.id)}')"><div><div class="lookup-name">${esc(c.name)}</div><div class="lookup-meta">${esc(c.source||'Origem não informada')}</div></div><div><div class="lookup-label">Telefone</div><div class="lookup-value">${maskClientPhone(c.phone)}</div></div><div><div class="lookup-label">Última visita</div><div class="lookup-value">${fmtDate(c.lastVisit)}</div></div><div><div class="lookup-label">Visitas</div><div class="lookup-value">${c.totalVisits}</div></div></button>`).join('');
 }
 
 function selectReservationClient(id){
@@ -8671,7 +8690,7 @@ function selectReservationClient(id){
   const box = el('rLookupResults');
   if(box){ box.className = 'lookup-results'; box.innerHTML = ''; }
   if(el('rName')) el('rName').value = c.name;
-  if(el('rPhone')) el('rPhone').value = fmtPhone(c.phone);
+  if(el('rPhone')){el('rPhone').value = maskClientPhone(c.phone);el('rPhone').readOnly = true;}
   if(c.source && el('rSource')) el('rSource').value = c.source;
 
   if(Array.isArray(c.priorities)){
@@ -8684,7 +8703,7 @@ function selectReservationClient(id){
   if(card){
     card.className = 'span2 selected-client-card show';
     const selPrioHtml = (c.priorities && c.priorities.length) ? `<div style="margin-top:6px">${renderPriorityBadges(c.priorities)}</div>` : '';
-    card.innerHTML = `<div style="display:flex;justify-content:space-between;gap:10px;align-items:center"><div><strong>✓ ${esc(cc.name)}</strong>${selPrioHtml}<div style="font-size:10px;color:var(--muted);margin-top:2px">Cliente existente selecionado</div></div><div style="display:flex;gap:6px"><button type="button" class="iconbtn" onclick="openEditClientModal('${esc(c.id)}')">✏️ Alterar dados</button><button type="button" class="iconbtn" onclick="clearSelectedReservationClient()">Trocar</button></div></div><div class="selected-grid"><div><span>Telefone</span><b>${fmtPhone(cc.phone)}</b></div><div><span>CPF</span><b>${esc(cc.cpf||'Não informado')}</b></div><div><span>Última visita</span><b>${fmtDate(cc.lastVisit)}</b></div><div><span>Total de visitas</span><b>${cc.totalVisits}</b></div></div>`;
+    card.innerHTML = `<div style="display:flex;justify-content:space-between;gap:10px;align-items:center"><div><strong>✓ ${esc(cc.name)}</strong>${selPrioHtml}<div style="font-size:10px;color:var(--muted);margin-top:2px">Cliente existente selecionado</div></div><div style="display:flex;gap:6px"><button type="button" class="iconbtn" onclick="openEditClientModal('${esc(c.id)}')">✏️ Alterar dados</button><button type="button" class="iconbtn" onclick="clearSelectedReservationClient()">Trocar</button></div></div><div class="selected-grid"><div><span>Telefone</span><b>${maskClientPhone(cc.phone)}</b></div><div><span>CPF</span><b>${esc(cc.cpf||'Não informado')}</b></div><div><span>Última visita</span><b>${fmtDate(cc.lastVisit)}</b></div><div><span>Total de visitas</span><b>${cc.totalVisits}</b></div></div>`;
   }
 }
 
@@ -8692,7 +8711,7 @@ function clearSelectedReservationClient(){
   selectedReservationClientId = null;
   if(el('rLookup')) el('rLookup').value = '';
   if(el('rName')) el('rName').value = '';
-  if(el('rPhone')) el('rPhone').value = '';
+  if(el('rPhone')){el('rPhone').value = '';el('rPhone').readOnly = false;}
   if(el('rSource')) el('rSource').value = 'Da casa';
   document.querySelectorAll('input[name="rPriority"]').forEach(cb => { cb.checked = false; });
   const card = el('rSelectedClientCard');
@@ -8884,7 +8903,7 @@ function openReservation(prefill=null, editId=null){
       id: resId,
       clientId: selectedReservationClientId || null,
       name: el('rName').value.trim(),
-      phone: digits(el('rPhone').value),
+      phone: digits(el('rPhone').readOnly ? state.clients.find(client=>client.id===selectedReservationClientId)?.phone : el('rPhone').value),
       people: +el('rPeople').value || 1,
       date: dVal,
       time: el('rTime').value,
@@ -8919,9 +8938,13 @@ function convertReservation(id){
   else{
     selectedCheckinClientId=null;
     el('ciLookup').value=r.name;
-    el('ciPhone').value=fmtPhone(r.phone);
+    el('ciPhone').value=maskClientPhone(r.phone);
+    el('ciPhone').readOnly=true;
     el('ciName').value=r.name;
-    lookupCheckinClient();
+    const card=el('selectedClientCard');
+    card.className='selected-client-card show';
+    card.style.display='block';
+    card.innerHTML='<strong>'+esc(r.name)+' • '+maskClientPhone(r.phone)+'</strong>'+checkinIdentityFields({id:r.id,name:r.name,phone:r.phone});
   }
   const priosToCheck = (r.priorities && r.priorities.length) ? r.priorities : (c?.priorities || []);
   if(priosToCheck && priosToCheck.length){
@@ -8994,7 +9017,7 @@ function openNewClient(){
 
 function segData(){const cc=state.clients.map(calcClient);return {'VIP ativo':cc.filter(c=>segmentOf(c)==='VIP ativo'),'Recorrentes':cc.filter(c=>c.totalVisits>=2),'Novos':cc.filter(c=>segmentOf(c)==='Novo'),'Em risco':cc.filter(c=>['Em risco','VIP em risco'].includes(segmentOf(c))),'Só Íconico':cc.filter(c=>c.iconico>0&&c.lena===0&&(c.cafe||0)===0&&(c.cafePousada||0)===0),'Só Leña':cc.filter(c=>c.lena>0&&c.iconico===0&&(c.cafe||0)===0&&(c.cafePousada||0)===0),'Só Bravo Café':cc.filter(c=>(c.cafe||0)>0&&c.iconico===0&&c.lena===0&&(c.cafePousada||0)===0),'Só Bravo Pousada':cc.filter(c=>(c.cafePousada||0)>0&&c.iconico===0&&c.lena===0&&(c.cafe||0)===0),'Cross-selling':cc.filter(c=>[c.iconico>0,c.lena>0,(c.cafe||0)>0,(c.cafePousada||0)>0].filter(Boolean).length>=2)}}
 function renderSegments(){const s=segData(),desc={'VIP ativo':'5+ visitas e retorno nos últimos 60 dias.','Recorrentes':'Clientes com duas ou mais visitas.','Novos':'Uma visita recente; janela ideal para estimular o segundo retorno.','Em risco':'Recorrentes afastados por mais de 90 dias.','Só Íconico':'Conhecem Íconico exclusivamente.','Só Leña':'Conhecem Leña exclusivamente.','Só Bravo Café':'Conhecem Bravo Café exclusivamente.','Só Bravo Pousada':'Conhecem Café da Bravo Pousada exclusivamente.','Cross-selling':'Conhecem 2 ou mais casas do grupo.'};el('segmentGrid').innerHTML=Object.entries(s).map(([k,a])=>`<button class="card seg-card" style="text-align:left;border:1px solid var(--line)" onclick="showSegment('${k}')"><h3>${k}</h3><div class="big">${a.length.toLocaleString('pt-BR')}</div><p>${desc[k]}</p></button>`).join('');if(selectedSegment)showSegment(selectedSegment)}
-function showSegment(k){selectedSegment=k;const a=segData()[k]||[];el('selectedSegmentLabel').textContent=`${k} • ${a.length} clientes`;el('segmentList').className='';el('segmentList').innerHTML=`<div class="table-wrap" style="max-height:420px"><table class="data-table"><thead><tr><th>Cliente</th><th>Telefone</th><th>Última visita</th><th>Visitas</th><th></th></tr></thead><tbody>${a.slice(0,100).map(c=>`<tr><td>${esc(c.name)}</td><td>${fmtPhone(c.phone)}</td><td>${fmtDate(c.lastVisit)}</td><td>${c.totalVisits}</td><td><button class="iconbtn" onclick="openProfile('${c.id}')">Ver</button></td></tr>`).join('')}</tbody></table></div>`}
+function showSegment(k){selectedSegment=k;const a=segData()[k]||[];el('selectedSegmentLabel').textContent=`${k} • ${a.length} clientes`;el('segmentList').className='';el('segmentList').innerHTML=`<div class="table-wrap" style="max-height:420px"><table class="data-table"><thead><tr><th>Cliente</th><th>Telefone</th><th>Última visita</th><th>Visitas</th><th></th></tr></thead><tbody>${a.slice(0,100).map(c=>`<tr><td>${esc(c.name)}</td><td>${maskClientPhone(c.phone)}</td><td>${fmtDate(c.lastVisit)}</td><td>${c.totalVisits}</td><td><button class="iconbtn" onclick="openProfile('${c.id}')">Ver</button></td></tr>`).join('')}</tbody></table></div>`}
 function renderIntelligence(){const cc=state.clients.map(calcClient),risk=cc.filter(c=>c.totalVisits>=2&&daysSince(c.lastVisit)>90),newRecent=cc.filter(c=>c.totalVisits<=1&&daysSince(c.lastVisit)<=30),vip=cc.filter(c=>c.totalVisits>=5&&daysSince(c.lastVisit)<=60);el('intelligenceList').innerHTML=`<div class="insight"><strong>Recuperação: ${risk.length} clientes</strong><p>Já voltaram pelo menos uma vez, mas estão há mais de 90 dias sem visita. É o público com sinal mais claro para campanha de retorno.</p></div><div class="insight"><strong>Segundo retorno: ${newRecent.length} clientes</strong><p>Clientes recentes com apenas uma visita. Janela útil para transformar aquisição em recorrência.</p></div><div class="insight"><strong>Relacionamento VIP: ${vip.length} clientes</strong><p>Clientes de alta frequência ainda ativos. Podem receber tratamento de fidelização e reconhecimento.</p></div>`;const onlyI=cc.filter(c=>c.iconico>0&&c.lena===0),onlyL=cc.filter(c=>c.lena>0&&c.iconico===0),both=cc.filter(c=>c.iconico>0&&c.lena>0),mx=Math.max(onlyI.length,onlyL.length,both.length,1);el('crossHouse').innerHTML=[['Só Íconico',onlyI.length],['Só Leña',onlyL.length],['Conhecem as duas',both.length]].map(([k,n])=>`<div class="barrow"><span>${k}</span><div class="bartrack"><div class="bar" style="width:${n/mx*100}%"></div></div><strong>${n}</strong></div>`).join('')}
 function getPublicBaseUrl(){
   const saved=localStorage.getItem('qu4tro_public_base_url');
@@ -9865,7 +9888,7 @@ function renderCommunication(){
           </div>
         </td>
         <td style="font-size:12px;font-family:monospace;white-space:nowrap">
-          <span style="cursor:pointer;color:#2563eb" onclick="copyVoucherCode('${clientPhone}')" title="Clique para copiar telefone">${fmtPhone(clientPhone)} 📋</span>
+          <span>${maskClientPhone(clientPhone)}</span>
         </td>
         <td style="font-size:12px">
           <div style="display:flex;flex-direction:column;gap:2px">
@@ -9985,7 +10008,7 @@ function buildCommComposerModalHtml(data){
           <span style="font-size:18px">👤</span>
           <div>
             <strong style="font-size:13px;color:#0f172a">${esc(data.clientName)}</strong>
-            <span style="font-size:12px;color:var(--muted);margin-left:6px">${fmtPhone(data.clientPhone)}</span>
+            <span style="font-size:12px;color:var(--muted);margin-left:6px">${maskClientPhone(data.clientPhone)}</span>
           </div>
         </div>
         <div style="display:flex;align-items:center;gap:8px">
@@ -10463,7 +10486,7 @@ function filterFreeCommClientDropdown(query){
   res.style.display = 'block';
   res.innerHTML = clients.map(c => `
     <div style="padding:8px 10px;cursor:pointer;border-bottom:1px solid #f1f5f9;font-size:12px" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='#fff'" onclick="selectFreeCommClient('${c.id}', '${esc(c.name)}', '${esc(c.phone)}', '${esc(c.firstHouse||'Bravo Café')}')">
-      <strong>${esc(c.name)}</strong> • <span style="color:var(--muted)">${fmtPhone(c.phone)}</span> • <span class="badge blue" style="font-size:10px">${esc(c.firstHouse||'Bravo Café')}</span>
+      <strong>${esc(c.name)}</strong> • <span style="color:var(--muted)">${maskClientPhone(c.phone)}</span> • <span class="badge blue" style="font-size:10px">${esc(c.firstHouse||'Bravo Café')}</span>
     </div>
   `).join('');
 }
@@ -10513,7 +10536,9 @@ function exportCommunicationCSV(){
   const tbody = el('commTableBody');
   if(!tbody) return;
 
-  const rows = Array.isArray(state.visits) ? [...state.visits] : [];
+  const allowed = new Set(crmScopeHouses());
+  const rows = (state.visits || []).filter(visit=>allowed.has(normalizeHouseKey(visit.house)));
+  const full = choosePhoneExport('Comunicação',rows.length);
   let csv = '\ufeffData;Horario;Casa;Cliente;Telefone;Mesa;Voucher_Codigo;Voucher_Status;Voucher_Desconto;Status_WhatsApp;Total_Mensagens_Enviadas;Ultima_Mensagem_Data\n';
 
   rows.forEach(v => {
@@ -10528,7 +10553,7 @@ function exportCommunicationCSV(){
     const hr = v.arrival || '';
     const h = v.house || '';
     const name = (v.name || (client ? client.name : '')).replace(/;/g, ' ');
-    const phone = fmtPhone(v.phone || (client ? client.phone : ''));
+    const phone = (full ? fmtPhone : maskClientPhone)(v.phone || (client ? client.phone : ''));
     const table = v.table || '';
     const vCode = vch ? vch.code : '';
     const vStatus = vch ? vch.status : '';
@@ -10653,7 +10678,7 @@ function renderVouchersList(){
         <td>
           <div class="vch-client-cell">
             ${clientLink}
-            <span class="vch-client-phone">${fmtPhone(v.clientPhone)}</span>
+            <span class="vch-client-phone">${maskClientPhone(v.clientPhone)}</span>
           </div>
         </td>
         <td><span class="badge blue" style="font-size:11px">${esc(v.house)}</span></td>
@@ -10751,7 +10776,7 @@ function openSendVoucherWppModal(voucherId){
   el('modalTitle').textContent = 'Enviar Mensagem com Voucher via WhatsApp';
   el('modalBody').innerHTML = `
     <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:12px 14px;margin-bottom:14px;font-size:12.5px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px">
-      <div><strong>Destinatário:</strong> ${esc(v.clientName || 'Cliente')} (${esc(fmtPhone(v.clientPhone))})</div>
+      <div><strong>Destinatário:</strong> ${esc(v.clientName || 'Cliente')} (${esc(maskClientPhone(v.clientPhone))})</div>
       <div><strong>Casa:</strong> <span class="badge blue" style="font-size:11px">${esc(v.house)}</span> • <strong>Voucher:</strong> <code style="font-weight:700;color:#047857">${esc(v.code)}</code></div>
     </div>
 
@@ -11095,7 +11120,7 @@ function openNewVoucherModal(targetClientId = null){
   el('modalTitle').textContent = 'Emitir Novo Voucher de Desconto';
   
   const clientOptions = state.clients.slice(0, 80).map(c => 
-    `<option value="${esc(c.id)}" ${targetClientId === c.id ? 'selected' : ''}>${esc(c.name)} • ${fmtPhone(c.phone)}</option>`
+    `<option value="${esc(c.id)}" ${targetClientId === c.id ? 'selected' : ''}>${esc(c.name)} • ${maskClientPhone(c.phone)}</option>`
   ).join('');
 
   el('modalBody').innerHTML = `
@@ -11169,11 +11194,12 @@ function exportVouchersCSV(){
   const rows = getFilteredVouchers();
   if(!rows.length){ toast('Nenhum voucher para exportar.'); return; }
 
+  const full = choosePhoneExport('Vouchers',rows.length);
   const headers = ['Código', 'Cliente', 'Telefone', 'Casa', 'Desconto (%)', 'Data Emissão', 'Data Expiração', 'Dias Restantes', 'Status', 'Enviado WhatsApp', 'Data Envio WPP', 'Data Utilização'];
   const body = rows.map(v => [
     v.code,
     v.clientName,
-    v.clientPhone,
+    (full ? fmtPhone : maskClientPhone)(v.clientPhone),
     v.house,
     v.discountPercent || 12,
     v.createdAt ? v.createdAt.split('T')[0] : '',
@@ -11347,10 +11373,10 @@ function submitPublicRegistration(e){
 }
 el('publicForm').onsubmit=submitPublicRegistration;el('pubName').oninput=()=>markField('pubNameField','pubNameError','');el('pubPhone').oninput=()=>markField('pubPhoneField','pubPhoneError','');
 function renderData(){el('dataStats').textContent=`Base local atual: ${state.clients.length.toLocaleString('pt-BR')} clientes • ${state.visits.length.toLocaleString('pt-BR')} visitas • ${state.reservations.length} reservas.`}
-function exportBackup(){const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='grupo_qu4tro_backup.json';a.click();URL.revokeObjectURL(a.href)}
+function exportBackup(){if(!canExportFullClientPhones()){toast('Somente um Master pode exportar a base completa.');return;}if(!confirm('O backup inclui dados pessoais. Confirma a exportação?'))return;notePhoneAudit('Exportação de backup completo',getSessionHouse(),state.clients.length);notePhoneAuditRate('Exportações repetidas em 5 minutos',3);const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='grupo_qu4tro_backup.json';a.click();URL.revokeObjectURL(a.href)}
 el('backupInput').onchange=e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{try{const d=JSON.parse(rd.result);if(!d.clients||!d.visits)throw Error();state=d;save();toast('Backup importado com sucesso.')}catch{toast('Arquivo de backup inválido.')}};rd.readAsText(f)}
 function resetData(){if(!confirm('Restaurar a base inicial deste protótipo? Alterações locais serão apagadas.'))return;state=structuredClone(SEED_DATA);save();toast('Base inicial restaurada.')}
-function exportCSV(type){const rows=type==='clients'?getFilteredClients():state.visits;let headers,body;if(type==='clients'){headers=['Nome','Telefone','Prioridades','Primeira visita','Última visita','Visitas Iconico','Visitas Lena','Visitas Bravo Cafe','Visitas Bravo Pousada','Total','Origem','Segmento'];body=rows.map(c=>[c.name,c.phone,(c.priorities||[]).join(', '),c.firstVisit,c.lastVisit,c.iconico,c.lena,c.cafe||0,c.cafePousada||0,c.totalVisits,c.source,segmentOf(c)])}const csv=[headers,...body].map(r=>r.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(';')).join('\n');const blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='grupo_qu4tro_clientes.csv';a.click();URL.revokeObjectURL(a.href)}
+function exportCSV(type){const rows=type==='clients'?getFilteredClients():state.visits;const full=choosePhoneExport('Clientes',rows.length);let headers,body;if(type==='clients'){headers=['Nome','Telefone','Prioridades','Primeira visita','Última visita','Visitas Iconico','Visitas Lena','Visitas Bravo Cafe','Visitas Bravo Pousada','Total','Origem','Segmento'];body=rows.map(c=>[c.name,(full?fmtPhone:maskClientPhone)(c.phone),(c.priorities||[]).join(', '),c.firstVisit,c.lastVisit,c.iconico,c.lena,c.cafe||0,c.cafePousada||0,c.totalVisits,c.source,segmentOf(c)])}const csv=[headers,...body].map(r=>r.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(';')).join('\n');const blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='grupo_qu4tro_clientes.csv';a.click();URL.revokeObjectURL(a.href)}
 function refreshActiveView(){
   if(typeof updateDuplicateBadgesAndBanners === 'function') updateDuplicateBadgesAndBanners();
   const activeSection = document.querySelector('section.view.active');
@@ -11559,7 +11585,7 @@ function renderWaitlist(){
             <div class="avatar">${initials(w.name)}</div>
             <div>
               <b>${esc(w.name)}</b>
-              <br><small style="color:var(--muted)">${fmtPhone(w.phone)} • <span style="font-weight:600;color:var(--ink)">${esc(houseLabel(w.house))}</span></small>
+              <br><small style="color:var(--muted)">${maskClientPhone(w.phone)} • <span style="font-weight:600;color:var(--ink)">${esc(houseLabel(w.house))}</span></small>
             </div>
           </div>
         </td>
@@ -11730,7 +11756,7 @@ function renderWaitlistLookup(){
     box.innerHTML = '<div class="lookup-noresult"><b>Nenhum cadastro encontrado.</b><br>Confira a informação ou preencha nome e telefone abaixo para cadastrar na fila.</div>';
     return;
   }
-  box.innerHTML = a.map(c => `<button type="button" class="lookup-item" onclick="selectWaitlistClient('${esc(c.id)}')"><div><div class="lookup-name">${esc(c.name)}</div><div class="lookup-meta">${esc(c.source||'Origem não informada')}</div></div><div><div class="lookup-label">Telefone</div><div class="lookup-value">${fmtPhone(c.phone)}</div></div><div><div class="lookup-label">Última visita</div><div class="lookup-value">${fmtDate(c.lastVisit)}</div></div><div><div class="lookup-label">Visitas</div><div class="lookup-value">${c.totalVisits}</div></div></button>`).join('');
+  box.innerHTML = a.map(c => `<button type="button" class="lookup-item" onclick="selectWaitlistClient('${esc(c.id)}')"><div><div class="lookup-name">${esc(c.name)}</div><div class="lookup-meta">${esc(c.source||'Origem não informada')}</div></div><div><div class="lookup-label">Telefone</div><div class="lookup-value">${maskClientPhone(c.phone)}</div></div><div><div class="lookup-label">Última visita</div><div class="lookup-value">${fmtDate(c.lastVisit)}</div></div><div><div class="lookup-label">Visitas</div><div class="lookup-value">${c.totalVisits}</div></div></button>`).join('');
 }
 
 function selectWaitlistClient(clientId){
@@ -11747,7 +11773,7 @@ function selectWaitlistClient(clientId){
   }
 
   if(el('wlName')) el('wlName').value = c.name;
-  if(el('wlPhone')) el('wlPhone').value = fmtPhone(c.phone);
+  if(el('wlPhone')){el('wlPhone').value = maskClientPhone(c.phone);el('wlPhone').readOnly = true;}
 
   // Auto-check priorities if client had any
   if(Array.isArray(c.priorities)){
@@ -11760,7 +11786,7 @@ function selectWaitlistClient(clientId){
   if(card){
     card.className = 'span2 selected-client-card show';
     const selPrioHtml = (c.priorities && c.priorities.length) ? `<div style="margin-top:6px">${renderPriorityBadges(c.priorities)}</div>` : '';
-    card.innerHTML = `<div style="display:flex;justify-content:space-between;gap:10px;align-items:center"><div><strong>✓ ${esc(cc.name)}</strong>${selPrioHtml}<div style="font-size:10px;color:var(--muted);margin-top:2px">Cliente existente selecionado</div></div><button type="button" class="iconbtn" onclick="clearSelectedWaitlistClient()">Trocar</button></div><div class="selected-grid"><div><span>Telefone</span><b>${fmtPhone(cc.phone)}</b></div><div><span>CPF</span><b>${esc(cc.cpf||'Não informado')}</b></div><div><span>Última visita</span><b>${fmtDate(cc.lastVisit)}</b></div><div><span>Total de visitas</span><b>${cc.totalVisits}</b></div></div>`;
+    card.innerHTML = `<div style="display:flex;justify-content:space-between;gap:10px;align-items:center"><div><strong>✓ ${esc(cc.name)}</strong>${selPrioHtml}<div style="font-size:10px;color:var(--muted);margin-top:2px">Cliente existente selecionado</div></div><button type="button" class="iconbtn" onclick="clearSelectedWaitlistClient()">Trocar</button></div><div class="selected-grid"><div><span>Telefone</span><b>${maskClientPhone(cc.phone)}</b></div><div><span>CPF</span><b>${esc(cc.cpf||'Não informado')}</b></div><div><span>Última visita</span><b>${fmtDate(cc.lastVisit)}</b></div><div><span>Total de visitas</span><b>${cc.totalVisits}</b></div></div>`;
   }
 }
 
@@ -11768,7 +11794,7 @@ function clearSelectedWaitlistClient(){
   selectedWaitlistClientId = null;
   if(el('wlLookup')) el('wlLookup').value = '';
   if(el('wlName')) el('wlName').value = '';
-  if(el('wlPhone')) el('wlPhone').value = '';
+  if(el('wlPhone')){el('wlPhone').value = '';el('wlPhone').readOnly = false;}
   document.querySelectorAll('input[name="wlPriority"]').forEach(cb => cb.checked = false);
   const card = el('wlSelectedClientCard');
   if(card){
@@ -11896,7 +11922,8 @@ async function refreshIconikoPreCheckins(){
 async function handleSaveWaitlistEntry(e){
   e.preventDefault();
   const name = (el('wlName')?.value || '').trim();
-  const phoneVal = validatePhone(el('wlPhone')?.value || '');
+  const selected = state.clients.find(client=>client.id===selectedWaitlistClientId);
+  const phoneVal = validatePhone(selected?.phone || el('wlPhone')?.value || '');
   if(!phoneVal.ok){
     toast(phoneVal.msg);
     el('wlPhone')?.focus();
@@ -11999,7 +12026,7 @@ function openWaitlistCheckinModal(id){
           <span class="timer-badge timer-good">⏱️ Aguardou ${waitMins} min</span>
         </div>
         <div style="font-size:12.5px;color:var(--muted)">
-          👥 <strong>${w.people} pessoas</strong> • 📍 ${esc(houseLabel(w.house))} • Chegada: <strong>${esc(w.timeRegistered || '—')}</strong>
+          Telefone: <strong>${maskClientPhone(w.phone)}</strong> • 👥 <strong>${w.people} pessoas</strong> • 📍 ${esc(houseLabel(w.house))} • Chegada: <strong>${esc(w.timeRegistered || '—')}</strong>
         </div>
         ${w.preference ? `<div style="margin-top:6px;font-size:12px;color:#334155">🪑 Preferência informada: <strong>${esc(w.preference)}</strong></div>` : ''}
         ${w.notes ? `<div style="margin-top:4px;font-size:11.5px;color:var(--muted)">📝 ${esc(w.notes)}</div>` : ''}
@@ -12034,7 +12061,7 @@ function openWaitlistCheckinModal(id){
 const waitlistCheckinsInProgress = new Set();
 async function allocateWaitlistClientToTable(id, table, extraNotes = ''){
   const w = state.waitlist.find(x => x.id === id);
-  if(!w) return;
+  if(!w || !confirmWaitlistIdentity(w)) return;
 
   const now = Date.now();
   const waitMins = Math.max(1, Math.round((now - (w.createdAt || now)) / 60000));
@@ -13086,7 +13113,7 @@ function openAllocateWaitlistToTableModal(tableNumber){
                 <div style="font-size:12px;color:var(--muted);display:flex;align-items:center;gap:8px;margin-top:2px">
                   <span>👥 ${w.people} pessoas</span>
                   <span>⏱ ${mins} min de espera</span>
-                  <span>📱 ${fmtPhone(w.phone)}</span>
+                  <span>📱 ${maskClientPhone(w.phone)}</span>
                 </div>
                 ${prefs ? `<div style="margin-top:4px">${prefs}</div>` : ''}
               </div>
