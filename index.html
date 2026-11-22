@@ -1263,6 +1263,9 @@ input:checked + .slider:before {
   font-weight: 800;
 }
 
+button.crm-confirm-action,input.crm-confirm-action{background:#bbf7d0!important;border-color:#86efac!important;color:#14532d!important;box-shadow:none!important}
+button.crm-confirm-action:disabled,input.crm-confirm-action:disabled{background:#f1f5f9!important;border-color:#dbe3eb!important;color:#64748b!important;opacity:1!important;cursor:not-allowed}
+button.crm-confirm-action:not(:disabled):hover{background:#a7f3c0!important}
 #reservationsBody .reservation-table-emphasis{color:#0f172a;font:inherit;font-weight:700}
 #reservationsBody .reservation-contact{display:block;margin-top:2px}
 #reservationsBody tr.reservation-arrived td{background:#edf9f0}
@@ -2036,7 +2039,7 @@ input:checked + .slider:before {
 
   <section class="view" id="view-qrcodes">
    <div class="hero"><div><h2>QR Codes de Cadastro</h2><p>Autoatendimento para novos clientes na recepção de cada casa.</p></div></div>
-   <div class="card" id="qrBaseUrlConfigCard" style="margin-bottom:14px"><div class="section-title"><h3>URL pública do cadastro</h3><small>configurável para o deploy</small></div><div class="field"><label>Endereço-base</label><input id="publicBaseUrl" placeholder="https://seu-dominio.com/gestao-clientes"></div><div class="validation-note">No arquivo local, os botões de teste funcionam normalmente. Para o QR ser lido por outro celular, o HTML precisa estar publicado em um endereço web acessível.</div><div class="form-actions"><button class="btn primary" onclick="savePublicBaseUrl()">Salvar URL e atualizar QR Codes</button></div></div>
+   <div class="card" id="qrBaseUrlConfigCard" style="margin-bottom:14px"><div class="section-title"><h3>URL pública do cadastro</h3><small>configurável para o deploy</small></div><div class="field"><label>Endereço-base</label><input id="publicBaseUrl" placeholder="https://seu-dominio.com/gestao-clientes"></div><div class="validation-note">No arquivo local, os botões de teste funcionam normalmente. Para o QR ser lido por outro celular, o HTML precisa estar publicado em um endereço web acessível.</div><div class="form-actions"><button class="btn primary" onclick="savePublicBaseUrl()" data-crm-confirm-field="publicBaseUrl" data-crm-requires-change>Salvar URL e atualizar QR Codes</button></div></div>
    <div class="qr-grid">
 <div class="card qr-card house-lena"><img class="qr-house-logo" src="data:image/png;base64,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" alt="Leña Casa Italiana"><h3>Cadastro público • Leña</h3><p style="font-size:12px;color:var(--muted)">O cliente entra por este QR e a origem Leña fica gravada automaticamente.</p><div class="qr-code-frame"><div class="qr-img" id="qrLena"></div><div class="qr-caption">LEÑA CASA ITALIANA</div></div><div class="qr-url" id="urlLena"></div><div class="actions-row" style="justify-content:center;margin-top:12px"><button class="btn" onclick="testPublicRegistration('lena')">Testar formulário</button><button class="btn" onclick="copyPublicUrl('lena')">Copiar link</button></div>
 <div class="qr-review-toggle-card" id="qrReviewCard_lena">
@@ -2058,7 +2061,7 @@ input:checked + .slider:before {
     <label style="font-size:11px;color:var(--muted)">Link Google Meu Negócio:</label>
     <div style="display:flex;gap:6px;margin-top:3px">
       <input type="url" id="inputGoogleReview_lena" class="control" style="font-size:11px;padding:6px 8px" placeholder="https://g.page/r/.../review">
-      <button type="button" class="btn" style="font-size:11px;padding:6px 10px" onclick="saveHouseGoogleReviewUrl('Leña', 'inputGoogleReview_lena')">Salvar</button>
+      <button type="button" class="btn" style="font-size:11px;padding:6px 10px" onclick="saveHouseGoogleReviewUrl('Leña', 'inputGoogleReview_lena')" data-crm-confirm-field="inputGoogleReview_lena" data-crm-requires-change>Salvar</button>
     </div>
   </div>
   <div style="display:flex;gap:6px;margin-top:8px">
@@ -2085,7 +2088,7 @@ input:checked + .slider:before {
     <label style="font-size:11px;color:var(--muted)">Link Google Meu Negócio:</label>
     <div style="display:flex;gap:6px;margin-top:3px">
       <input type="url" id="inputGoogleReview_iconiko" class="control" style="font-size:11px;padding:6px 8px" placeholder="https://g.page/r/.../review">
-      <button type="button" class="btn" style="font-size:11px;padding:6px 10px" onclick="saveHouseGoogleReviewUrl('Íconico', 'inputGoogleReview_iconiko')">Salvar</button>
+      <button type="button" class="btn" style="font-size:11px;padding:6px 10px" onclick="saveHouseGoogleReviewUrl('Íconico', 'inputGoogleReview_iconiko')" data-crm-confirm-field="inputGoogleReview_iconiko" data-crm-requires-change>Salvar</button>
     </div>
   </div>
   <div style="display:flex;gap:6px;margin-top:8px">
@@ -2114,7 +2117,7 @@ input:checked + .slider:before {
     <label style="font-size:11px;color:#92400e;font-weight:700">Link Google Meu Negócio do Bravo Café:</label>
     <div style="display:flex;gap:6px;margin-top:3px">
       <input type="url" id="inputGoogleReview_cafe" class="control" style="font-size:11px;padding:6px 8px;font-weight:600" placeholder="https://www.google.com/maps/search/Bravo+Café+Cabo+Frio">
-      <button type="button" class="btn primary" style="font-size:11px;padding:6px 10px;background:#d97706;border-color:#b45309" onclick="saveHouseGoogleReviewUrl('Bravo Café', 'inputGoogleReview_cafe')">Salvar</button>
+      <button type="button" class="btn primary" style="font-size:11px;padding:6px 10px;background:#d97706;border-color:#b45309" onclick="saveHouseGoogleReviewUrl('Bravo Café', 'inputGoogleReview_cafe')" data-crm-confirm-field="inputGoogleReview_cafe" data-crm-requires-change>Salvar</button>
     </div>
   </div>
   <div style="display:flex;gap:6px;margin-top:8px">
@@ -2141,7 +2144,7 @@ input:checked + .slider:before {
     <label style="font-size:11px;color:var(--muted)">Link Google Meu Negócio:</label>
     <div style="display:flex;gap:6px;margin-top:3px">
       <input type="url" id="inputGoogleReview_cafepousada" class="control" style="font-size:11px;padding:6px 8px" placeholder="https://www.google.com/maps/search/Café+da+Bravo+Pousada+Cabo+Frio">
-      <button type="button" class="btn" style="font-size:11px;padding:6px 10px" onclick="saveHouseGoogleReviewUrl('Café da Bravo Pousada', 'inputGoogleReview_cafepousada')">Salvar</button>
+      <button type="button" class="btn" style="font-size:11px;padding:6px 10px" onclick="saveHouseGoogleReviewUrl('Café da Bravo Pousada', 'inputGoogleReview_cafepousada')" data-crm-confirm-field="inputGoogleReview_cafepousada" data-crm-requires-change>Salvar</button>
     </div>
   </div>
   <div style="display:flex;gap:6px;margin-top:8px">
@@ -2165,7 +2168,7 @@ input:checked + .slider:before {
       <h3>Diário local de 72 horas</h3>
       <p>Selecione uma pasta privada deste terminal. O arquivo fica no Windows e o CRM remove os registros vencidos quando estiver aberto.</p>
       <p id="browserJournalStatus" role="status">Verificando o diário deste terminal…</p>
-      <form onsubmit="browserJournalConnect(event)">
+      <form id="browserJournalForm" onsubmit="browserJournalConnect(event)">
         <label for="browserJournalPhrase">Frase de recuperação do diário</label>
         <div style="display:flex;gap:8px;align-items:center">
           <input id="browserJournalPhrase" type="password" class="control" minlength="14" required autocomplete="new-password">
@@ -2180,7 +2183,7 @@ input:checked + .slider:before {
   </section>
 
 <section class="view" id="view-settings">
-<div class="hero"><div><h2>Configurações do Sistema</h2><p>Parâmetros operacionais, regras de aceitação de reservas e limites individualizados por casa.</p></div><div class="actions-row"><button class="btn primary" onclick="saveSettingsForm()" id="btnSaveSettings">💾 Salvar Configurações</button></div></div>
+<div class="hero"><div><h2>Configurações do Sistema</h2><p>Parâmetros operacionais, regras de aceitação de reservas e limites individualizados por casa.</p></div><div class="actions-row"><button class="btn primary" type="submit" form="settingsForm" id="btnSaveSettings">💾 Salvar Configurações</button></div></div>
 
 <div class="settings-house-bar" id="settingsHouseTabs">
   <button type="button" class="settings-house-tab" data-house="Bravo Café" onclick="switchSettingsHouse('Bravo Café')">
@@ -2290,6 +2293,7 @@ input:checked + .slider:before {
 <script src="crm-journal-browser.js?v=1.0.74"></script>
 <script src="crm-journal.js?v=1.0.77"></script>
 <script src="crm-phone-privacy.js?v=1.0.77"></script>
+<script src="crm-action-readiness.js?v=1.0.81"></script>
 <script src="crm-sync.js?v=1.0.78"></script>
 <script src="reservation-attendance.js?v=1.0.63"></script>
 <script>
@@ -7242,7 +7246,7 @@ function renderReservations(){
         <div class="actions-row">
           <button type="button" class="iconbtn" style="color:#15803d;background:#f0fdf4;border:1px solid #bbf7d0;font-weight:700" onclick="openReservationWhatsApp('${r.id}')" title="Conversar com ${esc(r.name)} no WhatsApp">💬 WhatsApp</button>
           <button type="button" class="iconbtn" onclick="openEditReservation('${r.id}')" title="Editar dados da reserva">✏️ Editar</button>
-          <button type="button" class="iconbtn" onclick="convertReservation('${r.id}')" ${outcome.visit || r.status === 'Cancelada' || normalizeDateIso(r.date) !== getLocalDateStr(0) ? 'disabled' : ''} title="Registrar chegada de hoje">Check-in</button>
+          <button type="button" class="iconbtn crm-confirm-action" onclick="convertReservation('${r.id}')" ${outcome.visit || r.status === 'Cancelada' || normalizeDateIso(r.date) !== getLocalDateStr(0) ? 'disabled' : ''} title="Registrar chegada de hoje">Check-in</button>
           <button type="button" class="iconbtn" onclick="openReservationAttendance('${r.id}')">Conferir presença</button>
           <button type="button" class="iconbtn" onclick="cycleReservation('${r.id}')" title="Alternar status">Status</button>
           <button type="button" class="iconbtn danger" style="color:#b91c1c;background:#fef2f2;border:1px solid #fecaca" onclick="deleteReservation('${r.id}')" title="Excluir reserva">Excluir</button>
@@ -7922,6 +7926,7 @@ function renderSettings(){
   if (el('cfgMaxReservationsPerDay')) el('cfgMaxReservationsPerDay').value = cfg.maxReservationsPerDay || 20;
   if (el('cfgMaxDailyPeople')) el('cfgMaxDailyPeople').value = cfg.maxDailyPeople || 60;
   if (el('cfgRestrictWeekends')) el('cfgRestrictWeekends').checked = cfg.restrictWeekends !== false;
+  crmResetFormBaseline(el('settingsForm'));
 
   const box = el('settingsSummaryCards');
   if (!box) return;
@@ -8649,7 +8654,7 @@ function showReservationExceptionModal(pending, violations){
 
       <div class="form-actions" style="display:flex;justify-content:flex-end;gap:10px">
         <button type="button" class="btn" onclick="openReservation(window.__pendingRes)">Voltar / Alterar</button>
-        <button type="button" class="btn primary" style="background:#b45309;border-color:#b45309" onclick="confirmReservationWithException()">Confirmar reserva com exceção</button>
+        <button type="button" class="btn primary" style="background:#b45309;border-color:#b45309" data-crm-confirm-field="rExceptionReason" onclick="confirmReservationWithException()">Confirmar reserva com exceção</button>
       </div>
     </div>
   `;
@@ -8783,7 +8788,7 @@ function openReservation(prefill=null, editId=null){
   if(!prefillSource) prefillSource = 'Da casa';
 
   el('modalBody').innerHTML = `
-    <form id="reservationForm">
+    <form id="reservationForm" data-requires-change="${!!isEditing}">
       <div class="form-grid">
         <!-- Localizar cliente existente -->
         <div class="field span2 client-lookup" ${isEditing ? 'style="display:none"' : ''}>
@@ -9393,6 +9398,8 @@ function saveHouseGoogleReviewUrl(houseKey, inputId){
 
   state.settingsByHouse[hKey].googleReviewUrl = url;
   saveFast();
+  input.defaultValue=url;
+  crmRefreshActionForms();
   toast(`Link do Google Meu Negócio salvo para ${hKey}!`);
 }
 
@@ -9413,7 +9420,7 @@ function renderQRReviewSettings(){
 
     const isEnabled = cfg.googleReviewEnabled !== false;
     if(chk) chk.checked = isEnabled;
-    if(inp) inp.value = cfg.googleReviewUrl || h.defaultUrl;
+    if(inp){inp.value = cfg.googleReviewUrl || h.defaultUrl;inp.defaultValue=inp.value;}
     if(card) card.classList.toggle('active', isEnabled);
     if(bdg){
       bdg.innerHTML = isEnabled
@@ -10941,7 +10948,7 @@ function openWppTemplateEditorModal(templateId = null){
 
   el('modalTitle').textContent = isEditing ? 'Editar Modelo de Mensagem WhatsApp' : 'Cadastrar Novo Modelo de WhatsApp';
   el('modalBody').innerHTML = `
-    <form id="wppTmplForm" onsubmit="event.preventDefault(); saveWppTemplate('${esc(templateId || '')}');">
+    <form id="wppTmplForm" data-requires-change="${!!templateId}" onsubmit="event.preventDefault(); saveWppTemplate('${esc(templateId || '')}');">
       <div class="field" style="margin-bottom:12px">
         <label style="font-weight:700;margin-bottom:4px;display:block">Título / Identificação do Modelo *</label>
         <input type="text" id="wppTmplTitleInput" class="control" required value="${esc(titleVal)}" placeholder="Ex: Entrega do Voucher 12%, Lembrete 72h..." style="font-weight:600">
@@ -11241,7 +11248,7 @@ function exportVouchersCSV(){
 }
 
 
-function renderQRCodes(){const base=getPublicBaseUrl();if(el('publicBaseUrl'))el('publicBaseUrl').value=base;const lena=publicUrl('lena'),ico=publicUrl('iconiko'),cafe=publicUrl('cafe'),cafepousada=publicUrl('cafedabravopousada');if(el('urlLena'))el('urlLena').textContent=lena;if(el('urlIconiko'))el('urlIconiko').textContent=ico;if(el('urlCafe'))el('urlCafe').textContent=cafe;if(el('urlCafePousada'))el('urlCafePousada').textContent=cafepousada;drawQr('qrLena',lena);drawQr('qrIconiko',ico);drawQr('qrCafe',cafe);if(el('qrCafePousada'))drawQr('qrCafePousada',cafepousada); renderQRReviewSettings();}
+function renderQRCodes(){const base=getPublicBaseUrl();if(el('publicBaseUrl')){el('publicBaseUrl').value=base;el('publicBaseUrl').defaultValue=base;}const lena=publicUrl('lena'),ico=publicUrl('iconiko'),cafe=publicUrl('cafe'),cafepousada=publicUrl('cafedabravopousada');if(el('urlLena'))el('urlLena').textContent=lena;if(el('urlIconiko'))el('urlIconiko').textContent=ico;if(el('urlCafe'))el('urlCafe').textContent=cafe;if(el('urlCafePousada'))el('urlCafePousada').textContent=cafepousada;drawQr('qrLena',lena);drawQr('qrIconiko',ico);drawQr('qrCafe',cafe);if(el('qrCafePousada'))drawQr('qrCafePousada',cafepousada); renderQRReviewSettings();}
 function savePublicBaseUrl(){const v=el('publicBaseUrl').value.trim();if(!v){toast('Informe a URL pública.');return}localStorage.setItem('qu4tro_public_base_url',v.replace(/[?#].*$/,''));renderQRCodes();toast('URL pública atualizada.')}
 function testPublicRegistration(house){history.replaceState(null,'',location.pathname+'?public='+house);initPublicMode(house)}
 function copyPublicUrl(house){navigator.clipboard?.writeText(publicUrl(house)).then(()=>toast('Link copiado.')).catch(()=>toast(publicUrl(house)))}
