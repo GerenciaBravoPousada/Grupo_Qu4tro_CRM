@@ -84,6 +84,14 @@ async function browserJournalWrite(handle, header, rows){
   }
 }
 
+function browserJournalTogglePhrase(button){
+  const input = document.getElementById('browserJournalPhrase');
+  if(!input) return;
+  const show = input.type === 'password';
+  input.type = show ? 'text' : 'password';
+  button.textContent = show ? 'Ocultar frase' : 'Mostrar frase';
+}
+
 async function browserJournalConnect(event){
   event.preventDefault();
   if(browserJournalConnecting || !browserJournalSupported || !state.currentUser) return;
@@ -96,7 +104,7 @@ async function browserJournalConnect(event){
     return;
   }
   browserJournalConnecting = true;
-  form.querySelector('button').disabled = true;
+  form.querySelector('button[type=submit]').disabled = true;
   let directory;
   try {
     directory = await window.showDirectoryPicker({id:'grupo-qu4tro-diario',mode:'readwrite'});
@@ -115,6 +123,7 @@ async function browserJournalConnect(event){
       browserJournalConfig = config;
     });
     input.value = '';
+    if(input.type === 'text') browserJournalTogglePhrase(form.querySelector('[aria-controls=browserJournalPhrase]'));
     browserJournalPermission = true;
     browserJournalNotice = 'Pasta vinculada. Guarde a frase de recuperação em local seguro.';
     await crmJournalCheck();
@@ -122,7 +131,7 @@ async function browserJournalConnect(event){
     if(error.name !== 'AbortError') browserJournalNotice = 'Não foi possível ativar o diário. Confira a pasta, a permissão de gravação e a frase de recuperação.';
   } finally {
     browserJournalConnecting = false;
-    form.querySelector('button').disabled = false;
+    form.querySelector('button[type=submit]').disabled = false;
     browserJournalRender();
   }
 }
