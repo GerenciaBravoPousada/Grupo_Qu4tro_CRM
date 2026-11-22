@@ -24,7 +24,9 @@ internal sealed class Desktop : Form
     readonly Timer maintenance = new Timer { Interval = 300000 };
     readonly Dictionary<string,string> bundled = new Dictionary<string,string>(StringComparer.Ordinal) {
         {"/index.html","text/html"},{"/crm-sync.js","text/javascript"},{"/crm-journal.js","text/javascript"},
-        {"/reservation-attendance.js","text/javascript"},{"/qrcode.min.js","text/javascript"}
+        {"/reservation-attendance.js","text/javascript"},{"/qrcode.min.js","text/javascript"},
+        {"/crm-journal-browser.js","text/javascript"},{"/crm-phone-privacy.js","text/javascript"},
+        {"/crm-action-readiness.js","text/javascript"}
     };
 
     [STAThread]

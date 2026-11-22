@@ -15,7 +15,7 @@ foreach($name in 'Core','WinForms'){
 }
 Copy-Item -LiteralPath (Join-Path $WebViewSdk 'runtimes/win-x64/native/WebView2Loader.dll') -Destination $payload
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'bootstrap.js') -Destination $payload
-foreach($name in 'index.html','crm-sync.js','crm-journal.js','reservation-attendance.js','qrcode.min.js'){
+foreach($name in 'index.html','crm-sync.js','crm-journal.js','reservation-attendance.js','qrcode.min.js','crm-journal-browser.js','crm-phone-privacy.js','crm-action-readiness.js'){
     Copy-Item -LiteralPath (Join-Path $repo $name) -Destination $web
 }
 & $csc /nologo /platform:x64 /target:winexe /main:Desktop "/out:$payload/GrupoQu4tro.Desktop.exe" @refs (Join-Path $PSScriptRoot 'Desktop.cs') (Join-Path $repo 'windows-journal/JournalHost.cs')
