@@ -1,5 +1,10 @@
 window.addEventListener('message', event => {
-  if (event.source !== window || event.origin !== location.origin || event.data?.channel !== 'qu4tro-journal-request') return;
+  if (event.source !== window || event.origin !== location.origin) return;
+  if (event.data?.channel === 'qu4tro-journal-discover') {
+    window.postMessage({channel: 'qu4tro-journal-ready'}, location.origin);
+    return;
+  }
+  if (event.data?.channel !== 'qu4tro-journal-request') return;
   const {id, message} = event.data;
   if (typeof id !== 'string' || id.length !== 36) return;
   chrome.runtime.sendMessage(message, response => {
@@ -7,3 +12,5 @@ window.addEventListener('message', event => {
     window.postMessage({channel: 'qu4tro-journal-response', id, response: failed ? {ok: false} : response}, location.origin);
   });
 });
+
+window.postMessage({channel: 'qu4tro-journal-ready'}, location.origin);

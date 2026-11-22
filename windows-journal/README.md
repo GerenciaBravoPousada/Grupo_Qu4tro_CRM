@@ -13,3 +13,5 @@ O arquivo guarda uma linha por operação. O conteúdo da operação é criptogr
 O registro é tentado antes do envio habitual. Se o componente falhar, o CRM mantém o fluxo existente e exibe um aviso persistente de operação sem proteção. Após uma resposta de sucesso do Supabase, o CRM tenta marcar a confirmação no arquivo. Com o app aberto, o CRM avisa quando houver operações ainda sem confirmação a até 12 horas do vencimento. A limpeza ocorre a cada acesso ao componente, no logon do Windows e em intervalos de cinco minutos enquanto a conta do terminal está em sessão.
 
 Este componente não reenvia o diário, não transmite dados com o CRM fechado e não acrescenta serviços ou tabelas no Supabase. A recuperação de eventos e a prevenção de duplicidades no servidor pertencem à etapa de conciliação.
+
+Nos terminais onde a extensão ainda não foi instalada, o CRM mantém o fluxo anterior e não espera o componente. Ao detectar a extensão no perfil do Chrome, o CRM ativa o diário e avisa se o componente do Windows estiver indisponível.
