@@ -17,6 +17,8 @@ internal sealed class Desktop : Form
     static readonly string Root = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Grupo Qu4tro");
     static readonly string Journal = Path.Combine(Root, "Diario CRM");
     static readonly string Files = AppDomain.CurrentDomain.BaseDirectory;
+    readonly string testRoot;
+    bool testPassed;
     readonly WebView2 view = new WebView2 { Dock = DockStyle.Fill };
     readonly JavaScriptSerializer json = new JavaScriptSerializer { MaxJsonLength = 128 * 1024, RecursionLimit = 24 };
     readonly Timer maintenance = new Timer { Interval = 300000 };
@@ -34,6 +36,14 @@ internal sealed class Desktop : Form
                 return String.IsNullOrEmpty(CoreWebView2Environment.GetAvailableBrowserVersionString()) ? 1 : 0;
             }
             if (args.Length == 1 && args[0] == "--verify-journal") { VerifyJournal(); return 0; }
+            bool testing = args.Length == 1 && args[0] == "--verify-ui";
+            if (testing) {
+                Application.EnableVisualStyles();
+                using (var test = new Desktop(Path.Combine(Path.GetTempPath(),"Qu4tro-ui-"+Guid.NewGuid().ToString("N")))) {
+                    Application.Run(test);
+                    return test.testPassed ? 0 : 2;
+                }
+            }
             bool created;
             using (var one = new System.Threading.Mutex(true, @"Local\GrupoQu4troDesktop-" + WindowsIdentity.GetCurrent().User.Value, out created)) {
                 if (!created) return 0;
@@ -63,8 +73,9 @@ internal sealed class Desktop : Form
         JournalHost.VerifyStorage(Journal);
     }
 
-    Desktop()
+    Desktop(string testRoot = null)
     {
+        this.testRoot = testRoot;
         Text = "Grupo Qu4tro — Gestão de Clientes";
         Width = 1280;
         Height = 850;
@@ -80,7 +91,7 @@ internal sealed class Desktop : Form
     async Task StartAsync()
     {
         try {
-            var env = await CoreWebView2Environment.CreateAsync(null, Path.Combine(Root,"Desktop","Perfil"));
+            var env = await CoreWebView2Environment.CreateAsync(null, testRoot ?? Path.Combine(Root,"Desktop","Perfil"));
             await view.EnsureCoreWebView2Async(env);
             var browser = view.CoreWebView2;
             browser.Settings.IsPasswordAutosaveEnabled = false;
@@ -98,11 +109,14 @@ internal sealed class Desktop : Form
                     Process.Start(new ProcessStartInfo(link.AbsoluteUri) { UseShellExecute = true });
             };
             browser.PermissionRequested += (sender,args) => { args.State = CoreWebView2PermissionState.Deny; };
-            browser.AddWebResourceRequestedFilter(Origin + "/*", CoreWebView2WebResourceContext.All);
+            browser.AddWebResourceRequestedFilter(testRoot == null ? Origin + "/*" : "*", CoreWebView2WebResourceContext.All);
             browser.WebResourceRequested += (sender,args) => {
                 var uri = new Uri(args.Request.Uri);
                 string mime;
-                if (!bundled.TryGetValue(uri.AbsolutePath, out mime)) return;
+                if (uri.GetLeftPart(UriPartial.Authority) != Origin || !bundled.TryGetValue(uri.AbsolutePath, out mime)) {
+                    if (testRoot != null) args.Response = env.CreateWebResourceResponse(new MemoryStream(), 404, "Test", "");
+                    return;
+                }
                 string path = Path.Combine(Files,"web",uri.AbsolutePath.Substring(1));
                 var bytes = new MemoryStream(File.ReadAllBytes(path), false);
                 args.Response = env.CreateWebResourceResponse(bytes, 200, "OK", "Content-Type: " + mime + "; charset=utf-8\r\nCache-Control: no-store");
@@ -116,7 +130,7 @@ internal sealed class Desktop : Form
                     Guid parsed;
                     if (!Guid.TryParseExact(id,"D",out parsed)) return;
                     var message = request["message"] as Dictionary<string,object>;
-                    var result = await Task.Run(() => JournalHost.Run(Journal,message));
+                    var result = await Task.Run(() => JournalHost.Run(testRoot == null ? Journal : Path.Combine(testRoot,"test-journal"),message));
                     if (!IsDisposed && browser.Source == StartUrl)
                         browser.PostWebMessageAsJson(json.Serialize(new { id, response = result }));
                 } catch (Exception) {
@@ -126,10 +140,39 @@ internal sealed class Desktop : Form
             };
             await browser.AddScriptToExecuteOnDocumentCreatedAsync(File.ReadAllText(Path.Combine(Files,"bootstrap.js")));
             browser.Navigate(StartUrl);
-            maintenance.Start();
+            if (testRoot == null) maintenance.Start();
+            else await VerifyUi(browser);
         } catch (Exception) {
-            MessageBox.Show(this,"Falha ao abrir o CRM. Verifique a instalação do Microsoft Edge WebView2.","Grupo Qu4tro");
+            if (testRoot == null) MessageBox.Show(this,"Falha ao abrir o CRM. Verifique a instalação do Microsoft Edge WebView2.","Grupo Qu4tro");
             Close();
         }
     }
+    async Task VerifyUi(CoreWebView2 browser)
+    {
+        string check = @"Boolean(window.qu4troDesktop &&
+          document.querySelector('#loginScreenOverlay:not(.hidden)') &&
+          document.querySelector('#authOverlayPassword') &&
+          getComputedStyle(document.querySelector('#authRememberMe').closest('label').parentElement).display === 'none' &&
+          typeof state !== 'undefined' && !state.currentUser && crmJournalEnabled)";
+        for (int i=0;i<40;i++) {
+            await Task.Delay(250);
+            if (await browser.ExecuteScriptAsync(check) != "true") continue;
+            Guid id = Guid.NewGuid();
+            string request = json.Serialize(new { command = "append", id = id.ToString("D"), action = "WAITLIST",
+                details = new { house = "Teste isolado", record = new { id = "piloto" } } });
+            await browser.ExecuteScriptAsync("window.postMessage({channel:'qu4tro-journal-request',id:'" +
+                id.ToString("D") + "',message:" + request + "},location.origin)");
+            string file = Path.Combine(testRoot,"test-journal","operacoes.jsonl");
+            for(int j=0;j<20;j++){
+                await Task.Delay(150);
+                if(File.Exists(file) && File.ReadAllText(file).Contains(id.ToString("D"))){
+                    testPassed = true;
+                    break;
+                }
+            }
+            break;
+        }
+        Close();
+    }
+
 }

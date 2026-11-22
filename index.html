@@ -2164,6 +2164,9 @@ input:checked + .slider:before {
   </section>
 
   <section class="view" id="view-data">
+    <div class="card" id="desktopPilotDownload" style="margin-bottom:16px">
+      <div class="card-head"><div><h3>Grupo Qu4tro Desktop · piloto para Windows</h3><p>Instala o diário local junto com o CRM. Requer Windows de 64 bits com WebView2.</p></div><a class="btn primary" href="./downloads/GrupoQu4tro-Desktop-Setup.exe" download>Instalar versão Desktop</a></div>
+    </div>
    <div class="hero"><div><h2>Dados & Backup</h2><p>Gestão da base de clientes e opções de sincronização.</p></div></div><div class="grid2"><div class="card"><div class="section-title"><h3>Armazenamento local</h3></div><p style="font-size:12px;color:var(--muted)">Alterações realizadas no aplicativo ficam salvas com segurança no navegador ou sincronizadas com o novo banco Supabase do Grupo Qu4tro.</p><div class="actions-row"><button class="btn" onclick="exportBackup()">⇩ Exportar backup JSON</button><label class="btn">⇧ Importar backup<input id="backupInput" type="file" accept=".json" hidden></label><button class="btn danger" onclick="resetData()">↺ Restaurar base inicial</button></div><div class="source-note" id="dataStats"></div></div><div class="card"><div class="section-title"><h3>Banco de Dados Supabase (Nuvem)</h3><span class="badge-status-active">● Conectado</span></div><div class="insight"><strong style="color:#0f766e">Projeto Oficial: Grupo_Qu4tro</strong><p style="font-family:monospace;font-size:11px;color:var(--muted);word-break:break-all">https://zhnspdrlemtjacnghpjo.supabase.co</p><div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn primary" style="font-size:12px;padding:6px 12px" onclick="syncWithSupabase()">☁️ Sincronizar Agora com a Nuvem</button></div></div><div class="insight"><strong>Segurança & Acesso Remoto</strong><p>Compatível com PostgreSQL 15+, Row Level Security (RLS) e sincronização contínua com os tablets e computadores de cada recepção.</p></div></div></div>
   </section>
 
@@ -7564,6 +7567,7 @@ function checkAppAuthentication(){
   }
 
   if(window.qu4troDesktop){
+    if(el('desktopPilotDownload')) el('desktopPilotDownload').style.display = 'none';
     const remember = el('authRememberMe');
     if(remember){
       remember.checked = false;
