@@ -3349,8 +3349,10 @@ async function pullAllFromSupabaseLegacy(){
       }
     }
 
-    const remoteIds=new Set(allCust.map(c=>c.id));
-    state.clients=state.clients.filter(c=>remoteIds.has(c.id) || (!c.serverUpdatedAt && typeof isLegacySeedClient === 'function' && !isLegacySeedClient(c)));
+    const remoteIds = new Set(allCust.map(c => c.id));
+    const archivedIds = new Set(allCust.filter(c => c.name === '__SYSTEM_MERGED_CUSTOMER__').map(c => c.id));
+    state.clients = state.clients.filter(c => !archivedIds.has(c.id) &&
+      (remoteIds.has(c.id) || (!c.serverUpdatedAt && typeof isLegacySeedClient === 'function' && !isLegacySeedClient(c))));
     crmMarkRead('customers', true);
     }
     if(!state.__visitReviewLoaded || crmShouldPull('visits')) {
