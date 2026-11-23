@@ -7037,10 +7037,12 @@ function reviewCheckinContext(pending){
   const visits = matchingCheckinVisits(customer);
   const queue = state.waitlist.filter(w => activeWaitlistCheckin(w, customer));
   const outcomes = reservationOutcomes();
-  const reservations = state.reservations.filter(r => r.status !== 'Cancelada' &&
+  const related = state.reservations.filter(r => r.status !== 'Cancelada' &&
     (!pending.reservationId || r.id === pending.reservationId) &&
-    sameCheckinContext(r, customer, r.date) && !outcomes.get(r.id)?.meta?.visitId);
-  if(!queue.length && !reservations.length && !visits.length) return false;
+    sameCheckinContext(r,customer,r.date));
+  const confirmed = related.some(r => r.status === 'Convertida' || outcomes.get(r.id)?.meta?.visitId);
+  const reservations = related.filter(r => r.status !== 'Convertida' && !outcomes.get(r.id)?.meta?.visitId);
+  if(!queue.length && !reservations.length && !visits.length && !confirmed) return false;
   const visitLabel = v => `${v.arrival || 'sem horário'} • mesa ${v.table || '—'}`;
   const choices = [];
   for(const entry of queue){
@@ -7070,8 +7072,8 @@ function reviewCheckinContext(pending){
       })});
     }
   }
-  if(pending.reservationId && !queue.length && !visits.length && reservations.length === 1) return false;
-  const found = [queue.length && 'na fila de espera', reservations.length && 'com reserva hoje', visits.length && 'com check-in hoje'].filter(Boolean);
+  if(pending.reservationId && !queue.length && !visits.length && !confirmed && reservations.length === 1) return false;
+  const found = [queue.length && 'na fila de espera', reservations.length && 'com reserva hoje', (visits.length || confirmed) && 'com check-in hoje'].filter(Boolean);
   showCheckinChoices(`${pending.name} está ${found.join(', ')} nesta casa. Confira o atendimento antes de registrar outra visita.`,
     choices, () => finalizeCheckin({...pending, reviewedContext:true, reservationId:null}));
   return true;
@@ -12224,19 +12226,38 @@ async function refreshCheckinReservations(pending){
   const clauses = digitsForLookup.map(value => 'customer_phone.eq.' + value);
   if(isUUID(customerId)) clauses.push('customer_id.eq.'+customerId);
   try {
-    const {data,error} = await sb.from('reservations').select('*')
-      .eq('house',pending.house).eq('reservation_date',today()).or(clauses.join(','));
-    if(error) throw error;
-    const pendingIds = new Set((await getOutboxItems()).filter(item => item.action.includes('RESERVATION')).map(item => item.payload?.id));
-    for(const row of data || []){
+    const [reservations,visits] = await Promise.all([
+      sb.from('reservations').select('*').eq('house',pending.house).eq('reservation_date',today()).or(clauses.join(',')),
+      sb.from('visits').select('*').eq('house',pending.house).eq('visit_date',today()).or(clauses.join(','))
+    ]);
+    if(reservations.error) throw reservations.error;
+    const operations = await getOutboxItems();
+    const pendingIds = new Set(operations.filter(item => item.action?.includes('RESERVATION')).map(item => item.payload?.id));
+    for(const row of reservations.data || []){
       if(pendingIds.has(row.id)) continue;
       const mapped = crmMapReservation(row);
       const index = state.reservations.findIndex(r => r.id === row.id);
       if(index === -1) state.reservations.push(mapped);
       else state.reservations[index] = mapped;
     }
+    if(visits.error) throw visits.error;
+    const deleted = new Set(operations.filter(item => item.action === 'DELETE_VISIT').map(item => item.payload?.id));
+    const known = new Set(state.visits.map(v => v.id));
+    const person = {...pending,customer_id:customerId};
+    for(const row of visits.data || []){
+      if(known.has(row.id) || deleted.has(row.id)) continue;
+      const visit = {
+        id:row.id,customer_id:row.customer_id,clientId:row.customer_id,house:row.house,date:row.visit_date,
+        name:row.customer_name,phone:row.customer_phone,arrival:row.arrival_time || '12:00',
+        people:row.people_count || 1,table:row.table_number || '',source:row.source || 'Da casa',
+        status:row.status || 'Recorrente',notes:row.notes || '',amount:row.amount || 0,
+        operatorReception:row.operator_reception || row.house,syncedToSupabase:true
+      };
+      if(sameCheckinContext(visit,person,visit.date)) state.visits.unshift(visit);
+    }
+    rebuildVisitsIndex();
   } catch(err){
-    console.warn('[Check-in] Falha ao atualizar reservas da chegada',err?.code || err?.name);
+    console.warn('[Check-in] Falha ao atualizar reservas e visitas da chegada',err?.code || err?.name);
   }
 }
 
