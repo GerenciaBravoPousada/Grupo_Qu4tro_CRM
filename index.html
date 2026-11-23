@@ -1282,6 +1282,11 @@ button.crm-confirm-action:not(:disabled):hover{background:#a7f3c0!important}
 .reservation-kpis .kpi-chip strong{display:block;margin-top:3px;font-size:20px}
 </style>
 <style>
+#crmRefreshBar{align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:12px}
+.crm-refresh-controls{align-items:center;flex-wrap:wrap}
+#crmLastRefresh{font-size:12px}
+#reviewVisitDuplicates{margin-inline-start:auto}
+#reviewVisitDuplicates[hidden],.content:not(:has(> #view-dashboard.active)) #reviewVisitDuplicates{display:none}
 .crm-update-notice{position:fixed;z-index:1100;bottom:16px;left:16px;max-width:calc(100% - 32px);padding:10px 12px;background:#fff;color:#142b36;border:1px solid #cad8e0;border-radius:10px;box-shadow:0 4px 16px #0002}
 .crm-update-notice .btn{margin-left:6px}
 </style>
@@ -1360,7 +1365,13 @@ button.crm-confirm-action:not(:disabled):hover{background:#a7f3c0!important}
  <div class="content">
   <div id="crmConflictNotice" style="display:none;padding:12px;background:#fffbeb">Há cadastros com conflito de atualização. As alterações estão preservadas neste aparelho. <button class="btn" onclick="crmReviewConflicts()">Revisar pendências</button></div>
   <p id="crmJournalNotice" role="status" hidden style="color:#854d0e"></p>
-  <div id="crmRefreshBar" class="actions-row" style="margin-bottom:12px"><button class="btn" onclick="crmManualRefresh()">Atualizar dados</button><span id="crmLastRefresh" style="font-size:12px">Lista local</span></div>
+  <div id="crmRefreshBar" class="actions-row">
+    <div class="actions-row crm-refresh-controls">
+      <button type="button" class="btn" onclick="crmManualRefresh()">Atualizar dados</button>
+      <span id="crmLastRefresh">Lista local</span>
+    </div>
+    <button type="button" class="btn" id="reviewVisitDuplicates" onclick="openVisitDuplicateReview()" hidden></button>
+  </div>
   <div id="crmReservationNotice" role="status" style="display:none;padding:12px;border:1px solid #d97706;border-radius:8px;margin-bottom:12px;background:#fffbeb">Há atualizações nas reservas de hoje. Deseja atualizar a lista agora? <button class="btn" onclick="crmAcceptReservations()">Sim</button> <button class="btn" onclick="crmDeferReservations()">Não</button><span id="crmReservationPending"></span></div>
   <div class="house-context-banner op-banner" id="houseContextBanner" style="display:none">
    <div class="op-house-info">
@@ -1406,7 +1417,6 @@ button.crm-confirm-action:not(:disabled):hover{background:#a7f3c0!important}
   </div>
   <section class="view active" id="view-dashboard">
    <div class="cards" id="metrics"></div>
-   <button type="button" class="btn" id="reviewVisitDuplicates" onclick="openVisitDuplicateReview()" hidden></button>
    <!-- MONITOR DE AUDITORIA E PRESENÇA DAS RECEPÇÕES -->
    <div id="operatorPresenceSection" style="margin-bottom:18px"></div>
    <div class="grid2">
