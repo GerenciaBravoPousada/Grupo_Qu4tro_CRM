@@ -138,6 +138,11 @@ function confirmReservationVisit(id, visitId) {
   const r = state.reservations.find(x => x.id === id), o = reservationOutcomes().get(id);
   if (!r || !o?.candidates.some(v => v.id === visitId)) { toast('Este check-in não está mais disponível para vínculo.'); return; }
   if (!confirm('Confirma que este check-in corresponde à reserva selecionada?')) return;
+  if(attendancePilotEnabled()){
+    const visit = o.candidates.find(candidate => candidate.id === visitId);
+    void pilotLinkAttendance({kind:'reservation',id},visit);
+    return;
+  }
   r.status = 'Convertida';
   saveReservationAttendance(r, {outcome:'attended', visitId});
 }

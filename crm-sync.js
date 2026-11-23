@@ -571,6 +571,10 @@ async function crmAutoFlushLocalData(){
         for(const v of pendingVisits){
           if(queuedVisits.has(v?.id)) continue;
           try {
+            if(v.attendanceOrigin){
+              await addToOutbox('INSERT_VISIT',v);
+              continue;
+            }
             // Garante que o ID da visita é um UUID válido
             const validUUID = (typeof isUUID === 'function' && isUUID(v.id)) ? v.id : ((typeof generateUUID === 'function') ? generateUUID() : null);
             if(validUUID && v.id !== validUUID) v.id = validUUID;

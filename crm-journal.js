@@ -59,7 +59,7 @@ async function crmJournalAppend(action, payload, id){
     // Conservar os campos operacionais e evitar guardar nome/telefone quando já há cliente identificado.
     const details = {operatorId:state.currentUser, house:payload.house || getSessionHouse()};
     const clientId = payload.customerId || payload.customer_id || payload.clientId;
-    const keys = ['id','status','date','time','arrival','people','house','table','source','notes','priority','priorities','preference','createdAt','timeRegistered','calledAt','seatedAt','waitDurationMinutes','cloudRevision','amount','reason','operatorReception','_waitlistRefId','arrivalTime','observations','exceptionReason','departure'];
+    const keys = ['id','status','date','time','arrival','people','house','table','source','notes','priority','priorities','preference','createdAt','timeRegistered','calledAt','seatedAt','waitDurationMinutes','cloudRevision','amount','reason','operatorReception','_waitlistRefId','attendanceOrigin','arrivalTime','observations','exceptionReason','departure'];
     const record = Object.fromEntries(keys.filter(key => payload[key] !== undefined).map(key => [key,payload[key]]));
     if(clientId && isUUID(clientId)) record.customerId = clientId;
     if(!record.customerId || !state.clients.some(client => client.id === record.customerId && client.serverUpdatedAt)){
