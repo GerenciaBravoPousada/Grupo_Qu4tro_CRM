@@ -3915,43 +3915,42 @@ function initials(n){return String(n||'?').trim().split(/\s+/).slice(0,2).map(x=
 function toast(msg){el('toast').textContent=msg;el('toast').classList.add('show');setTimeout(()=>el('toast').classList.remove('show'),2600)}
 function today(){return getLocalDateStr(0)}
 function daysSince(d){if(!d)return 9999;return Math.floor((Date.now()-new Date(d+'T12:00:00'))/86400000)}
+let visitsIndexSource = null;
+let visitsByCustomerMap = null;
 let visitsByPhoneMap = null;
 let visitsByNameMap = null;
 
 function rebuildVisitsIndex(){
+  visitsIndexSource = state.visits;
+  visitsByCustomerMap = new Map();
   visitsByPhoneMap = new Map();
   visitsByNameMap = new Map();
-  if(!Array.isArray(state.visits)) return;
-  for(let idx = 0; idx < state.visits.length; idx++){
-    const v = state.visits[idx];
-    const p = digits(v.phone);
-    if(p && p !== '0'){
-      let arr = visitsByPhoneMap.get(p);
-      if(!arr){ arr = []; visitsByPhoneMap.set(p, arr); }
-      arr.push(v);
-    } else if(v.name){
-      const n = String(v.name).toLowerCase().trim();
-      let arr = visitsByNameMap.get(n);
-      if(!arr){ arr = []; visitsByNameMap.set(n, arr); }
-      arr.push(v);
-    }
+  const add = (map, key, visit) => {
+    if(!map.has(key)) map.set(key, []);
+    map.get(key).push(visit);
+  };
+  for(const visit of state.visits || []){
+    const customer = visit.customerId || visit.customer_id || visit.clientId;
+    const phone = digits(visit.phone);
+    if(customer) add(visitsByCustomerMap, customer, visit);
+    else if(phone && phone !== '0') add(visitsByPhoneMap, phone, visit);
+    else if(visit.name) add(visitsByNameMap, String(visit.name).toLowerCase().trim(), visit);
   }
 }
 
 function clientVisits(c){
   if(!c) return [];
-  if(!visitsByPhoneMap) rebuildVisitsIndex();
-  const p = digits(c.phone);
-  if(p && p !== '0'){
-    const found = visitsByPhoneMap.get(p);
-    if(found) return found;
+  if(!visitsByCustomerMap || visitsIndexSource !== state.visits) rebuildVisitsIndex();
+  const linked = visitsByCustomerMap.get(c.id) || [];
+  const phone = digits(c.phone);
+  const byPhone = visitsByPhoneMap.get(phone) || [];
+  if(!linked.length && !byPhone.length){
+    return visitsByNameMap.get(String(c.name || '').toLowerCase().trim()) || [];
   }
-  const n = String(c.name || '').toLowerCase().trim();
-  if(n && visitsByNameMap){
-    const found = visitsByNameMap.get(n);
-    if(found) return found;
-  }
-  return [];
+  if(!linked.length || !byPhone.length) return linked.length ? linked : byPhone;
+  return [...linked, ...byPhone].sort((a,b) =>
+    String(b.date || '').localeCompare(String(a.date || '')) ||
+    String(b.arrival || '').localeCompare(String(a.arrival || '')));
 }
 
 function calcClient(c){
