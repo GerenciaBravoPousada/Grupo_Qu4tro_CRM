@@ -4617,6 +4617,30 @@ async function saveVisitReview(button){
   }
 }
 
+function dashboardCustomerIdentity(){
+  const clientsById = new Map();
+  const clientsByPhone = new Map();
+  const phoneKey = value => {
+    const phone = digits(value);
+    return phone.startsWith('55') && [12,13].includes(phone.length) ? phone.slice(2) : phone;
+  };
+  for(const client of state.clients){
+    const phone = phoneKey(client.phone);
+    if(!phone || phone === '0') continue;
+    clientsById.set(client.id, client);
+    clientsByPhone.set(phone, clientsByPhone.has(phone) ? null : client);
+  }
+  return visit => {
+    const phone = phoneKey(visit.phone);
+    const client = clientsById.get(visit.customerId || visit.customer_id || visit.clientId) ||
+      clientsByPhone.get(phone);
+    return {
+      key:client ? 'cadastro:' + client.id : phone ? 'telefone:' + phone : '',
+      source:client?.source || visit.source
+    };
+  };
+}
+
 function renderDashboard(){
   const allVisits = filteredVisits();
   const groups = visitReviewGroups(allVisits);
@@ -4633,7 +4657,9 @@ function renderDashboard(){
   review.hidden = getCurrentUser()?.role !== 'Master';
   review.textContent = `Revisar possíveis duplicatas${pending ? ' • ' + pending + ' pendente(s)' : ''}`;
   const vv = allVisits.filter(visit => !excluded.has(visit.id));
-  const phones = new Set(vv.map(v => digits(v.phone)).filter(Boolean));
+  const identify = dashboardCustomerIdentity();
+  const identities = new Map(vv.map(visit => [visit, identify(visit)]));
+  const customers = new Set([...identities.values()].map(identity => identity.key).filter(Boolean));
   
   // Classificação completa de 100% das visitas entre Novo e Recorrente:
   // - VIP e Recorrente contam como Recorrente (VIPs são clientes recorrentes de 5+ visitas).
@@ -4642,7 +4668,7 @@ function renderDashboard(){
   let newN = 0, recN = 0;
   vv.forEach(v => {
     const st = (v.status || '').toLowerCase();
-    const p = digits(v.phone);
+    const p = identities.get(v).key;
     let isRec = st.includes('recorr') || st.includes('vip');
     let isNew = st.includes('novo');
     if(!isRec && !isNew){
@@ -4657,7 +4683,7 @@ function renderDashboard(){
   const people = vv.reduce((s, v) => s + (+v.people || 0), 0);
   const avg = vv.length ? people / vv.length : 0;
   const metrics = [
-    ['Clientes únicos', phones.size.toLocaleString('pt-BR'), 'na seleção'],
+    ['Clientes únicos', customers.size.toLocaleString('pt-BR'), 'na seleção'],
     ['Visitas', vv.length.toLocaleString('pt-BR'), 'registros'],
     ['Pessoas atendidas', people.toLocaleString('pt-BR'), `${avg.toFixed(1)} por visita`],
     ['Taxa recorrência', ((recN / Math.max(1, vv.length)) * 100).toFixed(1) + '%', 'do total de visitas']
@@ -4671,19 +4697,12 @@ function renderDashboard(){
   if(isClientsMode){
     // Modo CLIENTES ÚNICOS: Cada cliente único presente nas visitas filtradas é contabilizado 1 vez pela sua origem
     const clientSourceMap = new Map();
-    const clientObjMap = new Map();
-    (state.clients || []).forEach(c => {
-      const p = digits(c.phone);
-      if(p && c.source) clientObjMap.set(p, c.source);
-    });
-
     const sortedVV = [...vv].sort((a,b) => (a.date||'').localeCompare(b.date||'') || (a.arrival||'').localeCompare(b.arrival||''));
     sortedVV.forEach(v => {
-      const p = digits(v.phone);
+      const p = identities.get(v).key;
       if(!p) return;
       if(!clientSourceMap.has(p)){
-        const regSrc = clientObjMap.get(p);
-        clientSourceMap.set(p, normalizeOrigin(regSrc || v.source));
+        clientSourceMap.set(p, normalizeOrigin(identities.get(v).source));
       }
     });
 
