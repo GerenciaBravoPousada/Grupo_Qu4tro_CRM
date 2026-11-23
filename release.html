@@ -1,0 +1,6 @@
+---
+layout: null
+---
+{%- capture source -%}{% include_relative index.html %}{%- endcapture -%}
+{%- capture marker -%}<meta name="crm-release" content="{{ site.github.build_revision }}">{%- endcapture -%}
+{{- source | replace: "<!-- CRM_RELEASE -->", marker | replace: "v=crm-release", site.github.build_revision -}}

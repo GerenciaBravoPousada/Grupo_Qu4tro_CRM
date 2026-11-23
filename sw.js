@@ -1,16 +1,17 @@
 /* Service Worker para GRUPO QU4TRO CRM - PWA Offline-First */
-const CACHE_NAME = 'qu4tro-crm-v1.0.85';
+const CACHE_NAME = 'qu4tro-crm-release-1';
 const PRECACHE_ASSETS = [
   './',
   './index.html',
-  './crm-journal-browser.js?v=1.0.74',
-  './crm-journal.js?v=1.0.77',
-  './crm-phone-privacy.js?v=1.0.77',
-  './crm-action-readiness.js?v=1.0.81',
-  './crm-sync.js?v=1.0.78',
-  './reservation-attendance.js?v=1.0.63',
+  './crm-journal-browser.js?v=crm-release',
+  './crm-journal.js?v=crm-release',
+  './crm-phone-privacy.js?v=crm-release',
+  './crm-action-readiness.js?v=crm-release',
+  './crm-sync.js?v=crm-release',
+  './reservation-attendance.js?v=crm-release',
+  './pwa-update.js?v=crm-release',
   './manifest.json',
-  './qrcode.min.js',
+  './qrcode.min.js?v=crm-release',
   './icon-192.png',
   './icon-512.png',
   './favicon.png',
@@ -25,7 +26,7 @@ self.addEventListener('install', event => {
       return cache.addAll(PRECACHE_ASSETS.map(asset => new Request(asset, {cache:'reload'}))).catch(err => {
         console.warn('[SW] Aviso durante precache:', err);
       });
-    }).then(() => self.skipWaiting())
+    })
   );
 });
 
@@ -35,7 +36,7 @@ self.addEventListener('activate', event => {
     caches.keys().then(keys => {
       return Promise.all(
         keys.map(key => {
-          if (key !== CACHE_NAME) {
+          if (key !== CACHE_NAME && key.startsWith('qu4tro-crm-')) {
             console.log('[SW] Removendo cache obsoleto:', key);
             return caches.delete(key);
           }
@@ -89,24 +90,37 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // 3. Navegação e HTML shell: Network-First (sempre obtém a versão mais recente quando online)
+  // Probes must never fall back to an old publication.
+  if (url.origin === self.location.origin && (url.pathname.endsWith('/version.json') ||
+      (url.pathname.endsWith('/release.html') && event.request.mode !== 'navigate'))) {
+    event.respondWith(fetch(event.request, {cache:'no-store'}));
+    return;
+  }
+
   if (event.request.mode === 'navigate' || url.pathname === '/' || url.pathname.endsWith('/index.html')) {
-    event.respondWith(
-      fetch(event.request).then(networkResponse => {
-        if (networkResponse && networkResponse.status === 200) {
-          const respClone = networkResponse.clone();
-          caches.open(CACHE_NAME).then(c => c.put(event.request, respClone));
+    event.respondWith((async () => {
+      const cache = await caches.open(CACHE_NAME);
+      try {
+        const response = await fetch(event.request, {cache:'no-cache'});
+        if(response.ok){
+          const key = url.pathname.endsWith('/release.html') ? './release.html' :
+            (url.search ? event.request : './index.html');
+          await cache.put(key, response.clone()).catch(() => {});
         }
-        return networkResponse;
-      }).catch(() => caches.match('./index.html') || caches.match('./'))
-    );
+        return response;
+      } catch {
+        if(url.pathname.endsWith('/release.html')) return await cache.match('./release.html') ||
+          await cache.match('./index.html') || Response.error();
+        return await cache.match(event.request) || await cache.match('./index.html') || Response.error();
+      }
+    })());
     return;
   }
 
   // Código local: prioriza a rede para não combinar HTML novo com JavaScript antigo.
   if (url.origin === self.location.origin && url.pathname.endsWith('.js')) {
     event.respondWith(
-      fetch(event.request, {cache:'no-cache'}).then(response => {
+      fetch(event.request, {cache:url.searchParams.has('v') ? 'no-store' : 'no-cache'}).then(response => {
         if (response && response.status === 200) {
           const copy = response.clone();
           event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.put(event.request, copy)));

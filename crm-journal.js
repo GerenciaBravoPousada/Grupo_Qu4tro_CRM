@@ -40,7 +40,17 @@ function crmJournalRender(){
   node.hidden = !node.textContent;
 }
 
+let crmJournalRecordsInProgress = 0;
 async function crmJournalRecord(action, payload, id = crypto.randomUUID()){
+  crmJournalRecordsInProgress++;
+  try {
+    return await crmJournalAppend(action, payload, id);
+  } finally {
+    crmJournalRecordsInProgress--;
+  }
+}
+
+async function crmJournalAppend(action, payload, id){
   if(!crmJournalActions.has(action) || !state.currentUser || new URLSearchParams(location.search).has('public')) return null;
   await browserJournalLoad;
   if(!crmJournalEnabled && !browserJournalConfig) return null;
