@@ -34,6 +34,7 @@ function startCrmReleaseUpdates(){
   let lastInteraction = 0;
   const notice = document.createElement('aside');
   notice.className = 'crm-update-notice';
+  notice.style.zIndex = '1000000';
   notice.hidden = true;
   notice.innerHTML = '<span role="status">Atualização disponível</span> <button type="button" class="btn">Atualizar agora</button>';
   document.body.append(notice);
@@ -59,7 +60,7 @@ function startCrmReleaseUpdates(){
     }
     return dirty.size || el('modal')?.classList.contains('show') ||
       el('sessionOverlay')?.classList.contains('show') ||
-      document.querySelector('#selectedClientCard.show, #ciPhone[readonly]') ||
+      selectedCheckinClientId || selectedCheckinReservationId ||
       crmWrites.size || isOutboxProcessing || crmJournalCalls.size || crmJournalRecordsInProgress ||
       Date.now() - lastInteraction < 1500;
   }
