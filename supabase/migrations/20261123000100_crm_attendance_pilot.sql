@@ -85,7 +85,6 @@ begin
     end if;
     perform public.crm_save_visit(payload);
   end if;
-  insert into grupo_qu4tro.crm_attendance_links values(kind,ref,candidate.id,now());
   if kind='reservation' then
     update grupo_qu4tro.reservations set status='Convertida', customer_id=coalesce(customer_id,candidate.customer_id),
       notes=concat_ws(E'\n',nullif(notes,''),'[PRESENCA:'||jsonb_build_object('outcome','attended','visitId',candidate.id)::text||']')
@@ -96,6 +95,7 @@ begin
         'table',candidate.table_number,'clientId',candidate.customer_id)
       where id=queue.id returning entry,updated_at into queue_state,queue_revision;
   end if;
+  insert into grupo_qu4tro.crm_attendance_links values(kind,ref,candidate.id,now());
   return jsonb_build_object('visit_id',candidate.id,'already_confirmed',false,
     'queue',queue_state,'queue_revision',queue_revision);
 end;

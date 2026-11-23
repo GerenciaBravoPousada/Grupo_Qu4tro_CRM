@@ -6899,8 +6899,9 @@ function clientSnapshot(c){const cc=calcClient(c);return {name:cc.name||'',phone
 function showDuplicateConfirmation(pending,matches){const strongest=matches[0], old=clientSnapshot(strongest.c);const reasons=[];if(strongest.phoneMatch)reasons.push('mesmo telefone');if(strongest.nameMatch)reasons.push('mesmo nome');el('modalTitle').textContent='Possível cadastro duplicado';el('modalBody').innerHTML=`<div class="dup-reason">O sistema encontrou um cadastro existente por <strong>${reasons.join(' e ')}</strong>. Confirme se é a mesma pessoa antes de concluir.</div><div class="duplicate-grid"><div class="duplicate-box"><h4>ENTRADA QUE ESTÁ SENDO FEITA</h4><dl><dt>Nome</dt><dd>${esc(pending.name)}</dd><dt>Telefone</dt><dd>${maskClientPhone(pending.phone)}</dd><dt>Casa</dt><dd>${esc(houseLabel(pending.house))}</dd><dt>Horário</dt><dd>${esc(pending.arrival)}</dd></dl></div><div class="duplicate-box"><h4>CADASTRO JÁ EXISTENTE</h4><dl><dt>Nome</dt><dd>${esc(old.name)}</dd><dt>Telefone</dt><dd>${maskClientPhone(old.phone)}</dd><dt>CPF</dt><dd>${esc(old.cpf||'Não informado')}</dd><dt>Última visita</dt><dd>${fmtDate(old.lastVisit)}</dd><dt>Total de visitas</dt><dd>${old.totalVisits}</dd></dl></div></div>${matches.length>1?`<div class="validation-note" style="margin-top:12px">Existem ${matches.length} cadastros potencialmente relacionados. A confirmação abaixo vinculará ao cadastro exibido; se não for a mesma pessoa, será criado um registro separado e marcado para revisão.</div>`:''}<div class="form-actions"><button class="btn" onclick="resolveDuplicate(false)">Não, é outra pessoa</button><button class="btn primary" onclick="resolveDuplicate(true)">Sim, é a mesma pessoa</button></div>`;window.__pendingCheckin={pending,matches};el('modal').classList.add('show')}
 function resolveDuplicate(isSame){const bag=window.__pendingCheckin;if(!bag)return;closeModal();const {pending,matches}=bag;window.__pendingCheckin=null;if(isSame){const target=matches[0].c;pending.forceClientId=target.id;pending.samePersonConfirmed=true;if(normalizePhone(target.phone)!==normalizePhone(pending.phone)){target.previousPhones=Array.from(new Set([...(target.previousPhones||[]),target.phone].filter(Boolean)));target.phone=pending.phone}if(foldText(target.name)!==foldText(pending.name)&&pending.name)target.name=pending.name;finalizeCheckin(pending)}else{pending.allowDuplicate=true;pending.duplicateReview=true;finalizeCheckin(pending)}}
 function attendancePilotEnabled(){
-  try {return localStorage.getItem('qu4tro_attendance_pilot') === '1';}
-  catch {return false;}
+  // A local fallback keeps the legacy confirmation flow available during recovery.
+  try {return localStorage.getItem('qu4tro_attendance_fallback') !== '1';}
+  catch {return true;}
 }
 
 async function applyPilotAttendance(origin,data){
@@ -6912,7 +6913,11 @@ async function applyPilotAttendance(origin,data){
       if(el('view-reservations')?.classList.contains('active')) renderReservations();
     }
   }else{
-    if(data.queue) mergeWaitlistEntry({...data.queue,cloudRevision:data.queue_revision});
+    if(data.queue){
+      const entry = {...data.queue,cloudRevision:data.queue_revision};
+      mergeWaitlistEntry(entry);
+      await saveWaitlistCache(entry).catch(() => {});
+    }
     renderWaitlist();
   }
   saveOperationalCache();
@@ -6938,6 +6943,15 @@ async function pilotLinkAttendance(origin,visit){
 async function syncAttendanceVisit(sb,visit,payload){
   if(!visit.attendanceOrigin) return sb.rpc('crm_save_visit',{payload});
   const {kind,id} = visit.attendanceOrigin;
+  if(kind === 'waitlist'){
+    const entry = state.waitlist.find(w => w.id === id);
+    if(entry && (!entry.cloudRevision || entry.cloudPending)){
+      const saved = await persistWaitlistEntry(entry);
+      if(!saved || state.waitlist.find(w => w.id === id)?.cloudPending){
+        return {error:new Error('Fila aguardando sincronização')};
+      }
+    }
+  }
   const result = await sb.rpc('crm_confirm_attendance',{payload,origin_kind:kind,origin_id:id});
   if(!result.error && !result.data?.visit_id) return {error:new Error('Confirmação sem identificação de visita')};
   if(!result.error){
@@ -7007,7 +7021,7 @@ async function linkWaitlistCheckin(id, visit){
     toast('A entrada já mudou de status. Confira a fila.');
     return;
   }
-  if(attendancePilotEnabled() && isIconikoPreCheckin(entry)){
+  if(attendancePilotEnabled() && isSharedPreCheckin(entry)){
     await pilotLinkAttendance({kind:'waitlist',id},visit);
     return;
   }
@@ -7074,7 +7088,7 @@ async function finalizeCheckin(pending){
 
 async function saveCheckin(pending,pilot){
   if(pilot && !pending.reviewedContext){
-    await refreshIconikoPreCheckins();
+    await Promise.all([refreshSharedPreCheckins(),refreshCheckinReservations(pending)]);
     if(reviewCheckinContext(pending)) return;
   }
   if(!pilot) pending.reservationId = findCheckinReservation(pending);
@@ -7203,7 +7217,7 @@ async function saveCheckin(pending,pilot){
   })();
 }
 function lookupCheckinClient(){
-  if(attendancePilotEnabled()) void refreshIconikoPreCheckins();
+  if(attendancePilotEnabled()) void refreshSharedPreCheckins();
   const p = normalizePhone(el('ciPhone').value);
   if(selectedCheckinClientId) return;
   const box = el('clientFound');
@@ -11651,6 +11665,7 @@ function refreshAll(){
   if(typeof updateCommunicationBadges === 'function') updateCommunicationBadges();
   refreshActiveView();
 }
+let sharedPreCheckinRefresh = null;
 let selectedWaitlistClientId = null;
 let waitlistTimerInterval = null;
 refreshAll();
@@ -11893,7 +11908,7 @@ function updateWaitlistLiveTimers(){
 function startWaitlistTimer(){
   stopWaitlistTimer();
   updateWaitlistLiveTimers();
-  void refreshIconikoPreCheckins();
+  void refreshSharedPreCheckins();
   waitlistTimerInterval = setInterval(updateWaitlistLiveTimers, 1000);
 }
 
@@ -12058,8 +12073,17 @@ function clearSelectedWaitlistClient(){
   el('wlLookup')?.focus();
 }
 
-function isIconikoPreCheckin(entry){
-  return normalizeHouseKey(entry.house) === 'Íconico';
+function waitlistCloudHouse(house){
+  return {
+    'Íconico':'iconiko',
+    'Leña':'lena',
+    'Bravo Café':'bravo-cafe',
+    'Café da Bravo Pousada':'bravo-pousada'
+  }[normalizeHouseKey(house)];
+}
+
+function isSharedPreCheckin(entry){
+  return !!waitlistCloudHouse(entry.house);
 }
 
 function waitlistBusinessDate(entry){
@@ -12067,22 +12091,25 @@ function waitlistBusinessDate(entry){
 }
 
 function preCheckinRow(entry){
-  const {cloudRevision, ...data} = entry;
-  return {id: entry.id, house: 'iconiko', business_date: waitlistBusinessDate(entry), status: entry.status, entry: data};
+  const {cloudRevision, cloudPending, cloudJournalId, ...data} = entry;
+  return {id: entry.id, house: waitlistCloudHouse(entry.house), business_date: waitlistBusinessDate(entry), status: entry.status, entry: data};
 }
 
 function mergeWaitlistEntry(entry){
   const entries = state.waitlist ||= [];
   const index = entries.findIndex(item => item.id === entry.id);
   if(index === -1) entries.unshift(entry);
+  else if(entries[index].cloudPending && !entry.cloudPending &&
+    entries[index].cloudRevision && entries[index].cloudRevision === entry.cloudRevision) return;
   else if(!entries[index].cloudRevision || (entry.cloudRevision && entry.cloudRevision >= entries[index].cloudRevision)){
     entries[index] = entry;
   }
 }
 
 async function persistWaitlistEntry(entry){
-  const journalId = await crmJournalRecord('WAITLIST', entry);
-  if(isIconikoPreCheckin(entry)){
+  const journalId = entry.cloudPending && entry.cloudJournalId !== undefined
+    ? entry.cloudJournalId : await crmJournalRecord('WAITLIST', entry);
+  if(isSharedPreCheckin(entry)){
     try {
       const table = getSupabase().from('crm_pre_checkins');
       const row = preCheckinRow(entry);
@@ -12108,28 +12135,35 @@ async function persistWaitlistEntry(entry){
       await crmJournalConfirm(journalId);
     } catch(err){
       console.warn('[Fila de espera] Falha no Supabase', err?.code || err?.name);
-      toast('Supabase indisponível. A operação não foi confirmada. Tente novamente.');
-      return false;
+      if(navigator.onLine && err?.code && !/^PGRST00/.test(err.code)){
+        toast('A fila não foi confirmada. Atualize os dados antes de tentar novamente.');
+        return false;
+      }
+      entry = {...entry,cloudPending:true,cloudJournalId:journalId};
     }
   }
 
   try {
-    const db = await openCrmVaultDB();
-    if(!db) throw new Error('IndexedDB indisponível');
-    await new Promise((resolve, reject) => {
-      const tx = db.transaction('vault_records', 'readwrite');
-      tx.oncomplete = resolve;
-      tx.onabort = () => reject(tx.error);
-      tx.objectStore('vault_records').put({key: 'waitlist:' + entry.id, waitlistEntry: entry});
-    });
+    await saveWaitlistCache(entry);
     mergeWaitlistEntry(entry);
     return true;
   } catch(err){
     console.warn('[Fila de espera] Falha no armazenamento local', err);
-    if(entry.cloudRevision) return true;
+    if(entry.cloudRevision && !entry.cloudPending) return true;
     toast('A fila não foi salva neste aparelho. Tente novamente.');
     return false;
   }
+}
+
+async function saveWaitlistCache(entry){
+  const db = await openCrmVaultDB();
+  if(!db) throw new Error('IndexedDB indisponível');
+  await new Promise((resolve, reject) => {
+    const tx = db.transaction('vault_records', 'readwrite');
+    tx.oncomplete = resolve;
+    tx.onabort = () => reject(tx.error);
+    tx.objectStore('vault_records').put({key:'waitlist:' + entry.id,waitlistEntry:entry});
+  });
 }
 
 async function restorePersistedWaitlist(){
@@ -12152,29 +12186,57 @@ async function restorePersistedWaitlist(){
   }
 }
 
-let preCheckinRefreshInProgress = false;
-async function refreshIconikoPreCheckins(){
+function refreshSharedPreCheckins(){
+  if(sharedPreCheckinRefresh) return sharedPreCheckinRefresh;
   const visible = el('view-waitlist')?.classList.contains('active') ||
     (attendancePilotEnabled() && el('view-checkin')?.classList.contains('active'));
-  if(preCheckinRefreshInProgress || !state.currentUser || !navigator.onLine || !visible) return;
-  const user = getCurrentUser();
-  if(!user || !(user.role === 'Master' || getUserHouses(user).some(house => normalizeHouseKey(house) === 'Íconico'))) return;
-  preCheckinRefreshInProgress = true;
-  try {
-    const {data, error} = await getSupabase().from('crm_pre_checkins')
-      .select('entry, updated_at').eq('house', 'iconiko').or(`business_date.eq.${today()},checkin_pending.eq.true`);
-    if(error) throw error;
-    for(const row of data || []) mergeWaitlistEntry({...row.entry, cloudRevision: row.updated_at});
-    for(const entry of [...(state.waitlist || [])]){
-      if(isIconikoPreCheckin(entry) && !entry.cloudRevision && preCheckinRow(entry).business_date === today()){
-        await persistWaitlistEntry(entry);
+  if(!state.currentUser || !navigator.onLine || !visible) return;
+  const houses = crmScopeHouses().map(waitlistCloudHouse).filter(Boolean);
+  if(!houses.length) return;
+  sharedPreCheckinRefresh = (async () => {
+    try {
+      for(const entry of [...(state.waitlist || [])]){
+        if(houses.includes(waitlistCloudHouse(entry.house)) && (entry.cloudPending ||
+          (!entry.cloudRevision && waitlistBusinessDate(entry) === today()))){
+          await persistWaitlistEntry(entry);
+        }
       }
+      const {data, error} = await getSupabase().from('crm_pre_checkins')
+        .select('entry, updated_at').in('house',houses).or(`business_date.eq.${today()},checkin_pending.eq.true`);
+      if(error) throw error;
+      for(const row of data || []) mergeWaitlistEntry({...row.entry, cloudRevision:row.updated_at});
+      if(el('view-waitlist')?.classList.contains('active')) renderWaitlist();
+    } catch(err){
+      console.warn('[Fila de espera] Falha ao consultar o Supabase', err?.code || err?.name);
     }
-    renderWaitlist();
+  })().finally(() => {sharedPreCheckinRefresh = null;});
+  return sharedPreCheckinRefresh;
+}
+
+async function refreshCheckinReservations(pending){
+  const sb = getSupabase();
+  if(!navigator.onLine || !sb) return;
+  const phone = normalizePhone(pending.phone);
+  if(!/^\d{10,15}$/.test(phone)) return;
+  const digitsForLookup = phone.startsWith('55') && [12,13].includes(phone.length)
+    ? [phone, phone.slice(2)] : [phone];
+  const customerId = pending.forceClientId || pending.selectedId;
+  const clauses = digitsForLookup.map(value => 'customer_phone.eq.' + value);
+  if(isUUID(customerId)) clauses.push('customer_id.eq.'+customerId);
+  try {
+    const {data,error} = await sb.from('reservations').select('*')
+      .eq('house',pending.house).eq('reservation_date',today()).or(clauses.join(','));
+    if(error) throw error;
+    const pendingIds = new Set((await getOutboxItems()).filter(item => item.action.includes('RESERVATION')).map(item => item.payload?.id));
+    for(const row of data || []){
+      if(pendingIds.has(row.id)) continue;
+      const mapped = crmMapReservation(row);
+      const index = state.reservations.findIndex(r => r.id === row.id);
+      if(index === -1) state.reservations.push(mapped);
+      else state.reservations[index] = mapped;
+    }
   } catch(err){
-    console.warn('[Fila de espera] Falha ao consultar o Supabase', err?.code || err?.name);
-  } finally {
-    preCheckinRefreshInProgress = false;
+    console.warn('[Check-in] Falha ao atualizar reservas da chegada',err?.code || err?.name);
   }
 }
 
@@ -12229,7 +12291,8 @@ async function handleSaveWaitlistEntry(e){
     return;
   }
   closeModal();
-  const destination = isIconikoPreCheckin(entry) ? 'no Supabase' : 'neste aparelho';
+  const savedEntry = state.waitlist.find(w => w.id === entry.id);
+  const destination = savedEntry?.cloudPending ? 'neste aparelho, aguardando sincronização' : 'no Supabase';
   toast(`✓ ${entry.name} (${people} pess.) salvo(a) na fila ${destination}.`);
   renderWaitlist();
 }
@@ -12323,7 +12386,7 @@ async function allocateWaitlistClientToTable(id, table, extraNotes = '', reviewe
   if(!w) return;
 
   const pilot = attendancePilotEnabled();
-  const cloudPilot = pilot && isIconikoPreCheckin(w);
+  const cloudPilot = pilot && isSharedPreCheckin(w);
   if(pilot && !reviewed){
     const visits = matchingCheckinVisits({...w,customer_id:w.clientId});
     if(visits.length){
@@ -12451,7 +12514,7 @@ function handleFinalizeWaitlistCheckin(e, id){
 
 
 void restorePersistedWaitlist();
-setInterval(refreshIconikoPreCheckins, 15000);
+setInterval(refreshSharedPreCheckins, 15000);
 
 el('waitlistSearch')?.addEventListener('input', () => renderWaitlist());
 el('waitlistHouseFilter')?.addEventListener('change', () => renderWaitlist());
