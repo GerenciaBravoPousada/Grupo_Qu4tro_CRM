@@ -1406,6 +1406,7 @@ button.crm-confirm-action:not(:disabled):hover{background:#a7f3c0!important}
   </div>
   <section class="view active" id="view-dashboard">
    <div class="cards" id="metrics"></div>
+   <button type="button" class="btn" id="reviewVisitDuplicates" onclick="openVisitDuplicateReview()" hidden></button>
    <!-- MONITOR DE AUDITORIA E PRESENÇA DAS RECEPÇÕES -->
    <div id="operatorPresenceSection" style="margin-bottom:18px"></div>
    <div class="grid2">
@@ -3342,7 +3343,7 @@ async function pullAllFromSupabaseLegacy(){
     state.clients=state.clients.filter(c=>remoteIds.has(c.id) || (!c.serverUpdatedAt && typeof isLegacySeedClient === 'function' && !isLegacySeedClient(c)));
     crmMarkRead('customers', true);
     }
-    if(!state.__visitsPurgedV2 || crmShouldPull('visits')) {
+    if(!state.__visitReviewLoaded || crmShouldPull('visits')) {
     // 5. PULL VISITS (FULL SYNC PAGINATED & AUTHORITATIVE PURGE)
     let allVisits = [];
     let vPage = 0;
@@ -3412,23 +3413,16 @@ async function pullAllFromSupabaseLegacy(){
         setTimeout(() => crmAutoFlushLocalData(), 150);
       }
 
-      // Deduplicação estrita de segurança
-      const seenVisits = new Set();
-      state.visits = state.visits.filter(v => {
-        let cleanP = String(v.phone || '').replace(/\D/g, '');
-        if(cleanP.startsWith('55') && cleanP.length > 10) cleanP = cleanP.slice(2);
-        const houseKey = normalizeHouseKey(v.house);
-        const dateIso = normalizeDateIso(v.date) || v.date;
-        const idKey = v.id ? 'id_' + v.id : null;
-        const sig = houseKey + '_' + dateIso + '_' + cleanP + '_' + (v.arrival || '');
-        if(idKey && seenVisits.has(idKey)) return false;
-        if(seenVisits.has(sig)) return false;
-        if(idKey) seenVisits.add(idKey);
-        seenVisits.add(sig);
+      const seenIds = new Set();
+      state.visits = state.visits.filter(visit => {
+        if(!visit.id) return true;
+        if(seenIds.has(visit.id)) return false;
+        seenIds.add(visit.id);
         return true;
       });
 
       state.__visitsPurgedV2 = true;
+      state.__visitReviewLoaded = true;
       renderCheckinStats();
       renderDashboard();
       renderClients();
@@ -4530,8 +4524,104 @@ function normalizeOrigin(src){
   return 'Outros';
 }
 
+const visitReviewMarker = /\n?\[DUPLICIDADE:([0-9a-f-]{36}):(agrupar|separar)\]$/;
+function visitReviewNotes(notes){
+  return String(notes || '').replace(visitReviewMarker, '');
+}
+function visitReviewGroups(visits){
+  const groups = new Map();
+  for(const v of visits){
+    if(!isUUID(v.id) || !v.syncedToSupabase || !v.phone || !v.date || !v.house) continue;
+    let phone = digits(v.phone);
+    if(phone.startsWith('55') && phone.length > 10) phone = phone.slice(2);
+    if(!phone) continue;
+    const key = JSON.stringify([normalizeHouseKey(v.house), normalizeDateIso(v.date), phone, v.arrival || '']);
+    if(!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(v);
+  }
+  return [...groups.values()].filter(rows => rows.length > 1).map(rows => rows.sort((a,b) => a.id.localeCompare(b.id)));
+}
+function visitReviewDecision(visit, primary){
+  const match = visitReviewMarker.exec(visit.notes || '');
+  return match?.[1] === primary.id ? match[2] : null;
+}
+function openVisitDuplicateReview(){
+  if(getCurrentUser()?.role !== 'Master') return;
+  const groups = visitReviewGroups(filteredVisits());
+  el('modalTitle').textContent = 'Revisar possíveis duplicatas';
+  const body = el('modalBody');
+  const rowLabel = v => `${v.name || 'Cliente'} • ${v.people || 0} pessoa(s) • Mesa ${v.table || '—'} • ${v.operatorReception || 'Sem operador'} • ${v.source || 'Sem origem'}`;
+  body.innerHTML = `<p>Visitas pendentes contam separadamente. Agrupar retira apenas o registro selecionado dos totais da Visão Geral.</p>
+    <p id="visitDuplicateStatus" role="status"></p>
+    ${groups.map(([primary,...matches]) => `<section class="card" style="margin:10px 0">
+      <strong>${esc(fmtDate(primary.date))} • ${esc(primary.arrival || 'Sem horário')} • ${esc(houseLabel(primary.house))} • ${maskClientPhone(primary.phone)}</strong>
+      <p>Registro de referência · ${esc(rowLabel(primary))}</p>
+      ${matches.map(v => {
+        const decision = visitReviewDecision(v,primary);
+        return `<div style="margin-top:12px"><div>${esc(rowLabel(v))}</div>
+          <small>${decision === 'agrupar' ? 'Agrupada' : decision === 'separar' ? 'Mantida separada' : 'Pendente de revisão'}</small>
+          <div class="actions-row"><button type="button" class="btn" data-visit="${esc(v.id)}" data-reference="${esc(primary.id)}" data-choice="agrupar" ${decision === 'agrupar' ? 'disabled' : ''}>Agrupar com a referência</button>
+          <button type="button" class="btn" data-visit="${esc(v.id)}" data-reference="${esc(primary.id)}" data-choice="separar" ${decision === 'separar' ? 'disabled' : ''}>Manter separada</button></div></div>`;
+      }).join('')}</section>`).join('') || '<p>Nenhuma coincidência nesta seleção.</p>'}`;
+  for(const button of body.querySelectorAll('button[data-choice]')) button.onclick = () => saveVisitReview(button);
+  el('modal').classList.add('show');
+}
+async function saveVisitReview(button){
+  if(getCurrentUser()?.role !== 'Master' || button.disabled) return;
+  const {visit:id,reference,choice} = button.dataset;
+  const group = visitReviewGroups(filteredVisits()).find(rows => rows[0].id === reference);
+  const visit = group?.slice(1).find(row => row.id === id);
+  const status = el('visitDuplicateStatus');
+  if(!visit || !['agrupar','separar'].includes(choice)) return;
+  const sb = getSupabase();
+  if(!navigator.onLine || !sb){status.textContent = 'Sem conexão para registrar a revisão.'; return;}
+  const buttons = [...button.closest('.actions-row').querySelectorAll('button')].filter(item => !item.disabled);
+  buttons.forEach(item => item.disabled = true);
+  status.textContent = 'Registrando revisão…';
+  try {
+    const result = await crmTrackWrite(async () => {
+      const previous = await sb.from('visits').select('notes').eq('id',id).single();
+      if(previous.error || !previous.data || (previous.data.notes || '') !== (visit.notes || '')) throw new Error('Registro alterado');
+      const notes = visitReviewNotes(visit.notes) + `\n[DUPLICIDADE:${reference}:${choice}]`;
+      let update = sb.from('visits').update({notes}).eq('id',id);
+      update = previous.data.notes === null ? update.is('notes',null) : update.eq('notes',previous.data.notes);
+      const {data,error} = await update.select('id').maybeSingle();
+      if(error || data?.id !== id) throw new Error('Revisão sem confirmação');
+      return notes;
+    });
+    const current = state.visits.find(row => row.id === id);
+    if(current) current.notes = result;
+    saveOperationalCache();
+    renderDashboard();
+    if(status.isConnected && el('modal').classList.contains('show')){
+      const scroll = status.closest('.modal-card');
+      const top = scroll?.scrollTop || 0;
+      openVisitDuplicateReview();
+      if(scroll) scroll.scrollTop = top;
+      el('visitDuplicateStatus').textContent = 'Revisão registrada.';
+    }
+  } catch {
+    status.textContent = 'A revisão ficou sem confirmação. Atualize os dados e confira o registro.';
+    buttons.forEach(item => item.disabled = false);
+  }
+}
+
 function renderDashboard(){
-  const vv = filteredVisits();
+  const allVisits = filteredVisits();
+  const groups = visitReviewGroups(allVisits);
+  const excluded = new Set();
+  let pending = 0;
+  for(const [primary,...matches] of groups){
+    for(const visit of matches){
+      const decision = visitReviewDecision(visit,primary);
+      if(decision === 'agrupar') excluded.add(visit.id);
+      if(!decision) pending++;
+    }
+  }
+  const review = el('reviewVisitDuplicates');
+  review.hidden = getCurrentUser()?.role !== 'Master';
+  review.textContent = `Revisar possíveis duplicatas${pending ? ' • ' + pending + ' pendente(s)' : ''}`;
+  const vv = allVisits.filter(visit => !excluded.has(visit.id));
   const phones = new Set(vv.map(v => digits(v.phone)).filter(Boolean));
   
   // Classificação completa de 100% das visitas entre Novo e Recorrente:
@@ -5459,7 +5549,7 @@ function renderCheckinList(){
         <td class="col-status">
           <div style="display:inline-flex;align-items:center;gap:6px;max-width:100%">
             <span class="badge ${v.status?.toLowerCase().includes('recorr') ? 'gold' : 'blue'}" style="font-size:9.5px;padding:2px 6px;line-height:1">${esc(v.status || 'Novo')}</span>
-            ${v.notes ? `<span style="font-size:10.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:170px" title="${esc(v.notes)}">${esc(v.notes)}</span>` : ''}
+            ${visitReviewNotes(v.notes) ? `<span style="font-size:10.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:170px" title="${esc(visitReviewNotes(v.notes))}">${esc(visitReviewNotes(v.notes))}</span>` : ''}
           </div>
         </td>
         <td class="col-actions">
@@ -5532,7 +5622,7 @@ function openEditCheckinModal(visitId){
         </div>
         <div class="field span2">
           <label>Observações</label>
-          <textarea id="editCiNotes" style="min-height:60px">${esc(v.notes || '')}</textarea>
+          <textarea id="editCiNotes" style="min-height:60px">${esc(visitReviewNotes(v.notes))}</textarea>
         </div>
 
         <!-- MOTIVO DA ALTERAÇÃO (OPCIONAL) -->
@@ -5612,7 +5702,8 @@ async function submitEditCheckinForm(visitId){
   v.arrival = newArrival;
   v.house = newHouse;
   v.source = newSource;
-  v.notes = newNotes + auditLog;
+  const decision = visitReviewMarker.exec(v.notes || '')?.[0] || '';
+  v.notes = newNotes + auditLog + decision;
   v.lastEditedAt = new Date().toISOString();
   v.lastEditedBy = userName;
   v.lastEditedReason = reason;
@@ -6115,7 +6206,7 @@ function openProfile(id){
   }
 
   el('profileVisitCount').textContent=`${vv.length} registros detalhados`;
-  el('profileTimeline').innerHTML=vv.length?vv.map(v=>`<div class="visit-item"><div class="date">${fmtDate(v.date)}<br>${esc(v.arrival||'')}</div><div><strong>${esc(v.house)} • Mesa ${esc(v.table||'—')}</strong><p>${v.people} pessoa(s) • ${esc(v.source)}${v.notes?' • '+esc(v.notes):''}</p></div><span class="badge ${v.status?.toLowerCase().includes('recorr')?'gold':'blue'}">${esc(v.status||'—')}</span></div>`).join(''):'<div class="empty">O resumo histórico existe, mas não há visita detalhada dentro da amostra carregada nesta V2.</div>';
+  el('profileTimeline').innerHTML=vv.length?vv.map(v=>`<div class="visit-item"><div class="date">${fmtDate(v.date)}<br>${esc(v.arrival||'')}</div><div><strong>${esc(v.house)} • Mesa ${esc(v.table||'—')}</strong><p>${v.people} pessoa(s) • ${esc(v.source)}${visitReviewNotes(v.notes)?' • '+esc(visitReviewNotes(v.notes)):''}</p></div><span class="badge ${v.status?.toLowerCase().includes('recorr')?'gold':'blue'}">${esc(v.status||'—')}</span></div>`).join(''):'<div class="empty">O resumo histórico existe, mas não há visita detalhada dentro da amostra carregada nesta V2.</div>';
   go('profile');
 }
 function copyPhone(){if(!currentClient)return;navigator.clipboard?.writeText(currentClient.phone);toast('Telefone copiado.')}
