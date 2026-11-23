@@ -3072,7 +3072,7 @@ async function pullReservationsFromSupabase(){
         };
       });
       state.reservations.push(...localPending);
-      saveStateToStorage();
+
       crmMarkRead('reservations', true);
       if(typeof renderReservations === 'function') renderReservations();
     }
@@ -3113,7 +3113,7 @@ async function pullAllFromSupabaseLegacy(){
         active: ru.active !== false,
         createdAt: ru.created_at ? ru.created_at.slice(0,10) : '2026-09-10'
       }));
-      saveOperationalCache();
+
       if(el('view-users')?.classList.contains('active')) renderUsers();
       renderUserSessionBadge();
     }
@@ -3147,7 +3147,7 @@ async function pullAllFromSupabaseLegacy(){
           if(r.restrict_weekends !== undefined) state.settingsByHouse[key].restrictWeekends = r.restrict_weekends;
         }
       });
-      saveStateToStorage();
+
       if(el('view-settings')?.classList.contains('active')) renderSettings();
     }
 
@@ -3191,7 +3191,6 @@ async function pullAllFromSupabaseLegacy(){
                   });
                 });
                 state.restaurantMaps = parsedMaps;
-                saveOperationalCache(true);
                 if(typeof renderFloorplan === 'function' && el('view-tables')?.classList.contains('active')) renderFloorplan();
               }
             }
@@ -3258,7 +3257,7 @@ async function pullAllFromSupabaseLegacy(){
                 }
               });
               state.vouchers = Array.from(vMap.values()).sort((a,b) => new Date(b.createdAt||0) - new Date(a.createdAt||0));
-              saveStateToStorage();
+
               if(typeof renderVouchers === 'function' && el('view-vouchers')?.classList.contains('active')) renderVouchers();
             }
           } catch(e){}
@@ -3269,7 +3268,6 @@ async function pullAllFromSupabaseLegacy(){
             const parsedTmpls = JSON.parse(rc.notes);
             if(Array.isArray(parsedTmpls) && parsedTmpls.length > 0){
               state.wppTemplates = parsedTmpls;
-              saveStateToStorage();
             }
           } catch(e){}
           return;
@@ -3282,7 +3280,7 @@ async function pullAllFromSupabaseLegacy(){
               (state.communications || []).forEach(c => { if(c && c.id) cMap.set(c.id, c); });
               parsedComms.forEach(c => { if(c && c.id) cMap.set(c.id, c); });
               state.communications = Array.from(cMap.values()).sort((a,b) => new Date(b.sentAt||0) - new Date(a.sentAt||0));
-              saveStateToStorage();
+
               if(typeof renderCommunication === 'function' && el('view-communication')?.classList.contains('active')) renderCommunication();
             }
           } catch(e){}
@@ -3440,7 +3438,7 @@ async function pullAllFromSupabaseLegacy(){
     }
     } // end if(sb)
 
-    saveOperationalCache(true);
+    refreshAll();
 
   } catch(err){
     console.warn('pullAllFromSupabase error:', err);
