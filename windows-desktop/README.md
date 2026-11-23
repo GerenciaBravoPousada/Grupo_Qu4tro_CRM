@@ -4,7 +4,7 @@ O instalador x64 reúne o CRM e o componente do diário de 72 horas. Usa o Micro
 
 ## Instalação
 
-Execute GrupoQu4tro-Desktop-Setup.exe na conta Windows usada pela recepção. O instalador verifica o WebView2 e faz uma escrita de teste criptografada para confirmar que a pasta do diário funciona. Cria atalhos na área de trabalho, no menu Iniciar e na pasta de Inicialização do usuário. Depois de entrar no Windows, o CRM abre automaticamente na tela de login. A manutenção do diário roda pelo Agendador de Tarefas enquanto a conta do Windows está em sessão.
+Execute GrupoQu4tro-Desktop-Setup.exe na conta Windows usada pela recepção. O instalador verifica o WebView2 e faz uma escrita de teste criptografada na pasta `C:\Gestão de Apps Grupo Qu4tro\Backup_72hs_Gestao_Clientes`. O Windows protege os registros pela conta que usa o CRM. Ao atualizar, as operações ainda dentro das 72 horas do diário nativo anterior são copiadas, e a pasta anterior é preservada. Cria atalhos na área de trabalho, no menu Iniciar e na pasta de Inicialização do usuário. Depois de entrar no Windows, o CRM abre automaticamente na tela de login. A manutenção do diário roda pelo Agendador de Tarefas enquanto a conta do Windows está em sessão.
 
 O Windows exige ação do usuário para fixar o ícone. Com o CRM aberto, clique no ícone da barra de tarefas com o botão direito e escolha Fixar na barra de tarefas.
 

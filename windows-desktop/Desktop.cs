@@ -15,7 +15,6 @@ internal sealed class Desktop : Form
     const string Origin = "https://crm-grupo-qu4tro.iconiko.com.br";
     const string StartUrl = Origin + "/index.html";
     static readonly string Root = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Grupo Qu4tro");
-    static readonly string Journal = Path.Combine(Root, "Diario CRM");
     static readonly string Files = AppDomain.CurrentDomain.BaseDirectory;
     readonly string testRoot;
     bool testPassed;
@@ -60,20 +59,9 @@ internal sealed class Desktop : Form
         }
     }
 
-    static void JournalStatus() { JournalHost.Run(Journal, new Dictionary<string,object> {{"command","status"}}); }
+    static void JournalStatus() { JournalHost.RunConfigured(new Dictionary<string,object> {{"command","status"}}); }
 
-    static void VerifyJournal()
-    {
-        Directory.CreateDirectory(Journal);
-        if ((File.GetAttributes(Journal) & FileAttributes.ReparsePoint) != 0) throw new IOException();
-        var acl = new DirectorySecurity();
-        acl.SetAccessRuleProtection(true, false);
-        foreach (var sid in new[] {WindowsIdentity.GetCurrent().User, new SecurityIdentifier("S-1-5-18")})
-            acl.AddAccessRule(new FileSystemAccessRule(sid, FileSystemRights.FullControl,
-                InheritanceFlags.ContainerInherit | InheritanceFlags.ObjectInherit, PropagationFlags.None, AccessControlType.Allow));
-        Directory.SetAccessControl(Journal, acl);
-        JournalHost.VerifyStorage(Journal);
-    }
+    static void VerifyJournal() { JournalHost.SetupDirectory(JournalHost.StandardDirectory, JournalHost.LegacyDirectory); }
 
     Desktop(string testRoot = null)
     {
@@ -132,7 +120,9 @@ internal sealed class Desktop : Form
                     Guid parsed;
                     if (!Guid.TryParseExact(id,"D",out parsed)) return;
                     var message = request["message"] as Dictionary<string,object>;
-                    var result = await Task.Run(() => JournalHost.Run(testRoot == null ? Journal : Path.Combine(testRoot,"test-journal"),message));
+                    var result = await Task.Run(() => testRoot == null
+                        ? JournalHost.RunConfigured(message)
+                        : JournalHost.RunConfigured(Path.Combine(testRoot,"fixed","test-journal"), Path.Combine(testRoot,"legacy"), message));
                     if (!IsDisposed && browser.Source == StartUrl)
                         browser.PostWebMessageAsJson(json.Serialize(new { id, response = result }));
                 } catch (Exception) {
@@ -159,12 +149,17 @@ internal sealed class Desktop : Form
         for (int i=0;i<40;i++) {
             await Task.Delay(250);
             if (await browser.ExecuteScriptAsync(check) != "true") continue;
+            Guid setupId = Guid.NewGuid();
+            await browser.ExecuteScriptAsync("window.postMessage({channel:'qu4tro-journal-request',id:'" +
+                setupId.ToString("D") + "',message:{command:'setup'}},location.origin)");
+            string file = Path.Combine(testRoot,"fixed","test-journal","operacoes.jsonl");
+            for(int j=0;j<20 && !File.Exists(file);j++) await Task.Delay(150);
+            if(!File.Exists(file)) break;
             Guid id = Guid.NewGuid();
             string request = json.Serialize(new { command = "append", id = id.ToString("D"), action = "WAITLIST",
                 details = new { house = "Teste isolado", record = new { id = "piloto" } } });
             await browser.ExecuteScriptAsync("window.postMessage({channel:'qu4tro-journal-request',id:'" +
                 id.ToString("D") + "',message:" + request + "},location.origin)");
-            string file = Path.Combine(testRoot,"test-journal","operacoes.jsonl");
             for(int j=0;j<20;j++){
                 await Task.Delay(150);
                 if(File.Exists(file) && File.ReadAllText(file).Contains(id.ToString("D"))){

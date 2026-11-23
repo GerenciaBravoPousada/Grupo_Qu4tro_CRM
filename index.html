@@ -1287,6 +1287,7 @@ button.crm-confirm-action:not(:disabled):hover{background:#a7f3c0!important}
 #crmLastRefresh{font-size:12px}
 #reviewVisitDuplicates{margin-inline-start:auto}
 #reviewVisitDuplicates[hidden],.content:not(:has(> #view-dashboard.active)) #reviewVisitDuplicates{display:none}
+#crmJournalBanner[hidden],#crmJournalSetupButton[hidden]{display:none}
 .crm-update-notice{position:fixed;z-index:1100;bottom:16px;left:16px;max-width:calc(100% - 32px);padding:10px 12px;background:#fff;color:#142b36;border:1px solid #cad8e0;border-radius:10px;box-shadow:0 4px 16px #0002}
 .crm-update-notice .btn{margin-left:6px}
 </style>
@@ -1364,7 +1365,10 @@ button.crm-confirm-action:not(:disabled):hover{background:#a7f3c0!important}
 </div><img id="topHouseLogo" class="session-house-logo desktop-only" alt="Casa atual" onerror="this.style.display='none'" onload="this.style.display=''"><div class="session-chip desktop-only"><span>Empresa:</span><select id="sessionHouse" onchange="changeSessionHouse(this.value)"><option value="Bravo Café">Bravo Café</option><option value="Café da Bravo Pousada">Café da Bravo Pousada</option><option value="Íconico">Iconiko Cozinha Japonesa</option><option value="Leña">Leña Casa Italiana</option></select></div><div class="session-chip" id="dashTopPeriodWrap" style="display:inline-flex;align-items:center;gap:6px"><span>Período:</span><select id="dashPeriod" style="border:0;background:transparent;font-weight:700;font-size:12px;color:var(--ink);outline:none;cursor:pointer"><option value="all">Todo o Período</option><option value="today">Hoje</option><option value="yesterday">Ontem</option><option value="7">Últimos 7 dias</option><option value="14">Últimos 14 dias</option><option value="30">Últimos 30 dias</option><option value="60">Últimos 60 dias</option><option value="90">Últimos 90 dias</option><option value="180">Últimos 180 dias</option><option value="custom">📅 Período específico...</option></select></div><button type="button" id="btnCustomPeriodEdit" class="btn ghost" style="display:none;padding:5px 11px;font-size:12px;border:1px solid var(--accent);border-radius:10px;background:#fff8ee;color:#8d642f;font-weight:700;white-space:nowrap" onclick="openCustomPeriodModal()" title="Alterar período específico">📅 <span id="customPeriodBadgeText"></span> ✎</button><button class="btn desktop-only" id="topbarNewCheckinBtn" onclick="go('checkin')" style="display:none">＋ Novo check-in</button><button class="btn primary" id="topbarSearchClientBtn" onclick="go('clients')" style="display:none">⌕ Buscar cliente</button></div></header>
  <div class="content">
   <div id="crmConflictNotice" style="display:none;padding:12px;background:#fffbeb">Há cadastros com conflito de atualização. As alterações estão preservadas neste aparelho. <button class="btn" onclick="crmReviewConflicts()">Revisar pendências</button></div>
-  <p id="crmJournalNotice" role="status" hidden style="color:#854d0e"></p>
+  <div id="crmJournalBanner" class="actions-row" style="align-items:center;margin-bottom:8px;color:#854d0e" hidden>
+    <span id="crmJournalNotice" role="status"></span>
+    <button type="button" class="btn" id="crmJournalSetupButton" onclick="crmJournalSetup()" hidden>Criar backup</button>
+  </div>
   <div id="crmRefreshBar" class="actions-row">
     <div class="actions-row crm-refresh-controls">
       <button type="button" class="btn" onclick="crmManualRefresh()">Atualizar dados</button>

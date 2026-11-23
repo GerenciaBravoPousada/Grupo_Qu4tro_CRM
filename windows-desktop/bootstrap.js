@@ -14,7 +14,7 @@
       const {id,message}=event.data;
       if(typeof id !== 'string' || !message) return;
       calls.set(id,Date.now());
-      for(const [key,at] of calls) if(Date.now()-at>15000) calls.delete(key);
+      for(const [key,at] of calls) if(Date.now()-at>35000) calls.delete(key);
       bridge.postMessage({id,message});
     }
   });

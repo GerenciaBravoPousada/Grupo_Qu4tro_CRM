@@ -4,6 +4,8 @@ let crmJournalDiscovered = false;
 let crmJournalEnabled = false;
 let crmJournalWarning = '';
 let crmJournalExpiring = 0;
+let crmJournalStorage = null;
+let crmJournalSetupInProgress = false;
 
 window.addEventListener('message', event => {
   if(event.source !== window || event.origin !== location.origin) return;
@@ -25,19 +27,61 @@ function crmJournalRequest(message){
       if(result) crmJournalDiscovered = true;
       resolve(result?.ok ? result : null);
     };
-    const timer = setTimeout(() => finish(null), crmJournalDiscovered ? 12000 : 2500);
+    const timer = setTimeout(() => finish(null), message.command === 'setup' ? 30000 : crmJournalDiscovered ? 12000 : 2500);
     crmJournalCalls.set(id, finish);
     window.postMessage({channel:'qu4tro-journal-request',id,message}, location.origin);
   });
 }
 
 function crmJournalRender(){
+  const banner = document.getElementById('crmJournalBanner');
   const node = document.getElementById('crmJournalNotice');
-  if(!node) return;
-  const messages = [crmJournalWarning];
+  const button = document.getElementById('crmJournalSetupButton');
+  if(!banner || !node || !button) return;
+  const setupNeeded = crmJournalStorage === 'none' || crmJournalStorage === 'legacy';
+  const message = crmJournalStorage === 'none'
+    ? 'Diário inativo neste terminal.'
+    : crmJournalStorage === 'legacy' ? 'Diário ativo na pasta anterior. Você pode conectá-lo à pasta padrão.' : '';
+  const messages = [crmJournalWarning || message];
   if(crmJournalExpiring) messages.push(crmJournalExpiring + ' operação(ões) sem confirmação atingirão 72 horas em até 12 horas.');
   node.textContent = messages.filter(Boolean).join(' ');
-  node.hidden = !node.textContent;
+  button.hidden = !setupNeeded || !state.currentUser;
+  button.disabled = crmJournalSetupInProgress;
+  button.textContent = crmJournalSetupInProgress ? 'Verificando backup…' : 'Criar backup';
+  banner.hidden = !node.textContent && button.hidden;
+}
+
+async function crmJournalSetup(){
+  if(!state.currentUser || crmJournalSetupInProgress) return;
+  if(!crmJournalEnabled && browserJournalConfig){
+    await browserJournalReauthorize();
+    if(browserJournalPermission) return;
+  }
+  if(!crmJournalEnabled){
+    el('modalTitle').textContent = 'Criar backup no Windows';
+    el('modalBody').innerHTML = `<p>Para criar o diário na pasta padrão, instale o Grupo Qu4tro Desktop neste terminal. Se a pasta do diário já foi configurada neste perfil do Chrome, autorize o acesso novamente.</p>
+      <div class="form-actions"><button class="btn" onclick="closeModal()">Fechar</button>
+      <a class="btn primary" href="/downloads/GrupoQu4tro-Desktop-Setup.exe" download>Baixar instalador</a></div>`;
+    el('modal').classList.add('show');
+    return;
+  }
+  if(!confirm('Criar ou reconectar o diário de 72 horas na pasta padrão do Windows?')) return;
+  crmJournalSetupInProgress = true;
+  crmJournalRender();
+  try {
+    const result = await crmJournalRequest({command:'setup'});
+    if(result?.storage !== 'standard' || !result.configured){
+      crmJournalWarning = 'Falha na ativação. Confira se o componente do Windows está atualizado e se a conta tem acesso à pasta padrão.';
+      return;
+    }
+    crmJournalStorage = 'standard';
+    crmJournalWarning = '';
+    crmJournalExpiring = result.expiring || 0;
+    toast('Diário ativo neste terminal.');
+  } finally {
+    crmJournalSetupInProgress = false;
+    crmJournalRender();
+  }
 }
 
 let crmJournalRecordsInProgress = 0;
@@ -67,7 +111,7 @@ async function crmJournalAppend(action, payload, id){
       if(payload.phone) record.phone = payload.phone;
     }
     const result = await request({command:'append',id,action,details:{...details,record}});
-    if(!result) throw new Error('Diário indisponível');
+    if(!result || result.configured === false) throw new Error('Diário indisponível');
     crmJournalExpiring = result.expiring || 0;
     crmJournalRender();
     return id;
@@ -82,7 +126,7 @@ async function crmJournalConfirm(id){
   if(!id) return;
   const request = crmJournalEnabled ? crmJournalRequest : browserJournalRequest;
   const result = await request({command:'confirm',id});
-  if(result) crmJournalExpiring = result.expiring || 0;
+  if(result && result.configured !== false) crmJournalExpiring = result.expiring || 0;
   else crmJournalWarning = 'O Supabase recebeu uma operação, mas o diário local não conseguiu guardar a confirmação.';
   crmJournalRender();
 }
@@ -92,18 +136,13 @@ async function crmJournalCheck(){
   await browserJournalLoad;
   const request = crmJournalEnabled ? crmJournalRequest : browserJournalRequest;
   const result = await request({command:'status'});
-  if(!crmJournalEnabled && !result && browserJournalSupported){
-    crmJournalExpiring = 0;
-    if(!crmJournalWarning) crmJournalWarning = 'Diário inativo neste terminal. Confira Dados & Backup.';
-  } else if(result && crmJournalWarning === 'Diário inativo neste terminal. Confira Dados & Backup.'){
-    crmJournalWarning = '';
-  }
+  if(crmJournalSetupInProgress) return;
+  crmJournalStorage = result && result.configured !== false
+    ? (crmJournalEnabled ? result.storage || 'legacy' : 'browser')
+    : 'none';
+  crmJournalExpiring = result?.expiring || 0;
   browserJournalRender();
   crmJournalRender();
-  if(result){
-    crmJournalExpiring = result.expiring || 0;
-    crmJournalRender();
-  }
 }
 
 setInterval(crmJournalCheck, 60000);
