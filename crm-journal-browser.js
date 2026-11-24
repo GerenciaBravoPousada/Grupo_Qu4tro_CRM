@@ -145,6 +145,34 @@ async function browserJournalBind(directory,file,phrase){
   crmJournalWarning = '';
 }
 
+function browserJournalRecoveryKeyDialog(recovery){
+  const {actions} = browserJournalSetupDialog('Diário ativo neste terminal',
+    'O diário está gravando na pasta ' + browserJournalConfig.directory.name + '. Guarde a chave de recuperação em local privado. Ela só será necessária se os dados do Chrome forem apagados.');
+  const copy = document.createElement('button');
+  copy.type = 'button';
+  copy.className = 'btn primary';
+  copy.textContent = 'Copiar chave de recuperação';
+  copy.onclick = async () => {
+    try {await navigator.clipboard.writeText(recovery);copy.textContent = 'Chave copiada';}
+    catch {toast('Não foi possível copiar a chave.');}
+  };
+  actions.append(copy);
+}
+
+async function browserJournalCreateAlongside(directory){
+  const folder = 'Novo diario ' + crypto.randomUUID();
+  const recovery = Array.from(crypto.getRandomValues(new Uint8Array(24)),
+    byte => byte.toString(16).padStart(2,'0')).join('');
+  await navigator.locks.request('qu4tro-browser-journal',async () => {
+    const target = await directory.getDirectoryHandle(folder,{create:true});
+    const file = await browserJournalRead(target,true);
+    if(file.header) throw new Error('Já existe um diário nessa pasta.');
+    await browserJournalBind(target,file,recovery);
+  });
+  await crmJournalCheck();
+  browserJournalRecoveryKeyDialog(recovery);
+}
+
 function browserJournalRecoverDialog(directory){
   const {message,actions} = browserJournalSetupDialog('Reconectar diário existente',
     'Já existe um diário na pasta selecionada. Digite a chave de recuperação original para reconectar.');
@@ -175,6 +203,23 @@ function browserJournalRecoverDialog(directory){
       submit.disabled = false;
     }
   };
+  const create = document.createElement('button');
+  create.type = 'button';
+  create.className = 'btn';
+  create.textContent = 'Criar novo backup';
+  create.onclick = async () => {
+    if(!state.currentUser || create.disabled || submit.disabled) return;
+    if(!confirm('Iniciar um novo diário? O arquivo anterior será preservado para recuperação.')) return;
+    create.disabled = submit.disabled = true;
+    try {
+      await browserJournalCreateAlongside(directory);
+    } catch {
+      message.textContent = 'Não foi possível criar o novo diário. Confira a permissão da pasta.';
+    } finally {
+      create.disabled = submit.disabled = false;
+    }
+  };
+  actions.append(create);
   actions.append(submit);
   field.focus();
 }
@@ -242,19 +287,7 @@ async function browserJournalPickStandard(){
       closeModal();
       toast('Diário ativo neste terminal.');
     }
-    if(recovery){
-      const {actions} = browserJournalSetupDialog('Diário ativo neste terminal',
-        'O diário está gravando. Guarde a chave de recuperação em local privado para reabrir este arquivo se os dados do Chrome forem apagados. Ela não é necessária no uso diário.');
-      const copy = document.createElement('button');
-      copy.type = 'button';
-      copy.className = 'btn primary';
-      copy.textContent = 'Copiar chave de recuperação';
-      copy.onclick = async () => {
-        try {await navigator.clipboard.writeText(recovery);copy.textContent = 'Chave copiada';}
-        catch {toast('Não foi possível copiar a chave.');}
-      };
-      actions.append(copy);
-    }
+    if(recovery) browserJournalRecoveryKeyDialog(recovery);
   } catch(error){
     if(error.name !== 'AbortError'){
       browserJournalNotice = 'Não foi possível ativar o diário nesta pasta. Confira a permissão de gravação.';
