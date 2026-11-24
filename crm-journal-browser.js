@@ -84,7 +84,7 @@ async function browserJournalWrite(handle, header, rows){
   }
 }
 
-const browserJournalParentFolder = 'Gestão de Apps Grupo Qu4tro';
+const browserJournalLegacyParentFolder = 'Gestão de Apps Grupo Qu4tro';
 const browserJournalStandardFolder = 'Backup_72hs_Gestao_Clientes';
 
 function browserJournalSetupDialog(title,text){
@@ -113,9 +113,16 @@ async function browserJournalSetupDirectory(selected){
     if(error.name !== 'NotFoundError') throw error;
   }
   if(selected.name === browserJournalStandardFolder) return selected;
-  const parent = selected.name === browserJournalParentFolder ? selected
-    : await selected.getDirectoryHandle(browserJournalParentFolder,{create:true});
-  return parent.getDirectoryHandle(browserJournalStandardFolder,{create:true});
+
+  try {
+    const parent = await selected.getDirectoryHandle(browserJournalLegacyParentFolder);
+    const previous = await parent.getDirectoryHandle(browserJournalStandardFolder);
+    await previous.getFileHandle(browserJournalFile);
+    return previous;
+  } catch(error){
+    if(error.name !== 'NotFoundError') throw error;
+  }
+  return selected.getDirectoryHandle(browserJournalStandardFolder,{create:true});
 }
 
 async function browserJournalBind(directory,file,phrase){
@@ -208,7 +215,7 @@ async function browserJournalPickStandard(){
   let recovery = null;
   let bound = false;
   try {
-    const selected = await window.showDirectoryPicker({id:'grupo-qu4tro-diario',mode:'readwrite'});
+    const selected = await window.showDirectoryPicker({id:'qu4tro-backup-documentos',startIn:'documents',mode:'readwrite'});
     const directory = await browserJournalSetupDirectory(selected);
     await navigator.locks.request('qu4tro-browser-journal',async () => {
       const file = await browserJournalRead(directory,true);
