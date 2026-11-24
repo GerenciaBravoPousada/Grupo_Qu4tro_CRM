@@ -53,20 +53,8 @@ function crmJournalRender(){
 
 async function crmJournalSetup(){
   if(!state.currentUser || crmJournalSetupInProgress) return;
-  if(!crmJournalEnabled && browserJournalConfig){
-    await browserJournalReauthorize();
-    if(browserJournalPermission) return;
-  }
   if(!crmJournalEnabled){
-    el('modalTitle').textContent = 'Criar backup no Windows';
-    el('modalBody').innerHTML = `<p>Para criar o diário na pasta padrão, instale o Grupo Qu4tro Desktop neste terminal. Se a pasta do diário já foi configurada neste perfil do Chrome, autorize o acesso novamente.</p>
-      <div class="form-actions"><button class="btn" onclick="closeModal()">Fechar</button>
-      <a class="btn primary" id="crmJournalInstaller" href="/downloads/GrupoQu4tro-Desktop-Setup.exe" download>Baixar instalador</a></div>`;
-    const version = document.querySelector('meta[name="crm-release"]')?.content;
-    if(version && /^[a-f0-9]{40}$/.test(version)){
-      el('crmJournalInstaller').href += '?v=' + version;
-    }
-    el('modal').classList.add('show');
+    await browserJournalQuickSetup();
     return;
   }
   if(!confirm('Criar ou reconectar o diário de 72 horas na pasta padrão do Windows?')) return;

@@ -84,6 +84,182 @@ async function browserJournalWrite(handle, header, rows){
   }
 }
 
+const browserJournalParentFolder = 'Gestão de Apps Grupo Qu4tro';
+const browserJournalStandardFolder = 'Backup_72hs_Gestao_Clientes';
+
+function browserJournalSetupDialog(title,text){
+  el('modalTitle').textContent = title;
+  const body = el('modalBody');
+  const message = document.createElement('p');
+  message.textContent = text;
+  const actions = document.createElement('div');
+  actions.className = 'form-actions';
+  const close = document.createElement('button');
+  close.type = 'button';
+  close.className = 'btn';
+  close.textContent = 'Fechar';
+  close.onclick = closeModal;
+  actions.append(close);
+  body.replaceChildren(message,actions);
+  el('modal').classList.add('show');
+  return {body,message,actions};
+}
+
+async function browserJournalSetupDirectory(selected){
+  try {
+    await selected.getFileHandle(browserJournalFile);
+    return selected;
+  } catch(error){
+    if(error.name !== 'NotFoundError') throw error;
+  }
+  if(selected.name === browserJournalStandardFolder) return selected;
+  const parent = selected.name === browserJournalParentFolder ? selected
+    : await selected.getDirectoryHandle(browserJournalParentFolder,{create:true});
+  return parent.getDirectoryHandle(browserJournalStandardFolder,{create:true});
+}
+
+async function browserJournalBind(directory,file,phrase){
+  const header = file.header || {version:1,id:crypto.randomUUID(),
+    salt:browserJournalEncode(crypto.getRandomValues(new Uint8Array(16)))};
+  const key = await browserJournalKey(phrase,header.salt);
+  if(file.header){
+    if(await browserJournalOpen(key,header.check,header.id) !== 'Grupo Qu4tro') throw new Error('Chave incorreta');
+  } else {
+    header.check = await browserJournalSeal(key,'Grupo Qu4tro',header.id);
+    await browserJournalWrite(await directory.getFileHandle(browserJournalFile,{create:true}),header,[]);
+    const verified = await browserJournalRead(directory);
+    if(await browserJournalOpen(key,verified.header.check,header.id) !== 'Grupo Qu4tro') throw new Error('Verificação da gravação falhou');
+  }
+  const config = {directory,key,id:header.id};
+  await browserJournalSettings(config);
+  browserJournalConfig = config;
+  browserJournalPermission = true;
+  browserJournalNotice = '';
+  crmJournalWarning = '';
+}
+
+function browserJournalRecoverDialog(directory){
+  const {message,actions} = browserJournalSetupDialog('Reconectar diário existente',
+    'Já existe um diário na pasta selecionada. Digite a chave de recuperação original para reconectar.');
+  const field = document.createElement('input');
+  field.className = 'control';
+  field.type = 'password';
+  field.autocomplete = 'off';
+  field.setAttribute('aria-label','Chave de recuperação do diário');
+  actions.before(field);
+  const submit = document.createElement('button');
+  submit.type = 'button';
+  submit.className = 'btn primary';
+  submit.textContent = 'Reconectar';
+  submit.onclick = async () => {
+    if(!field.value || submit.disabled || !state.currentUser) return;
+    submit.disabled = true;
+    try {
+      await navigator.locks.request('qu4tro-browser-journal',async () => {
+        await browserJournalBind(directory,await browserJournalRead(directory),field.value);
+      });
+      field.value = '';
+      await crmJournalCheck();
+      closeModal();
+      toast('Diário ativo neste terminal.');
+    } catch {
+      message.textContent = 'Não foi possível reconectar. Confira a chave e a autorização da pasta. O arquivo foi preservado.';
+    } finally {
+      submit.disabled = false;
+    }
+  };
+  actions.append(submit);
+  field.focus();
+}
+
+async function browserJournalQuickSetup(){
+  if(!state.currentUser || browserJournalConnecting) return;
+  if(!browserJournalSupported){
+    browserJournalSetupDialog('Criar backup','Abra o CRM em um Chrome compatível com acesso a pastas.');
+    return;
+  }
+  const existing = browserJournalConfig;
+  if(existing){
+    const {actions} = browserJournalSetupDialog('Reconectar ou escolher outra pasta',
+      'Se já existe um diário neste terminal, reconecte a pasta. Você também pode escolher outra pasta autorizada.');
+    const reconnect = document.createElement('button');
+    reconnect.type = 'button';
+    reconnect.className = 'btn';
+    reconnect.textContent = 'Reconectar pasta';
+    reconnect.onclick = async () => {
+      await browserJournalReauthorize();
+      if(browserJournalPermission){closeModal();toast('Diário ativo neste terminal.');}
+      else toast('A pasta ainda está sem acesso. Confira a permissão ou escolha outra pasta.');
+    };
+    const choose = document.createElement('button');
+    choose.type = 'button';
+    choose.className = 'btn primary';
+    choose.textContent = 'Escolher pasta';
+    choose.onclick = () => void browserJournalPickStandard();
+    actions.append(reconnect,choose);
+    return;
+  }
+  await browserJournalPickStandard();
+}
+
+async function browserJournalPickStandard(){
+  if(browserJournalConnecting || !state.currentUser) return;
+  browserJournalConnecting = true;
+  let recovery = null;
+  let bound = false;
+  try {
+    const selected = await window.showDirectoryPicker({id:'grupo-qu4tro-diario',mode:'readwrite'});
+    const directory = await browserJournalSetupDirectory(selected);
+    await navigator.locks.request('qu4tro-browser-journal',async () => {
+      const file = await browserJournalRead(directory,true);
+      if(file.header){
+        if(browserJournalConfig?.id === file.header.id &&
+          await browserJournalOpen(browserJournalConfig.key,file.header.check,file.header.id) === 'Grupo Qu4tro'){
+          const config = {...browserJournalConfig,directory};
+          await browserJournalSettings(config);
+          browserJournalConfig = config;
+          browserJournalNotice = '';
+          crmJournalWarning = '';
+          bound = true;
+        } else {
+          browserJournalRecoverDialog(directory);
+        }
+        return;
+      }
+      recovery = Array.from(crypto.getRandomValues(new Uint8Array(24)),byte => byte.toString(16).padStart(2,'0')).join('');
+      await browserJournalBind(directory,file,recovery);
+      bound = true;
+    });
+    if(bound) await crmJournalCheck();
+    if(bound && !recovery){
+      closeModal();
+      toast('Diário ativo neste terminal.');
+    }
+    if(recovery){
+      const {actions} = browserJournalSetupDialog('Diário ativo neste terminal',
+        'O diário está gravando. Guarde a chave de recuperação em local privado para reabrir este arquivo se os dados do Chrome forem apagados. Ela não é necessária no uso diário.');
+      const copy = document.createElement('button');
+      copy.type = 'button';
+      copy.className = 'btn primary';
+      copy.textContent = 'Copiar chave de recuperação';
+      copy.onclick = async () => {
+        try {await navigator.clipboard.writeText(recovery);copy.textContent = 'Chave copiada';}
+        catch {toast('Não foi possível copiar a chave.');}
+      };
+      actions.append(copy);
+    }
+  } catch(error){
+    if(error.name !== 'AbortError'){
+      browserJournalNotice = 'Não foi possível ativar o diário nesta pasta. Confira a permissão de gravação.';
+      crmJournalWarning = browserJournalNotice;
+    }
+  } finally {
+    browserJournalConnecting = false;
+    browserJournalRender();
+    crmJournalRender();
+  }
+}
+
 function browserJournalTogglePhrase(button){
   const input = document.getElementById('browserJournalPhrase');
   if(!input) return;
